@@ -1,7 +1,9 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.1.0';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.2.0';
+import { FAR_ROCKS } from './rockart.js?v=0.2.0';
 
-// Deep-space backdrop: a slow distant amber sun and three layers of stars
-// moving at different speeds, which gives a sense of depth (parallax).
+// Deep-space backdrop: a slow distant amber sun, a band of dust, distant
+// asteroids and three layers of stars moving at different speeds, which
+// gives a sense of depth (parallax). Each level picks which parts it shows.
 const LAYERS = [
   { count: 30, speed: 4, color: PAL.blueDark, size: 1 },
   { count: 20, speed: 11, color: PAL.blue, size: 1 },
@@ -30,8 +32,9 @@ function makeDust() {
 }
 
 export class Background {
-  constructor(rand) {
+  constructor(rand, theme = {}) {
     this.rand = rand;
+    this.theme = { sun: true, dust: true, farRocks: false, ...theme };
     this.stars = [];
     for (const layer of LAYERS) {
       for (let i = 0; i < layer.count; i++) {
@@ -43,10 +46,19 @@ export class Background {
         });
       }
     }
+    this.farRocks = [];
+    if (this.theme.farRocks) {
+      for (let i = 0; i < 9; i++) this.farRocks.push(this.newFarRock(rand() * VIEW_W));
+    }
     this.sunX = VIEW_W * 0.8;
-    this.dust = makeDust();
+    this.dust = this.theme.dust ? makeDust() : null;
     this.dustX = 0;
     this.t = 0;
+  }
+
+  newFarRock(x) {
+    const img = FAR_ROCKS[Math.floor(this.rand() * FAR_ROCKS.length)];
+    return { x, y: this.rand() * (VIEW_H - img.height), img, speed: 4 + this.rand() * 3 };
   }
 
   update(dt) {
@@ -58,6 +70,11 @@ export class Background {
         s.y = this.rand() * VIEW_H;
       }
     }
+    for (let i = 0; i < this.farRocks.length; i++) {
+      const r = this.farRocks[i];
+      r.x -= r.speed * dt;
+      if (r.x < -r.img.width) this.farRocks[i] = this.newFarRock(VIEW_W + this.rand() * 40);
+    }
     this.sunX -= 0.6 * dt;
     if (this.sunX < -40) this.sunX = VIEW_W + 40;
     this.dustX = (this.dustX + 3 * dt) % VIEW_W;
@@ -67,21 +84,23 @@ export class Background {
     ctx.fillStyle = PAL.space;
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
 
-    ctx.drawImage(this.dust, -snap(this.dustX), Math.round(VIEW_H * 0.6));
+    if (this.dust) ctx.drawImage(this.dust, -snap(this.dustX), Math.round(VIEW_H * 0.6));
 
-    // Distant sun drawn as flat pixel rings (no glow), kept dim so it never
-    // hides enemies or shots.
-    const sx = snap(this.sunX);
-    const sy = 30;
-    const rings = [
-      [15, '#262638'],
-      [12, '#4a3530'],
-      [9, PAL.amberDark],
-      [6, '#a87545'],
-    ];
-    for (const [r, c] of rings) {
-      ctx.fillStyle = c;
-      pixelDisc(ctx, sx, sy, r);
+    if (this.theme.sun) {
+      // Distant sun drawn as flat pixel rings (no glow), kept dim so it never
+      // hides enemies or shots.
+      const sx = snap(this.sunX);
+      const sy = 30;
+      const rings = [
+        [15, '#262638'],
+        [12, '#4a3530'],
+        [9, PAL.amberDark],
+        [6, '#a87545'],
+      ];
+      for (const [r, c] of rings) {
+        ctx.fillStyle = c;
+        pixelDisc(ctx, sx, sy, r);
+      }
     }
 
     for (const s of this.stars) {
@@ -89,6 +108,8 @@ export class Background {
       ctx.fillStyle = bright ? PAL.cream : s.layer.color;
       ctx.fillRect(snap(s.x), snap(s.y), s.layer.size, s.layer.size);
     }
+
+    for (const r of this.farRocks) ctx.drawImage(r.img, snap(r.x), snap(r.y));
   }
 }
 

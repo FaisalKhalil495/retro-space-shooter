@@ -1,4 +1,4 @@
-import { PAL } from './config.js?v=0.1.0';
+import { PAL } from './config.js?v=0.2.0';
 
 // Pixel art is written as text grids: each character is one pixel and maps
 // to a palette colour ('.' is transparent). Each sprite is drawn once onto
@@ -70,6 +70,29 @@ const ART = {
     '..kgBBBBBBgk..',
     '...kgBBBBgk...',
     '....kkkkkk....',
+  ],
+  // Fast red dart that steers towards the player.
+  seeker: [
+    '......kkk.',
+    '....kkRrk.',
+    '..kkRrrRkk',
+    'kclsrrrRRk',
+    '..kkRrrRkk',
+    '....kkRrk.',
+    '......kkk.',
+  ],
+  // Slow, harmless cargo pod. Shoot it to release the pickup inside (the
+  // slot in the middle shows the pickup's colour).
+  carrier: [
+    '..kkkkkkkkk..',
+    '.kpppppppppk.',
+    'kpBBBBBBBBBpk',
+    'kBbkkkkkkkbBk',
+    'kBbk.....kbBk',
+    'kBbkkkkkkkbBk',
+    'kpBBBBBBBBBpk',
+    '.kbbbbbbbbbk.',
+    '..kkkkkkkkk..',
   ],
   // Tiny ship used for the lives counter.
   lifeIcon: [

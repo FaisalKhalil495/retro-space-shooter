@@ -41,6 +41,15 @@ a real console controller, so you can play by feel while watching the game.
   The Special button fires whatever is carried. A small icon + ammo count in a
   corner of the screen shows what you have.
 - Level length: roughly 2–3 minutes each (Claude's call; adjust if it plays badly).
+- Special weapon details (Claude's call, Stage 2): **Bombs** (3 shots) send out a
+  shockwave that damages everything on screen and wipes enemy bullets.
+  **Rockets** (4 shots) fire a pair that home in on enemies. **Laser** (3 shots)
+  is a 0.8-second beam straight ahead that pierces everything. Pickups come
+  from slow, harmless **cargo pods** you shoot open; the pod's light shows
+  which pickup is inside. Extra lives are rare (one per level).
+- Bosses are armoured except at a weak point/moment (Rockjaw: only while his
+  jaw is open). Specials obey the same rule, so timing matters.
+- Game over currently restarts the level; the continue system arrives in Stage 5.
 
 ### The 8 levels and bosses (in order)
 1. **The Outer Belt** — asteroid field in deep blue space, distant amber sun.
@@ -134,7 +143,7 @@ Approved by the owner. Keep the status column up to date.
 | # | Stage | What's in it | Status |
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
-| 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | |
+| 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Built — owner testing |
 | 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. | |
 | 4 | **Levels 5–8** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
@@ -151,16 +160,27 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - `js/layout.js` — where the game screen and thumb zones go (safe areas).
 - `js/controls.js` — floating d-pad, Fire/Special, near-miss touch areas, drawing them.
 - `js/feedback.js` — vibration (Android) and its strengths.
-- `js/game.js` — game state: player, shots, enemies, collisions, lives, score, HUD.
-- `js/enemies.js` — enemy types and how they move/shoot.
-- `js/waves.js` — which enemy formations appear and when.
-- `js/background.js` — starfield, sun, dust band.
-- `js/sprites.js` — pixel art as text grids. `js/font.js` — 5×5 pixel font.
+- `js/game.js` — game state: player, shots, enemies, pickups, collisions,
+  damage/armour, lives, score, HUD, banners, level clear.
+- `js/enemies.js` — enemy types (incl. asteroids, seekers, cargo pods) and
+  how they move/shoot.
+- `js/bosses.js` — boss behaviour (Rockjaw so far).
+- `js/weapons.js` — special weapons (bombs, rockets, laser), pickups, corner icon.
+- `js/waves.js` — enemy formations. `js/levels.js` — level timelines + runner.
+- `js/background.js` — starfield, sun, dust band, distant rocks (per-level theme).
+- `js/sprites.js` — pixel art as text grids. `js/rockart.js` — asteroids and
+  Rockjaw drawn by code. `js/font.js` — 5×5 pixel font.
+- `js/audio.js` — all sound effects, synthesised in code.
+- `js/util.js` — small maths helpers.
 - `tools/set-version.sh X.Y.Z` — bump the version everywhere (do this for every
   release so phones fetch fresh files).
 - `tools/smoke-test.mjs` — simulated-phone test (Android + iPhone sizes):
   `PLAYWRIGHT_PATH=/opt/node22/lib/node_modules/playwright node tools/smoke-test.mjs <screenshot-dir>`
-- Testing aid: add `?safe=62` to the URL to fake an iPhone camera cutout.
+- `tools/level-test.mjs` — invincible autopilot plays a whole level at high
+  speed; checks pickups, specials, boss and level clear (same command style).
+- Testing aids: add `?safe=62` to the URL to fake an iPhone camera cutout;
+  `?start=boss` jumps straight to the boss with a laser loaded;
+  `?start=60` starts 60 seconds into the level.
 
 ## HOW TO WORK WITH ME — these rules apply for the whole project, every session
 - I'm not an experienced coder. Assume I don't know the technical details, but work at full strength. Just keep me in the loop in language I can follow.
