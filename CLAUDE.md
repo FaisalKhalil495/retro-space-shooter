@@ -62,6 +62,17 @@ a real console controller, so you can play by feel while watching the game.
 - Stage 5 note: with bosses this hard, suggest a boss checkpoint when the
   continue system is built (owner to decide then).
 - Game over currently restarts the level; the continue system arrives in Stage 5.
+- **Health bar** (owner request, v0.4.0): 3 lives, each with **5 health
+  blocks**. Bullets/acid/gravel cost 1, small rocks and ramming small enemies
+  2, big rocks 3, Rockjaw's bite charge 3, being sucked into his mouth 5
+  (instant death). 1 second of safety after a hit; red edge flash; warning
+  beeps and smoke at 1 block.
+- **Automatic power-ups** (round orbs, no button): Shield (absorbs 3 hits or
+  10 s), Repair (+2 blocks), Spread Shot (3-way fire, 12 s), Rapid Fire
+  (double rate, 12 s), Wingman drone (fires with you, 15 s). They stack;
+  re-collecting resets the timer. Sources: cargo pods in the level, random
+  drops from gunships (30%), seekers, big rocks and weavers (small chance),
+  and one boss supply pod per boss phase.
 - Level 1 enemies (Hard): some pods shoot, weavers spit acid, gunners fire 4
   faster shots, seekers steer harder; ambushes from behind, dive-bombers from
   top/bottom and pincers, each flagged by a red "!" warning marker first.
@@ -195,6 +206,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - `js/bosses.js` — boss behaviour (Rockjaw so far: 3 phases, 8 attacks,
   entrance, transitions, gory death).
 - `js/weapons.js` — special weapons (bombs, rockets, laser), pickups, corner icon.
+- `js/powerups.js` — automatic power-ups (shield, repair, spread, rapid,
+  wingman), their orbs, timers and HUD icons.
 - `js/waves.js` — enemy formations. `js/levels.js` — level timelines + runner.
 - `js/background.js` — starfield, sun, dust band, distant rocks (per-level theme).
 - `js/sprites.js` — pixel art as text grids. `js/rockart.js` — asteroids and

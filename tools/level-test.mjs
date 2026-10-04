@@ -45,8 +45,8 @@ const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
   const g = window.__ember.game;
   const log = window.__log || (window.__log = { collected: [], specials: 0, bossSeen: false, maxEnemies: 0 });
   if (!g.__wrapped) {
-    const collect = g.weapons.collect.bind(g.weapons);
-    g.weapons.collect = (k) => { log.collected.push(k); collect(k); };
+    const collect = g.collectPickup.bind(g);
+    g.collectPickup = (k) => { log.collected.push(k); collect(k); };
     g.__wrapped = true;
   }
   const step = 1 / 120;
@@ -120,6 +120,9 @@ const checks = {
   'bomb pickup collected': r.collected.includes('bomb'),
   'extra life collected': r.collected.includes('life'),
   'laser pickup collected': r.collected.includes('laser'),
+  'shield power-up collected': r.collected.includes('shield'),
+  'spread shot power-up collected': r.collected.includes('spread'),
+  'wingman power-up collected': r.collected.includes('wingman'),
   'boss appeared': r.bossSeen,
   'level cleared': r.state === 'clear',
   'no script errors': errors.length === 0,

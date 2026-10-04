@@ -128,6 +128,24 @@ for (const phone of PHONES) {
   }
   if (errors.length) console.log('  errors:', errors);
 
+  // Health and shield: a hit costs a block; a shield soaks up hits.
+  const health = await page.evaluate(() => {
+    const g = window.__ember.game;
+    g.state = 'playing';
+    g.player.entering = 0;
+    g.health = 5;
+    g.hurtPlayer(1);
+    const afterHit = g.health;
+    g.powerups.collect('shield');
+    g.hurtPlayer(3);
+    const shielded = g.health;
+    g.powerups.collect('repair');
+    return { afterHit, shielded, repaired: g.health };
+  });
+  const hpOk = health.afterHit === 4 && health.shielded === 4 && health.repaired === 5;
+  console.log(`  ${hpOk ? 'PASS' : 'FAIL'}  health bar, shield and repair ${JSON.stringify(health)}`);
+  if (!hpOk) failures++;
+
   // Portrait: should ask to rotate.
   await page.setViewportSize({ width: phone.height, height: phone.width });
   await page.waitForTimeout(400);

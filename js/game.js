@@ -1,16 +1,17 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.3.0';
-import { SPRITES } from './sprites.js?v=0.3.0';
-import { ENEMY_TYPES } from './enemies.js?v=0.3.0';
-import { LEVELS, LevelRunner } from './levels.js?v=0.3.0';
-import { Background } from './background.js?v=0.3.0';
-import { Weapons, drawCapsule, pickupInfo } from './weapons.js?v=0.3.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.3.0';
-import { buzz, HAPTIC } from './feedback.js?v=0.3.0';
-import { sfx } from './audio.js?v=0.3.0';
-import { clamp, rectsOverlap } from './util.js?v=0.3.0';
-import { Gore, FLESH, METAL, ROCK, GLASS, HELMET } from './gore.js?v=0.3.0';
-import { BLOOD } from './config.js?v=0.3.0';
-import { startBossMusic, stopMusic } from './music.js?v=0.3.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.4.0';
+import { SPRITES } from './sprites.js?v=0.4.0';
+import { ENEMY_TYPES } from './enemies.js?v=0.4.0';
+import { LEVELS, LevelRunner } from './levels.js?v=0.4.0';
+import { Background } from './background.js?v=0.4.0';
+import { Weapons, drawCapsule, pickupInfo } from './weapons.js?v=0.4.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.4.0';
+import { buzz, HAPTIC } from './feedback.js?v=0.4.0';
+import { sfx } from './audio.js?v=0.4.0';
+import { clamp, rectsOverlap } from './util.js?v=0.4.0';
+import { Gore, FLESH, METAL, ROCK, GLASS, HELMET } from './gore.js?v=0.4.0';
+import { BLOOD } from './config.js?v=0.4.0';
+import { startBossMusic, stopMusic } from './music.js?v=0.4.0';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.4.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -33,8 +34,9 @@ export class Game {
     this.startAt = startAt; // testing aid: skip ahead in the level
     this.levelIndex = 0;
     this.weapons = new Weapons(this);
+    this.powerups = new PowerUps(this);
     this.gore = new Gore(this.rand);
-    this.pickupInfo = pickupInfo;
+    this.pickupInfo = (kind) => POWERUPS[kind] || pickupInfo(kind);
     this.reset();
   }
 
@@ -45,6 +47,9 @@ export class Game {
   reset() {
     this.score = 0;
     this.lives = PLAYER.lives;
+    this.health = PLAYER.health;
+    this.hurtFlash = 0;
+    this.lowBeep = 0;
     this.state = 'playing'; // 'playing' | 'dying' | 'gameover' | 'clear'
     this.stateTimer = 0;
     this.time = 0;
@@ -81,6 +86,7 @@ export class Game {
     stopMusic(0.3);
     this.bg = new Background(this.rand, this.level.background);
     this.weapons.reset();
+    this.powerups.reset();
     this.runner = new LevelRunner(this, this.level);
     if (this.startAt) {
       const bossAt = this.level.events.find((ev) => ev[1] === 'boss')[0];
@@ -116,6 +122,21 @@ export class Game {
 
   spawnPickup(kind, x, y) {
     if (kind) this.pickups.push({ kind, x, y, baseY: y, t: 0 });
+  }
+
+  // Specials and extra lives go to the weapon system; the rest are
+  // automatic power-ups.
+  collectPickup(kind) {
+    if (POWERUPS[kind]) this.powerups.collect(kind);
+    else this.weapons.collect(kind);
+  }
+
+  // Tough enemies sometimes leave a power-up behind.
+  maybeDrop(e) {
+    const chance = e.T.dropChance || 0;
+    if (chance && this.rand() < chance) {
+      this.spawnPickup(randomPowerup(this.rand), e.x + e.w / 2 - 4, e.y + e.h / 2 - 4);
+    }
   }
 
   fireAtPlayer(x, y, speed) {
@@ -273,6 +294,22 @@ export class Game {
 
     this.runner.update(dt);
     this.weapons.update(dt);
+    this.powerups.update(dt, input);
+    if (this.state === 'playing' && this.health === 1) {
+      // Warning beeps and smoke when you're on your last health block.
+      this.lowBeep -= dt;
+      if (this.lowBeep <= 0) {
+        this.lowBeep = 1.1;
+        sfx.lowHealth();
+      }
+      const p = this.player;
+      if (this.rand() < dt * 25) {
+        this.particles.push({
+          x: p.x + 4 + this.rand() * 6, y: p.y + 3, vx: -25 - this.rand() * 15, vy: -8 + this.rand() * 6,
+          life: 0.5, max: 0.5, color: this.rand() < 0.3 ? PAL.amber : PAL.grey, size: this.rand() < 0.5 ? 2 : 1,
+        });
+      }
+    }
     this.moveWorld(dt);
     this.collide();
   }
@@ -300,16 +337,23 @@ export class Game {
 
     p.cooldown -= dt;
     if (input.fire && p.cooldown <= 0) {
-      this.bullets.push({ x: p.x + p.w - 3, y: p.y + 5 });
-      p.cooldown = PLAYER.fireInterval;
+      this.bullets.push({ x: p.x + p.w - 3, y: p.y + 5, vy: 0 });
+      if (this.powerups.has('spread')) {
+        this.bullets.push({ x: p.x + p.w - 4, y: p.y + 4, vy: -55 });
+        this.bullets.push({ x: p.x + p.w - 4, y: p.y + 6, vy: 55 });
+      }
+      p.cooldown = this.powerups.fireInterval();
       sfx.shoot();
     }
     if (input.special) this.weapons.fire();
   }
 
   moveWorld(dt) {
-    for (const b of this.bullets) b.x += PLAYER.bulletSpeed * dt;
-    this.bullets = this.bullets.filter((b) => b.x < VIEW_W + 8 && !b.dead);
+    for (const b of this.bullets) {
+      b.x += PLAYER.bulletSpeed * dt;
+      b.y += (b.vy || 0) * dt;
+    }
+    this.bullets = this.bullets.filter((b) => b.x < VIEW_W + 8 && b.y > -4 && b.y < VIEW_H + 4 && !b.dead);
 
     for (const e of this.enemies) {
       e.t += dt;
@@ -359,6 +403,7 @@ export class Game {
     if (this.warning && (this.warning.t += dt) > 2.6) this.warning = null;
     this.shake = Math.max(0, this.shake - dt * 14);
     this.flash = Math.max(0, this.flash - dt);
+    this.hurtFlash = Math.max(0, this.hurtFlash - dt);
   }
 
   collide() {
@@ -380,7 +425,7 @@ export class Game {
     for (const pk of this.pickups) {
       if (rectsOverlap(p.x, p.y, p.w, p.h, pk.x - 1, pk.y - 1, 11, 11)) {
         pk.taken = true;
-        this.weapons.collect(pk.kind);
+        this.collectPickup(pk.kind);
       }
     }
 
@@ -394,15 +439,21 @@ export class Game {
     for (const s of this.enemyShots) {
       if (rectsOverlap(hx, hy, hw, hh, s.x - 1.5, s.y - 1.5, 3, 3)) {
         s.dead = true;
-        this.killPlayer(s);
+        this.hurtPlayer(s.dmg || 1, s);
         return;
       }
     }
     for (const e of this.enemies) {
       if (e.dead || e.T.harmless) continue;
       if (this.contact(e, hx, hy, hw, hh)) {
-        if (!e.T.boss) this.killEnemy(e);
-        this.killPlayer(e);
+        const dmg = e.T.contactDamage ? e.T.contactDamage(e, this) : e.T.ram ?? 2;
+        if (e.T.boss) {
+          // Bounced off the boss: knocked back so you don't keep scraping it.
+          p.x = clamp(p.x - 14, 2, VIEW_W - p.w - 2);
+        } else {
+          this.killEnemy(e);
+        }
+        this.hurtPlayer(dmg, e);
         return;
       }
     }
@@ -428,6 +479,7 @@ export class Game {
     if (gore.metal) this.gore.chunks(cx, cy, gore.metal, METAL, 80, false);
     if (gore.rock) this.gore.chunks(cx, cy, gore.rock, ROCK, 60, false);
     if (e.T.onDeath) e.T.onDeath(e, this);
+    this.maybeDrop(e);
     if (e.T.score >= 40) {
       this.popups.push({ x: e.x + e.w / 2, y: e.y, text: '+' + e.T.score, t: 0.8 });
       this.shake = Math.max(this.shake, 1.5);
@@ -483,6 +535,36 @@ export class Game {
     startBossMusic();
   }
 
+  // Something hit the player. The shield soaks it up if it's running;
+  // otherwise health blocks are lost, and at zero a life is lost.
+  hurtPlayer(amount, source = null) {
+    const p = this.player;
+    if (this.powerups.absorb()) {
+      p.invuln = 0.35;
+      this.burst(p.x + p.w / 2, p.y + p.h / 2, 10, 70, [PAL.bluePale, PAL.cream]);
+      return;
+    }
+    this.health = Math.max(0, this.health - amount);
+    if (this.health <= 0) {
+      this.killPlayer(source);
+      return;
+    }
+    const cx = p.x + p.w / 2;
+    const cy = p.y + p.h / 2;
+    p.invuln = PLAYER.hurtInvuln;
+    this.hurtFlash = 0.4;
+    this.shake = Math.max(this.shake, 2 + amount);
+    this.burst(cx, cy, 10, 70);
+    this.gore.chunks(cx, cy, 4, GLASS, 60, false);
+    this.gore.blood(cx, cy, 4 + amount * 3, 60);
+    buzz(HAPTIC.hurt);
+    sfx.hurt();
+    if (this.health === 1) {
+      this.showToast('HULL CRITICAL');
+      this.lowBeep = 0.6;
+    }
+  }
+
   killPlayer(source = null) {
     const p = this.player;
     const cx = p.x + p.w / 2;
@@ -503,6 +585,7 @@ export class Game {
     buzz(HAPTIC.hurt);
     sfx.playerDie();
     this.lives--;
+    this.health = 0;
     this.state = 'dying';
     this.stateTimer = 0;
     if (this.lives > 0) this.showToast(this.quip);
@@ -515,6 +598,7 @@ export class Game {
     p.entering = 0.5;
     p.invuln = PLAYER.respawnInvuln;
     p.cooldown = 0;
+    this.health = PLAYER.health;
     this.enemyShots = [];
     this.state = 'playing';
   }
@@ -555,7 +639,9 @@ export class Game {
 
     for (const pk of this.pickups) {
       const blink = pk.x < 40 && Math.floor(pk.t * 8) % 2 === 0;
-      drawCapsule(ctx, pk.kind, snap(pk.x), snap(pk.y), Math.floor(pk.t * 4) % 2 === 0);
+      const lit = Math.floor(pk.t * 4) % 2 === 0;
+      if (POWERUPS[pk.kind]) drawOrb(ctx, pk.kind, snap(pk.x), snap(pk.y), lit);
+      else drawCapsule(ctx, pk.kind, snap(pk.x), snap(pk.y), lit);
       if (blink) {
         ctx.fillStyle = PAL.cream;
         ctx.fillRect(snap(pk.x) + 3, snap(pk.y) - 2, 3, 1);
@@ -600,6 +686,7 @@ export class Game {
 
     this.weapons.draw(ctx, snap);
     this.drawPlayer(ctx, snap);
+    this.powerups.draw(ctx, snap);
 
     for (const b of this.bullets) {
       const x = snap(b.x);
@@ -640,6 +727,19 @@ export class Game {
     }
     this.gore.drawLens(ctx);
 
+    if (this.hurtFlash > 0) {
+      // Red flash around the screen edges when you take a hit.
+      const a = Math.min(0.75, this.hurtFlash * 2);
+      ctx.fillStyle = `rgba(158, 47, 47, ${a})`;
+      ctx.fillRect(0, 0, VIEW_W, 5);
+      ctx.fillRect(0, VIEW_H - 5, VIEW_W, 5);
+      ctx.fillRect(0, 5, 5, VIEW_H - 10);
+      ctx.fillRect(VIEW_W - 5, 5, 5, VIEW_H - 10);
+      ctx.fillStyle = `rgba(158, 47, 47, ${a * 0.5})`;
+      ctx.fillRect(5, 5, VIEW_W - 10, 3);
+      ctx.fillRect(5, VIEW_H - 8, VIEW_W - 10, 3);
+    }
+
     this.drawHud(ctx);
   }
 
@@ -665,6 +765,25 @@ export class Game {
     const score = String(this.score).padStart(6, '0');
     drawText(ctx, score, 4, 3, PAL.ink);
     drawText(ctx, score, 3, 2, PAL.cream);
+
+    // Health: 5 blocks next to the score. Amber when healthy, red when low,
+    // and the last one blinks.
+    const hx = 42;
+    const low = this.health <= 2;
+    for (let i = 0; i < PLAYER.health; i++) {
+      const x = hx + i * 6;
+      ctx.fillStyle = PAL.ink;
+      ctx.fillRect(x - 1, 1, 7, 7);
+      const full = i < this.health;
+      const blinkOff = this.health === 1 && Math.floor(this.time * 6) % 2 === 0;
+      ctx.fillStyle = !full ? '#232c4a' : blinkOff ? PAL.redDark : low ? PAL.red : PAL.amber;
+      ctx.fillRect(x, 2, 5, 5);
+      if (full && !low) {
+        ctx.fillStyle = PAL.amberLight;
+        ctx.fillRect(x, 2, 5, 1);
+      }
+    }
+    this.powerups.drawHud(ctx, hx + PLAYER.health * 6 + 5);
 
     const icon = SPRITES.lifeIcon;
     for (let i = 0; i < Math.max(0, this.lives); i++) {
