@@ -116,10 +116,13 @@ a real console controller, so you can play by feel while watching the game.
   **https://faisalkhalil495.github.io/retro-space-shooter/**
 - `.nojekyll` in the root tells GitHub Pages to serve files exactly as they are.
 - Update flow: Claude works on the session's own branch and pushes there. When
-  a stage (or fix) is ready, Claude opens a pull request into `main` and sends
-  the owner the link. The owner taps **Merge pull request → Confirm merge** on
-  their phone. About 1–2 minutes later the game link shows the new version.
-  Each merge is also a save point.
+  a stage (or fix) is ready, **Claude opens a pull request into `main` and
+  merges it itself** (the owner gave standing permission for this), then tells
+  the owner in chat that it's live. About 1–2 minutes later the game link shows
+  the new version. Each merge is a save point; if a version breaks, fix it or
+  revert that merge to go back to the last working version.
+- After a merge, bring the work branch up to date with `main` before new work
+  (fast-forward; never rewrite history).
 - Show a small version label in the game so the owner can tell whether the
   phone is showing the latest version (phones can keep an old copy for a few
   minutes).
