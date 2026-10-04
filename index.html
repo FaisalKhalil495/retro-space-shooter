@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#141a2e">
+  <title>Ember Drift</title>
+  <style>
+    :root {
+      --space-deep: #141a2e;
+      --space-mid: #232c4a;
+      --amber: #e3a857;
+      --amber-soft: #c98f4a;
+      --dust-red: #a8544a;
+      --text: #efe3cf;
+      --text-dim: #9c9584;
+    }
+    * { box-sizing: border-box; margin: 0; }
+    html, body { height: 100%; }
+    body {
+      background: radial-gradient(ellipse at 70% 30%, var(--space-mid), var(--space-deep) 70%);
+      color: var(--text);
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      display: grid;
+      place-items: center;
+      padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+               max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+      text-align: center;
+    }
+    h1 {
+      font-size: clamp(32px, 9vw, 64px);
+      letter-spacing: 0.12em;
+      color: var(--amber);
+      text-shadow: 3px 3px 0 var(--dust-red);
+    }
+    p { margin-top: 16px; line-height: 1.5; }
+    .ok { color: var(--amber-soft); }
+    .dim { color: var(--text-dim); font-size: 13px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>EMBER DRIFT</h1>
+    <p class="ok">The link works. The game is coming soon.</p>
+    <p class="dim">Version: test page 1</p>
+  </main>
+</body>
+</html>
