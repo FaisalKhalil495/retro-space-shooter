@@ -1,4 +1,4 @@
-import { PAL } from './config.js?v=0.4.2';
+import { PAL } from './config.js?v=0.6.0';
 
 // Pixel art is written as text grids: each character is one pixel and maps
 // to a palette colour ('.' is transparent). Each sprite is drawn once onto
@@ -93,6 +93,31 @@ const ART = {
     'kpBBBBBBBBBpk',
     '.kbbbbbbbbbk.',
     '..kkkkkkkkk..',
+  ],
+  // Sniper: a long-barrelled gunship. Shows an aiming line, then fires a
+  // fast shot along it.
+  sniper: [
+    '......kkkkkk..',
+    '....kkBBBBppk.',
+    'kkkkkBBrrBBBpk',
+    'cclccbBrsBBBBk',
+    'kkkkkBBrrBBBpk',
+    '....kkbbbbbbk.',
+    '......kkkkkk..',
+  ],
+  // Spinner: a rotating disc that sprays bullets in a star pattern.
+  spinner: [
+    '.....k.....',
+    '....kgk....',
+    '...kBBBk...',
+    '.kkBpppBkk.',
+    'kgBprrrpBgk',
+    'kgBprsrpBgk',
+    'kgBprrrpBgk',
+    '.kkBpppBkk.',
+    '...kBBBk...',
+    '....kgk....',
+    '.....k.....',
   ],
   // Tiny ship used for the lives counter.
   lifeIcon: [
