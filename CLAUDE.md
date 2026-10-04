@@ -110,6 +110,20 @@ a real console controller, so you can play by feel while watching the game.
   game small and fast and gives full control over the touch controls.
 - No passwords, API keys or secrets in the code, ever.
 
+### Playing it on a phone (hosting and updates)
+- The repository is **public** (decided so GitHub Pages works for free).
+- **GitHub Pages** serves the `main` branch, root folder, at:
+  **https://faisalkhalil495.github.io/retro-space-shooter/**
+- `.nojekyll` in the root tells GitHub Pages to serve files exactly as they are.
+- Update flow: Claude works on the session's own branch and pushes there. When
+  a stage (or fix) is ready, Claude opens a pull request into `main` and sends
+  the owner the link. The owner taps **Merge pull request → Confirm merge** on
+  their phone. About 1–2 minutes later the game link shows the new version.
+  Each merge is also a save point.
+- Show a small version label in the game so the owner can tell whether the
+  phone is showing the latest version (phones can keep an old copy for a few
+  minutes).
+
 ## Stage plan
 
 Starting plan (to be finalised in the planning step and then kept up to date here):
