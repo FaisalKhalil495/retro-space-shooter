@@ -116,21 +116,51 @@ a real console controller, so you can play by feel while watching the game.
   **https://faisalkhalil495.github.io/retro-space-shooter/**
 - `.nojekyll` in the root tells GitHub Pages to serve files exactly as they are.
 - Update flow: Claude works on the session's own branch and pushes there. When
-  a stage (or fix) is ready, Claude opens a pull request into `main` and sends
-  the owner the link. The owner taps **Merge pull request → Confirm merge** on
-  their phone. About 1–2 minutes later the game link shows the new version.
-  Each merge is also a save point.
+  a stage (or fix) is ready, **Claude opens a pull request into `main` and
+  merges it itself** (the owner gave standing permission for this), then tells
+  the owner in chat that it's live. About 1–2 minutes later the game link shows
+  the new version. Each merge is a save point; if a version breaks, fix it or
+  revert that merge to go back to the last working version.
+- After a merge, bring the work branch up to date with `main` before new work
+  (fast-forward; never rewrite history).
 - Show a small version label in the game so the owner can tell whether the
   phone is showing the latest version (phones can keep an old copy for a few
   minutes).
 
 ## Stage plan
 
-Starting plan (to be finalised in the planning step and then kept up to date here):
-1. Ship, controls, basic enemies, lives and score.
-2. One complete level with the special weapons and the first boss.
-3. All 8 levels and bosses.
-4. Title screen, pause, sound and music, high scores, and polish.
+Approved by the owner. Keep the status column up to date.
+
+| # | Stage | What's in it | Status |
+|---|-------|--------------|--------|
+| 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Built — owner testing |
+| 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | |
+| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. | |
+| 4 | **Levels 5–8** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
+| 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
+| 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |
+
+Testing: Claude checks each stage on a simulated phone screen before handing
+it over. The owner tests on Android; ideally the friend checks iPhone each stage.
+
+## Code map
+
+- `index.html` — the page: canvas, start / pause / "turn sideways" screens, CSS.
+- `js/main.js` — start-up, screen sizing, game loop, pause, full screen.
+- `js/config.js` — version, game-pixel size (208×144), palette, player tuning.
+- `js/layout.js` — where the game screen and thumb zones go (safe areas).
+- `js/controls.js` — floating d-pad, Fire/Special, near-miss touch areas, drawing them.
+- `js/feedback.js` — vibration (Android) and its strengths.
+- `js/game.js` — game state: player, shots, enemies, collisions, lives, score, HUD.
+- `js/enemies.js` — enemy types and how they move/shoot.
+- `js/waves.js` — which enemy formations appear and when.
+- `js/background.js` — starfield, sun, dust band.
+- `js/sprites.js` — pixel art as text grids. `js/font.js` — 5×5 pixel font.
+- `tools/set-version.sh X.Y.Z` — bump the version everywhere (do this for every
+  release so phones fetch fresh files).
+- `tools/smoke-test.mjs` — simulated-phone test (Android + iPhone sizes):
+  `PLAYWRIGHT_PATH=/opt/node22/lib/node_modules/playwright node tools/smoke-test.mjs <screenshot-dir>`
+- Testing aid: add `?safe=62` to the URL to fake an iPhone camera cutout.
 
 ## HOW TO WORK WITH ME — these rules apply for the whole project, every session
 - I'm not an experienced coder. Assume I don't know the technical details, but work at full strength. Just keep me in the loop in language I can follow.
