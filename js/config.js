@@ -2,14 +2,17 @@
 // VERSION is shown in-game so the owner can tell whether the phone has the
 // latest copy. Change it with tools/set-version.sh, never by hand, so every
 // file's cache-busting "?v=" stays in step.
-export const VERSION = '0.2.0';
-export const STAGE_LABEL = 'Stage 2 · The Outer Belt';
+export const VERSION = '0.3.0';
+export const STAGE_LABEL = 'Stage 2 · The Outer Belt (hard)';
 
 // The game world is a fixed grid of "game pixels". It is scaled up to fit the
 // phone, so every phone sees exactly the same playfield.
 export const VIEW_W = 208;
 export const VIEW_H = 144;
 export const HUD_H = 10; // strip at the top the ship can't fly into
+
+// Blood and gore on/off (Stage 5 adds a menu switch for this).
+export const BLOOD = true;
 
 // Muted, warm palette. No neon.
 export const PAL = {

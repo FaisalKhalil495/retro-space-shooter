@@ -50,6 +50,63 @@ export function resumeAudio() {
 
 const ready = () => ac && ac.state === 'running';
 
+// For the music player, which shares the same sound system.
+export function audioOut() {
+  return ac && master ? { ac, master, noiseBuf } : null;
+}
+
+// A gritty overdrive, used to make boss sounds feel huge and ugly.
+let curve = null;
+function grit() {
+  if (!curve) {
+    curve = new Float32Array(1024);
+    for (let i = 0; i < curve.length; i++) {
+      const x = (i / (curve.length - 1)) * 2 - 1;
+      curve[i] = Math.tanh(x * 4);
+    }
+  }
+  const ws = ac.createWaveShaper();
+  ws.curve = curve;
+  ws.oversample = '2x';
+  ws.connect(master);
+  return ws;
+}
+
+// A dirty low voice: several detuned saw waves through the overdrive.
+function growlVoice({ f0, f1, dur, vol, cutoff = 900, when = 0, wobble = 0 }) {
+  const t = ac.currentTime + when;
+  const out = grit();
+  const filt = ac.createBiquadFilter();
+  filt.type = 'lowpass';
+  filt.frequency.setValueAtTime(cutoff, t);
+  filt.frequency.exponentialRampToValueAtTime(Math.max(80, cutoff * 0.4), t + dur);
+  const gain = ac.createGain();
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(vol, t + 0.06);
+  gain.gain.setValueAtTime(vol, t + dur * 0.6);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  filt.connect(gain).connect(out);
+  for (const det of [-14, 0, 9]) {
+    const osc = ac.createOscillator();
+    osc.type = 'sawtooth';
+    osc.detune.value = det;
+    osc.frequency.setValueAtTime(f0, t);
+    osc.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    if (wobble) {
+      const lfo = ac.createOscillator();
+      const depth = ac.createGain();
+      lfo.frequency.value = wobble;
+      depth.gain.value = f0 * 0.08;
+      lfo.connect(depth).connect(osc.frequency);
+      lfo.start(t);
+      lfo.stop(t + dur + 0.05);
+    }
+    osc.connect(filt);
+    osc.start(t);
+    osc.stop(t + dur + 0.05);
+  }
+}
+
 // One synthesised note with a pitch slide and a quick fade-out.
 function tone({ type = 'square', f0, f1 = f0, dur, vol, attack = 0.004, cutoff = 2600, when = 0 }) {
   const t = ac.currentTime + when;
@@ -112,6 +169,7 @@ export const sfx = {
   playerDie() {
     if (!ready()) return;
     noise({ dur: 0.9, vol: 0.45, f0: 2200, f1: 80 });
+    noise({ dur: 0.25, vol: 0.3, f0: 5000, f1: 2000, type: 'highpass' }); // glass
     tone({ type: 'sawtooth', f0: 420, f1: 40, dur: 0.8, vol: 0.12, cutoff: 900 });
   },
   pickup() {
@@ -164,9 +222,48 @@ export const sfx = {
     noise({ dur: 0.4, vol: 0.2, f0: 300, f1: 90 });
   },
   roar() {
+    // A boss roar: dirty growl, rushing breath and a sub-bass punch.
     if (!ready()) return;
-    tone({ type: 'sawtooth', f0: 130, f1: 70, dur: 0.6, vol: 0.14, cutoff: 700 });
-    noise({ dur: 0.5, vol: 0.12, f0: 700, f1: 150 });
+    growlVoice({ f0: 95, f1: 48, dur: 1.5, vol: 0.32, cutoff: 1100, wobble: 11 });
+    growlVoice({ f0: 142, f1: 70, dur: 1.2, vol: 0.14, cutoff: 1500, wobble: 7, when: 0.05 });
+    noise({ dur: 1.3, vol: 0.3, f0: 1400, f1: 200, q: 0.9 });
+    tone({ type: 'sine', f0: 70, f1: 30, dur: 1.2, vol: 0.45 });
+  },
+  growl() {
+    // Wind-up before a charge.
+    if (!ready()) return;
+    growlVoice({ f0: 62, f1: 74, dur: 0.75, vol: 0.24, cutoff: 600, wobble: 16 });
+    noise({ dur: 0.7, vol: 0.12, f0: 220, f1: 500, q: 2, type: 'bandpass' });
+  },
+  snap() {
+    // Jaws slamming shut: a crunch and a thump.
+    if (!ready()) return;
+    noise({ dur: 0.18, vol: 0.55, f0: 3500, f1: 600, q: 0.8, type: 'highpass' });
+    noise({ dur: 0.25, vol: 0.4, f0: 900, f1: 120 });
+    tone({ type: 'sine', f0: 120, f1: 40, dur: 0.3, vol: 0.5 });
+  },
+  inhale(dur) {
+    // A huge breath sucking everything in.
+    if (!ready()) return;
+    noise({ dur, vol: 0.35, f0: 180, f1: 1600, q: 1.5, type: 'bandpass' });
+    growlVoice({ f0: 40, f1: 58, dur, vol: 0.16, cutoff: 400, wobble: 5 });
+  },
+  quake() {
+    if (!ready()) return;
+    noise({ dur: 1.4, vol: 0.4, f0: 260, f1: 60 });
+    tone({ type: 'sine', f0: 48, f1: 28, dur: 1.4, vol: 0.4 });
+  },
+  splat() {
+    // Wet, meaty burst.
+    if (!ready()) return;
+    noise({ dur: 0.16, vol: 0.32, f0: 1300, f1: 180, q: 3, type: 'bandpass' });
+    tone({ type: 'sine', f0: 180, f1: 60, dur: 0.14, vol: 0.25 });
+  },
+  crack() {
+    // Shell breaking off.
+    if (!ready()) return;
+    noise({ dur: 0.5, vol: 0.5, f0: 4000, f1: 300, q: 0.7, type: 'highpass' });
+    noise({ dur: 0.7, vol: 0.4, f0: 600, f1: 80 });
   },
   levelClear() {
     if (!ready()) return;

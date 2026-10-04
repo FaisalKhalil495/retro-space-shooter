@@ -1,18 +1,31 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.2.0';
-import { SPRITES } from './sprites.js?v=0.2.0';
-import { ENEMY_TYPES } from './enemies.js?v=0.2.0';
-import { LEVELS, LevelRunner } from './levels.js?v=0.2.0';
-import { Background } from './background.js?v=0.2.0';
-import { Weapons, drawCapsule, pickupInfo } from './weapons.js?v=0.2.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.2.0';
-import { buzz, HAPTIC } from './feedback.js?v=0.2.0';
-import { sfx } from './audio.js?v=0.2.0';
-import { clamp, rectsOverlap } from './util.js?v=0.2.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.3.0';
+import { SPRITES } from './sprites.js?v=0.3.0';
+import { ENEMY_TYPES } from './enemies.js?v=0.3.0';
+import { LEVELS, LevelRunner } from './levels.js?v=0.3.0';
+import { Background } from './background.js?v=0.3.0';
+import { Weapons, drawCapsule, pickupInfo } from './weapons.js?v=0.3.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.3.0';
+import { buzz, HAPTIC } from './feedback.js?v=0.3.0';
+import { sfx } from './audio.js?v=0.3.0';
+import { clamp, rectsOverlap } from './util.js?v=0.3.0';
+import { Gore, FLESH, METAL, ROCK, GLASS, HELMET } from './gore.js?v=0.3.0';
+import { BLOOD } from './config.js?v=0.3.0';
+import { startBossMusic, stopMusic } from './music.js?v=0.3.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
 const BLOCK_COLORS = [PAL.grey, PAL.cream, PAL.bluePale];
 const LIFE_BONUS = 500;
+
+// Things the game says when you die. Adults-only humour, as agreed.
+const DEATH_LINES = [
+  'SPLATTERED ACROSS THE BELT',
+  'WHAT A FUCKING MESS',
+  'SPACE MEAT',
+  'THAT LOOKED PAINFUL AS HELL',
+  'SHIT. TRY AGAIN.',
+  'THEY WILL NEED A MOP',
+];
 
 export class Game {
   constructor({ startAt = 0 } = {}) {
@@ -20,6 +33,7 @@ export class Game {
     this.startAt = startAt; // testing aid: skip ahead in the level
     this.levelIndex = 0;
     this.weapons = new Weapons(this);
+    this.gore = new Gore(this.rand);
     this.pickupInfo = pickupInfo;
     this.reset();
   }
@@ -58,11 +72,19 @@ export class Game {
     this.warning = null;
     this.banner = { t: 0 };
     this.bonus = 0;
+    this.markers = [];
+    this.darken = 0;
+    this.darkenTarget = 0;
+    this.title = null;
+    this.quip = '';
+    this.gore.reset();
+    stopMusic(0.3);
     this.bg = new Background(this.rand, this.level.background);
     this.weapons.reset();
     this.runner = new LevelRunner(this, this.level);
     if (this.startAt) {
-      this.runner.skipTo(this.startAt);
+      const bossAt = this.level.events.find((ev) => ev[1] === 'boss')[0];
+      this.runner.skipTo(this.startAt === 'boss' ? bossAt - 0.5 : this.startAt);
       this.banner = null;
       this.weapons.kind = 'laser';
       this.weapons.ammo = 3;
@@ -99,7 +121,27 @@ export class Game {
   fireAtPlayer(x, y, speed) {
     const p = this.player;
     const a = Math.atan2(p.y + p.h / 2 - y, p.x + p.w / 2 - x);
-    this.enemyShots.push({ x, y, vx: Math.cos(a) * speed, vy: Math.sin(a) * speed, t: 0 });
+    this.fireShot(x, y, a, speed);
+  }
+
+  // kind: 'orb' (glowing enemy bullet) or 'gravel' (a stone, from bosses).
+  fireShot(x, y, angle, speed, kind = 'orb', byBoss = false) {
+    this.enemyShots.push({
+      x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, t: 0, kind, byBoss,
+    });
+  }
+
+  // A flashing warning marker, shown before something arrives there.
+  warn(x, y, dur = 0.8, dir = 'down') {
+    this.markers.push({ x, y, t: 0, dur, dir });
+  }
+
+  darkenTo(v) {
+    this.darkenTarget = v;
+  }
+
+  showTitle(T) {
+    this.title = { T, t: 0 };
   }
 
   later(delay, fn) {
@@ -143,19 +185,21 @@ export class Game {
   // Hit an enemy with something that has a position (shot, rocket, beam).
   strike(e, x, y, w, h, amount) {
     const res = this.contact(e, x, y, w, h);
-    if (res === 'hit') this.damage(e, amount);
+    if (res === 'hit') this.damage(e, amount, x + w, y + h / 2);
     else if (res === 'block') this.blocked(x + w, y + h / 2);
     return res;
   }
 
   // Damage an enemy. Bosses ignore damage while armoured.
-  damage(e, amount) {
+  damage(e, amount, hx = e.x + e.w / 2, hy = e.y + e.h / 2) {
     if (e.dead || e.mode === 'dying') return;
     if (e.T.isVulnerable && !e.T.isVulnerable(e)) {
       this.blocked(e.x + e.w / 3, e.y + e.h / 2);
       return;
     }
     e.hp -= amount;
+    if (e.T.onHit) e.T.onHit(e, this, hx, hy, amount);
+    else if (e.T.organic) this.gore.blood(hx, hy, 4, 50, 0, 1.4);
     // Flash pale when hit, but not on every tick of a laser, or the enemy
     // would turn into a solid white shape.
     if (!(e.flashCd > 0)) {
@@ -190,6 +234,11 @@ export class Game {
       }
     }
     this.timers = this.timers.filter((tm) => !tm.done);
+    for (const m of this.markers) m.t += dt;
+    this.markers = this.markers.filter((m) => m.t < m.dur);
+    this.darken += clamp(this.darkenTarget - this.darken, -dt * 0.8, dt * 0.8);
+    if (this.title && (this.title.t += dt) > 3.6) this.title = null;
+    this.gore.update(dt);
 
     if (this.state === 'gameover') {
       this.stateTimer += dt;
@@ -269,7 +318,7 @@ export class Game {
       e.T.update(e, dt, this);
     }
     this.enemies = this.enemies.filter(
-      (e) => !e.dead && (e.T.boss || (e.x > -e.w - 30 && e.y > -60 && e.y < VIEW_H + 60)),
+      (e) => !e.dead && (e.T.boss || (e.x > -e.w - 30 && e.x < VIEW_W + 90 && e.y > -60 && e.y < VIEW_H + 60)),
     );
 
     for (const s of this.enemyShots) {
@@ -294,8 +343,10 @@ export class Game {
       q.life -= dt;
       q.x += q.vx * dt;
       q.y += q.vy * dt;
-      q.vx *= 1 - 2.2 * dt;
-      q.vy *= 1 - 2.2 * dt;
+      if (!q.noDrag) {
+        q.vx *= 1 - 2.2 * dt;
+        q.vy *= 1 - 2.2 * dt;
+      }
     }
     this.particles = this.particles.filter((q) => q.life > 0);
     for (const pp of this.popups) {
@@ -343,7 +394,7 @@ export class Game {
     for (const s of this.enemyShots) {
       if (rectsOverlap(hx, hy, hw, hh, s.x - 1.5, s.y - 1.5, 3, 3)) {
         s.dead = true;
-        this.killPlayer();
+        this.killPlayer(s);
         return;
       }
     }
@@ -351,7 +402,7 @@ export class Game {
       if (e.dead || e.T.harmless) continue;
       if (this.contact(e, hx, hy, hw, hh)) {
         if (!e.T.boss) this.killEnemy(e);
-        this.killPlayer();
+        this.killPlayer(e);
         return;
       }
     }
@@ -361,8 +412,21 @@ export class Game {
     e.dead = true;
     this.score += e.T.score;
     const size = e.T.explodeSize ?? (e.T.hp > 1 ? 0.8 : 0.4);
-    this.burst(e.x + e.w / 2, e.y + e.h / 2, Math.round(10 + size * 14), 60 + size * 20);
+    const cx = e.x + e.w / 2;
+    const cy = e.y + e.h / 2;
+    const gore = e.T.gore || {};
+    // Bloody kills get fewer sparks so the blood reads clearly.
+    const sparks = Math.round((10 + size * 14) * (gore.blood && BLOOD ? 0.4 : 1));
+    this.burst(cx, cy, sparks, 60 + size * 20);
     sfx.explode(size);
+    if (gore.blood) {
+      this.gore.blood(cx, cy, gore.blood, 75);
+      this.gore.chunks(cx, cy, gore.flesh || 0, FLESH, 70);
+      if (gore.splat) this.gore.splat(cx, cy, gore.splat);
+      sfx.splat();
+    }
+    if (gore.metal) this.gore.chunks(cx, cy, gore.metal, METAL, 80, false);
+    if (gore.rock) this.gore.chunks(cx, cy, gore.rock, ROCK, 60, false);
     if (e.T.onDeath) e.T.onDeath(e, this);
     if (e.T.score >= 40) {
       this.popups.push({ x: e.x + e.w / 2, y: e.y, text: '+' + e.T.score, t: 0.8 });
@@ -374,7 +438,12 @@ export class Game {
     e.mode = 'dying';
     e.timer = 0;
     e.flash = 0;
+    e.attack = null;
     this.enemyShots = [];
+    this.markers = [];
+    this.timers = [];
+    this.darkenTo(0);
+    stopMusic(2.5);
     // Everything else on screen breaks apart too (no points for those).
     for (const o of this.enemies) {
       if (o !== e && !o.dead) {
@@ -395,7 +464,7 @@ export class Game {
     this.flash = 0.2;
     sfx.explode(2);
     buzz([80, 40, 120]);
-    this.later(2.2, () => this.levelClear());
+    this.later(3, () => this.levelClear());
   }
 
   levelClear() {
@@ -411,17 +480,32 @@ export class Game {
   startWarning() {
     this.warning = { t: 0 };
     sfx.warning();
+    startBossMusic();
   }
 
-  killPlayer() {
+  killPlayer(source = null) {
     const p = this.player;
-    this.burst(p.x + p.w / 2, p.y + p.h / 2, 36, 95);
+    const cx = p.x + p.w / 2;
+    const cy = p.y + p.h / 2;
+    this.burst(cx, cy, 36, 95);
+    // Gritty: cockpit glass, blood, and the pilot's helmet tumbling away.
+    this.gore.chunks(cx, cy, 10, GLASS, 90, false);
+    this.gore.chunks(cx, cy, 8, METAL, 80, false);
+    this.gore.blood(cx, cy, 40, 95);
+    this.gore.chunks(cx, cy, 6, FLESH, 70);
+    this.gore.splat(cx, cy, 2);
+    this.gore.piece(cx, cy, HELMET.rows, HELMET.colors, -30 + this.rand() * 20, -40, 5);
+    this.gore.smear(cx + 10, cy, 0.8);
+    const byBoss = source && (source.byBoss || (source.T && source.T.boss));
+    const lines = byBoss && this.boss ? this.boss.T.killLines : DEATH_LINES;
+    this.quip = lines[Math.floor(this.rand() * lines.length)];
     this.shake = 5;
     buzz(HAPTIC.hurt);
     sfx.playerDie();
     this.lives--;
     this.state = 'dying';
     this.stateTimer = 0;
+    if (this.lives > 0) this.showToast(this.quip);
   }
 
   respawn() {
@@ -463,6 +547,11 @@ export class Game {
       );
     }
     this.bg.draw(ctx, snap);
+    this.gore.drawBack(ctx, snap);
+    if (this.darken > 0.01) {
+      ctx.fillStyle = `rgba(5, 6, 12, ${this.darken})`;
+      ctx.fillRect(-10, -10, VIEW_W + 20, VIEW_H + 20);
+    }
 
     for (const pk of this.pickups) {
       const blink = pk.x < 40 && Math.floor(pk.t * 8) % 2 === 0;
@@ -476,16 +565,32 @@ export class Game {
     for (const e of this.enemies) {
       const spr = e.T.sprite ? SPRITES[e.T.sprite + (e.flash > 0 ? 'Flash' : '')] : null;
       if (e.T.draw) e.T.draw(e, ctx, snap, this, spr);
-      else ctx.drawImage(spr, snap(e.x), snap(e.y));
+      else if (e.flip) {
+        ctx.save();
+        ctx.translate(snap(e.x) + e.w, snap(e.y));
+        ctx.scale(-1, 1);
+        ctx.drawImage(spr, 0, 0);
+        ctx.restore();
+      } else ctx.drawImage(spr, snap(e.x), snap(e.y));
       if (e.charge && Math.floor(this.time * 20) % 2 === 0) {
+        // Blinking muzzle: a warning that this enemy is about to fire.
         ctx.fillStyle = PAL.amberLight;
-        ctx.fillRect(snap(e.x - 2), snap(e.y + e.h / 2 - 1), 2, 2);
+        ctx.fillRect(snap(e.flip ? e.x + e.w : e.x - 2), snap(e.y + e.h / 2 - 1), 2, 2);
       }
     }
 
     for (const s of this.enemyShots) {
       const x = snap(s.x);
       const y = snap(s.y);
+      if (s.kind === 'gravel') {
+        ctx.fillStyle = PAL.ink;
+        ctx.fillRect(x - 2, y - 2, 4, 4);
+        ctx.fillStyle = '#9c8478';
+        ctx.fillRect(x - 1, y - 1, 2, 2);
+        ctx.fillStyle = '#c4a68e';
+        ctx.fillRect(x - 1, y - 1, 1, 1);
+        continue;
+      }
       ctx.fillStyle = PAL.red;
       ctx.fillRect(x - 2, y - 1, 4, 2);
       ctx.fillRect(x - 1, y - 2, 2, 4);
@@ -511,6 +616,18 @@ export class Game {
       ctx.fillRect(snap(q.x), snap(q.y), q.size, q.size);
     }
     ctx.globalAlpha = 1;
+    this.gore.draw(ctx, snap);
+
+    for (const m of this.markers) {
+      if (Math.floor(m.t * 10) % 2) continue;
+      const x = Math.round(m.x);
+      const y = Math.round(m.y);
+      ctx.fillStyle = PAL.ink;
+      ctx.fillRect(x - 3, y - 1, 7, 9);
+      ctx.fillStyle = PAL.red;
+      ctx.fillRect(x - 2, y, 5, 7);
+      drawText(ctx, '!', x - 2, y + 1, PAL.cream);
+    }
 
     for (const pp of this.popups) {
       drawTextCentered(ctx, pp.text, snap(pp.x), snap(pp.y), PAL.amberLight);
@@ -521,6 +638,7 @@ export class Game {
       ctx.fillStyle = `rgba(242, 207, 138, ${this.flash * 1.5})`;
       ctx.fillRect(0, 0, VIEW_W, VIEW_H);
     }
+    this.gore.drawLens(ctx);
 
     this.drawHud(ctx);
   }
@@ -601,13 +719,28 @@ export class Game {
       drawTextCentered(ctx, ENEMY_TYPES[this.level.boss].name + ' APPROACHES', VIEW_W / 2, 71, PAL.cream);
     }
 
+    if (this.title) {
+      // Boss title card.
+      const t = this.title.t;
+      const T = this.title.T;
+      const cx = Math.round(VIEW_W * 0.4);
+      if (t < 3.3 && (t > 0.3 || Math.floor(t * 20) % 2 === 0)) {
+        drawTextCentered(ctx, T.name, cx + 2, 34, PAL.ink, 3);
+        drawTextCentered(ctx, T.name, cx + 1, 33, PAL.redDark, 3);
+        drawTextCentered(ctx, T.name, cx, 32, PAL.amber, 3);
+        if (t > 0.6) drawTextCentered(ctx, T.title, cx, 54, PAL.cream);
+        if (t > 1.3) drawTextCentered(ctx, T.taunt, cx, 66, Math.floor(t * 6) % 2 ? PAL.redSoft : PAL.red);
+      }
+    }
+
     if (this.state === 'gameover') {
       const k = Math.min(1, this.stateTimer * 2);
       ctx.fillStyle = `rgba(11, 15, 28, ${0.6 * k})`;
       ctx.fillRect(0, 0, VIEW_W, VIEW_H);
       drawTextCentered(ctx, 'GAME OVER', VIEW_W / 2 + 1, 45, PAL.redDark, 3);
       drawTextCentered(ctx, 'GAME OVER', VIEW_W / 2, 44, PAL.amber, 3);
-      drawTextCentered(ctx, 'SCORE ' + score, VIEW_W / 2, 70, PAL.cream);
+      if (this.stateTimer > 0.5) drawTextCentered(ctx, this.quip, VIEW_W / 2, 64, PAL.redSoft);
+      drawTextCentered(ctx, 'SCORE ' + score, VIEW_W / 2, 78, PAL.cream);
       if (this.stateTimer > 1.1 && Math.floor(this.time * 2.5) % 2 === 0) {
         drawTextCentered(ctx, 'TAP TO TRY AGAIN', VIEW_W / 2, 96, PAL.amberLight);
       }
