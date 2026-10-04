@@ -1,6 +1,7 @@
-import { PAL } from './config.js?v=0.1.0';
-import { drawTextCentered } from './font.js?v=0.1.0';
-import { buzz, canVibrate, HAPTIC } from './feedback.js?v=0.1.0';
+import { PAL } from './config.js?v=0.2.0';
+import { drawTextCentered } from './font.js?v=0.2.0';
+import { buzz, canVibrate, HAPTIC } from './feedback.js?v=0.2.0';
+import { sfx } from './audio.js?v=0.2.0';
 
 // Console-style touch controls.
 //
@@ -136,7 +137,10 @@ export class Controls {
       }
     }
     if (dir !== p.dir) {
-      if (dir >= 0) buzz(HAPTIC.direction);
+      if (dir >= 0) {
+        buzz(HAPTIC.direction);
+        if (!canVibrate) sfx.tick(); // iPhone: a soft tick instead of a buzz
+      }
       p.dir = dir;
     }
   }
@@ -168,6 +172,7 @@ export class Controls {
 
   press(b) {
     buzz(HAPTIC.button);
+    if (!canVibrate) sfx.click(); // iPhone: a click instead of a buzz
     b.ripples.push({ t: 0 });
     if (b.name === 'special') this.specialQueued = true;
   }
