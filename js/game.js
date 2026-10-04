@@ -1,17 +1,18 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.4.2';
-import { SPRITES } from './sprites.js?v=0.4.2';
-import { ENEMY_TYPES } from './enemies.js?v=0.4.2';
-import { LEVELS, LevelRunner } from './levels.js?v=0.4.2';
-import { Background } from './background.js?v=0.4.2';
-import { Weapons, drawCapsule, pickupInfo } from './weapons.js?v=0.4.2';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.4.2';
-import { buzz, HAPTIC } from './feedback.js?v=0.4.2';
-import { sfx } from './audio.js?v=0.4.2';
-import { clamp, rectsOverlap } from './util.js?v=0.4.2';
-import { Gore, FLESH, METAL, ROCK, GLASS, HELMET } from './gore.js?v=0.4.2';
-import { BLOOD } from './config.js?v=0.4.2';
-import { startBossMusic, stopMusic } from './music.js?v=0.4.2';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.4.2';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.5.0';
+import { SPRITES } from './sprites.js?v=0.5.0';
+import { ENEMY_TYPES } from './enemies.js?v=0.5.0';
+import { LEVELS, LevelRunner } from './levels.js?v=0.5.0';
+import { Background } from './background.js?v=0.5.0';
+import { Weapons, drawCapsule, pickupInfo } from './weapons.js?v=0.5.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.5.0';
+import { buzz, HAPTIC } from './feedback.js?v=0.5.0';
+import { sfx } from './audio.js?v=0.5.0';
+import { clamp, rectsOverlap } from './util.js?v=0.5.0';
+import { Gore, FLESH, METAL, ROCK, GLASS, HELMET } from './gore.js?v=0.5.0';
+import { BLOOD } from './config.js?v=0.5.0';
+import { startBossMusic, stopMusic } from './music.js?v=0.5.0';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.5.0';
+import { Crystals } from './crystals.js?v=0.5.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -36,6 +37,7 @@ export class Game {
     this.levelIndex = 0;
     this.weapons = new Weapons(this);
     this.powerups = new PowerUps(this);
+    this.crystals = new Crystals(this);
     this.gore = new Gore(this.rand);
     this.pickupInfo = (kind) =>
       kind === 'smart' ? SMART_POD : POWERUPS[kind] || pickupInfo(kind);
@@ -89,6 +91,8 @@ export class Game {
     this.bg = new Background(this.rand, this.level.background);
     this.weapons.reset();
     this.powerups.reset();
+    this.crystals.reset();
+    this.section = null;
     this.runner = new LevelRunner(this, this.level);
     if (this.startAt) {
       const bossAt = this.level.events.find((ev) => ev[1] === 'boss')[0];
@@ -145,6 +149,22 @@ export class Game {
       const kind = hurt && this.rand() < 0.6 ? 'repair' : randomPowerup(this.rand);
       this.spawnPickup(kind, e.x + e.w / 2 - 4, e.y + e.h / 2 - 4);
     }
+  }
+
+  // Every 25 Ember Crystals: a free power-up, chosen like a smart pod.
+  emberSurge() {
+    const kind = this.smartSupply();
+    this.collectPickup(kind);
+    const p = this.player;
+    this.burst(p.x + p.w / 2, p.y + p.h / 2, 24, 90, [PAL.amberLight, PAL.amber, PAL.cream]);
+    this.flash = Math.max(this.flash, 0.08);
+    sfx.surge();
+    this.showToast('EMBER SURGE');
+  }
+
+  // Name of a new part of the level, shown briefly at the top.
+  showSection(name) {
+    this.section = { name, t: 0 };
   }
 
   // What a smart supply pod gives you: whatever you need most right now.
@@ -312,6 +332,7 @@ export class Game {
     this.runner.update(dt);
     this.weapons.update(dt);
     this.powerups.update(dt, input);
+    this.crystals.update(dt);
     if (this.state === 'playing' && this.health === 1) {
       // Warning beeps and smoke when you're on your last health block.
       this.lowBeep -= dt;
@@ -418,6 +439,7 @@ export class Game {
     if (this.toast && (this.toast.t -= dt) <= 0) this.toast = null;
     if (this.banner && (this.banner.t += dt) > 3.6) this.banner = null;
     if (this.warning && (this.warning.t += dt) > 2.6) this.warning = null;
+    if (this.section && (this.section.t += dt) > 2.4) this.section = null;
     this.shake = Math.max(0, this.shake - dt * 14);
     this.flash = Math.max(0, this.flash - dt);
     this.hurtFlash = Math.max(0, this.hurtFlash - dt);
@@ -464,8 +486,9 @@ export class Game {
       if (e.dead || e.T.harmless) continue;
       if (this.contact(e, hx, hy, hw, hh)) {
         const dmg = e.T.contactDamage ? e.T.contactDamage(e, this) : e.T.ram ?? 2;
-        if (e.T.boss) {
-          // Bounced off the boss: knocked back so you don't keep scraping it.
+        if (e.T.boss || e.T.solid) {
+          // Bounced off a boss or boulder: knocked back so you don't keep
+          // scraping it.
           p.x = clamp(p.x - 14, 2, VIEW_W - p.w - 2);
         } else {
           this.killEnemy(e);
@@ -497,6 +520,10 @@ export class Game {
     if (gore.rock) this.gore.chunks(cx, cy, gore.rock, ROCK, 60, false);
     if (e.T.onDeath) e.T.onDeath(e, this);
     this.maybeDrop(e);
+    if (e.T.crystals && !e.byBoss) {
+      const [lo, hi] = e.T.crystals;
+      this.crystals.burst(cx, cy, lo + Math.floor(this.rand() * (hi - lo + 1)));
+    }
     if (e.T.score >= 40) {
       this.popups.push({ x: e.x + e.w / 2, y: e.y, text: '+' + e.T.score, t: 0.8 });
       this.shake = Math.max(this.shake, 1.5);
@@ -701,6 +728,7 @@ export class Game {
       ctx.fillRect(x - 1, y - 1, 2, 2);
     }
 
+    this.crystals.draw(ctx, snap);
     this.weapons.draw(ctx, snap);
     this.drawPlayer(ctx, snap);
     this.powerups.draw(ctx, snap);
@@ -807,7 +835,17 @@ export class Game {
       ctx.drawImage(icon, VIEW_W - 4 - (i + 1) * (icon.width + 3), 2);
     }
 
-    if (this.state !== 'clear') this.weapons.drawHud(ctx);
+    if (this.state !== 'clear') {
+      this.weapons.drawHud(ctx);
+      this.crystals.drawHud(ctx);
+    }
+    if (this.section) {
+      const t = this.section.t;
+      if (t < 2.2 && (t > 0.3 || Math.floor(t * 12) % 2 === 0)) {
+        drawTextCentered(ctx, this.section.name, VIEW_W / 2 + 1, 31, PAL.ink);
+        drawTextCentered(ctx, this.section.name, VIEW_W / 2, 30, PAL.bluePale);
+      }
+    }
 
     // Boss health bar along the bottom.
     const boss = this.boss;

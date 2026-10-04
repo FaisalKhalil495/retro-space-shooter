@@ -84,6 +84,23 @@ a real console controller, so you can play by feel while watching the game.
   slower, costing 1 block (a whole small rock still costs 2). Rockjaw's
   splitting rocks crack and flash for 0.5 s first, then burst into 2 slower
   pieces of gravel (was 3, no warning).
+- **Asteroids rework** (owner request, v0.5.0 — owner beat Rockjaw on v0.4.2
+  but level asteroids never hurt and had no reward):
+  - New types: **streakers** (fast, angled, marker on the right edge first),
+    **boulders** (huge, 40 HP, solid — ramming costs 3 and knocks you back;
+    they form corridors; break into 3 big rocks), **treasure rocks** (amber
+    veins + twinkle, 14 HP, always hold a power-up/special + crystals),
+    **meteor showers** in the level (diagonal, "!" markers).
+  - Shot big rocks in the **level** burst into 3 fragments in all directions
+    (1 block each). In **boss fights** they still split into 2 gentle
+    fragments flying up/down (owner liked that).
+  - **Ember Crystals** pop out of non-boss rocks (small 0–1, big 2–3, boulder
+    5, treasure 8, streaker 1) and come in calm trails between sections.
+    10 points each; short magnet range; fade after 7 s. Every **25** = an
+    **Ember Surge** (free power-up chosen like a smart pod). Counter shown
+    bottom-right.
+  - Level 1 is now 5 named sections with breathers: Warm-up, Belt Edge,
+    Ambush Alley, The Storm, Gauntlet; boss at 130 s.
 - Level 1 enemies (Hard): some pods shoot, weavers spit acid, gunners fire 4
   faster shots, seekers steer harder; ambushes from behind, dive-bombers from
   top/bottom and pincers, each flagged by a red "!" warning marker first.
@@ -193,7 +210,7 @@ Approved by the owner. Keep the status column up to date.
 | # | Stage | What's in it | Status |
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
-| 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Built — owner testing |
+| 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). Since grown: hard mode, gore, health bar, power-ups, smart supplies, asteroid rework + crystals. | Owner beat Rockjaw (v0.4.2); v0.5.0 asteroid rework in testing |
 | 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. | |
 | 4 | **Levels 5–8** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
@@ -219,6 +236,7 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - `js/weapons.js` — special weapons (bombs, rockets, laser), pickups, corner icon.
 - `js/powerups.js` — automatic power-ups (shield, repair, spread, rapid,
   wingman), their orbs, timers and HUD icons.
+- `js/crystals.js` — Ember Crystals, magnet, Ember Surge counter.
 - `js/waves.js` — enemy formations. `js/levels.js` — level timelines + runner.
 - `js/background.js` — starfield, sun, dust band, distant rocks (per-level theme).
 - `js/sprites.js` — pixel art as text grids. `js/rockart.js` — asteroids and
@@ -234,6 +252,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   `PLAYWRIGHT_PATH=/opt/node22/lib/node_modules/playwright node tools/smoke-test.mjs <screenshot-dir>`
 - `tools/level-test.mjs` — invincible autopilot plays a whole level at high
   speed; checks pickups, specials, boss and level clear (same command style).
+  Also a "threat" run (autopilot that can be hit) that counts hits by source
+  and crystals collected.
 - Testing aids: add `?safe=62` to the URL to fake an iPhone camera cutout;
   `?start=boss` jumps straight to the boss with a laser loaded;
   `?start=60` starts 60 seconds into the level.

@@ -1,4 +1,4 @@
-import { PAL } from './config.js?v=0.4.2';
+import { PAL } from './config.js?v=0.5.0';
 
 // Asteroids and Rockjaw are drawn by code rather than by hand: a lumpy
 // circle, shaded from the top-left with a pixel-art checkerboard "dither"
@@ -47,7 +47,7 @@ function makeCraters(rand, r, count) {
 }
 
 // Paint one rock into a canvas. `mouth` (0..1) cuts an open jaw on the left.
-function paintRock(r, seed, { craters = 3, mouth = -1, eye = false, flash = false, shades = ROCK_SHADES } = {}) {
+function paintRock(r, seed, { craters = 3, mouth = -1, eye = false, flash = false, shades = ROCK_SHADES, veins = 0 } = {}) {
   const rand = seeded(seed);
   const radiusAt = lumpy(rand, r);
   const cr = makeCraters(rand, r, craters);
@@ -135,6 +135,39 @@ function paintRock(r, seed, { craters = 3, mouth = -1, eye = false, flash = fals
     ctx.fillRect(ex, ey, 1, 2);
   }
 
+  // Treasure rocks: glinting amber crystal veins running through the stone.
+  if (!flash && veins) {
+    const vr = seeded(seed * 7 + 3);
+    const VEIN = ['#8a5a2e', '#c98f4a', '#e3a857', '#f2cf8a'];
+    for (let i = 0; i < veins; i++) {
+      let a = vr() * Math.PI * 2;
+      let x = c0 + Math.cos(a) * r * 0.75;
+      let y = c0 + Math.sin(a) * r * 0.75;
+      const len = r * (0.9 + vr() * 0.8);
+      for (let k = 0; k < len; k++) {
+        a += (vr() - 0.5) * 1.1;
+        x -= Math.cos(a);
+        y -= Math.sin(a);
+        const ix = Math.round(x);
+        const iy = Math.round(y);
+        if (!inside(ix, iy)) continue;
+        ctx.fillStyle = VEIN[k % 5 === 0 ? 3 : k % 3 === 0 ? 2 : 1];
+        ctx.fillRect(ix, iy, 1, 1);
+      }
+    }
+    // A few bright crystal clusters.
+    for (let i = 0; i < 2 + Math.floor(r / 6); i++) {
+      const a = vr() * Math.PI * 2;
+      const d = vr() * r * 0.55;
+      const ix = Math.round(c0 + Math.cos(a) * d);
+      const iy = Math.round(c0 + Math.sin(a) * d);
+      ctx.fillStyle = '#f2cf8a';
+      ctx.fillRect(ix, iy, 2, 2);
+      ctx.fillStyle = PAL.cream;
+      ctx.fillRect(ix, iy, 1, 1);
+    }
+  }
+
   // Dark outline so rocks read clearly against space.
   const img = ctx.getImageData(0, 0, size, size);
   const out = ctx.createImageData(size, size);
@@ -162,6 +195,15 @@ export const ROCKS = {
 };
 ROCKS.bigFlash = ROCKS.big.map((_, i) => paintRock(9, [101, 202, 303][i], { flash: true }));
 ROCKS.smallFlash = ROCKS.small.map((_, i) => paintRock(5, [11, 22, 33, 44][i], { flash: true }));
+
+// Boulders: huge, dark and very tough. You fly around them.
+const BOULDER_SHADES = ['#221d27', '#3b3139', '#5d4d50', '#85706a'];
+ROCKS.boulder = [404, 505].map((s) => paintRock(16, s, { craters: 6, shades: BOULDER_SHADES }));
+ROCKS.boulderFlash = [404, 505].map((s) => paintRock(16, s, { flash: true }));
+
+// Treasure rocks: big rocks with amber crystal veins. Crack them for loot.
+ROCKS.treasure = [606, 707].map((s) => paintRock(10, s, { craters: 2, shades: NEAR_SHADES, veins: 4 }));
+ROCKS.treasureFlash = [606, 707].map((s) => paintRock(10, s, { flash: true }));
 
 // ROCKJAW, painted by code. 4 jaw positions (shut .. wide open) for each of
 // 3 damage stages (healthy, cracked, wrecked), plus pale hit-flash copies.
