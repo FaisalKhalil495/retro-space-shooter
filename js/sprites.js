@@ -1,4 +1,4 @@
-import { PAL } from './config.js?v=0.2.0';
+import { PAL } from './config.js?v=0.3.0';
 
 // Pixel art is written as text grids: each character is one pixel and maps
 // to a palette colour ('.' is transparent). Each sprite is drawn once onto
@@ -45,16 +45,16 @@ const ART = {
     '..kRrrRk..',
     '...kkkk...',
   ],
-  // Amber manta that weaves up and down. Nose (with eye) points left.
+  // Living alien manta: raw red flesh, cream teeth, a little amber eye.
   weaver: [
     '.........kk',
-    '.......kkAk',
-    '....kkkAAok',
-    'kkkkcaAAAok',
-    '.kllaaAAAok',
-    'kkkkcaAAAok',
-    '....kkkAAok',
-    '.......kkAk',
+    '.......kkrk',
+    '....kkkrrRk',
+    'kkkklsrrrRk',
+    '.kccssrrrRk',
+    'kkkklsrrrRk',
+    '....kkkrrRk',
+    '.......kkrk',
     '.........kk',
   ],
   // Armoured gunship with a twin cannon on its left side.

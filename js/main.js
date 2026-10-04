@@ -1,8 +1,8 @@
-import { VERSION, STAGE_LABEL, VIEW_W, VIEW_H, PAL } from './config.js?v=0.2.0';
-import { readSafeArea, computeLayout } from './layout.js?v=0.2.0';
-import { Controls } from './controls.js?v=0.2.0';
-import { Game } from './game.js?v=0.2.0';
-import { unlockAudio, suspendAudio, resumeAudio } from './audio.js?v=0.2.0';
+import { VERSION, STAGE_LABEL, VIEW_W, VIEW_H, PAL } from './config.js?v=0.3.0';
+import { readSafeArea, computeLayout } from './layout.js?v=0.3.0';
+import { Controls } from './controls.js?v=0.3.0';
+import { Game } from './game.js?v=0.3.0';
+import { unlockAudio, suspendAudio, resumeAudio } from './audio.js?v=0.3.0';
 
 const canvas = document.getElementById('screen');
 const ctx = canvas.getContext('2d', { alpha: false });
@@ -18,7 +18,7 @@ const controls = new Controls(canvas);
 // Testing aid: "?start=boss" jumps straight to the boss (with a laser loaded);
 // "?start=60" starts 60 seconds into the level.
 const startParam = new URLSearchParams(location.search).get('start');
-const startAt = startParam === 'boss' ? 125.5 : Number(startParam) || 0;
+const startAt = startParam === 'boss' ? 'boss' : Number(startParam) || 0;
 const game = new Game({ startAt });
 
 let layout = null;

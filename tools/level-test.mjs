@@ -108,7 +108,7 @@ results.mid = await run(70, { invincible: true });
 await page.screenshot({ path: `${out}/lvl-mid.png` });
 results.preBoss = await run(32, { invincible: true, useSpecials: true });
 await page.screenshot({ path: `${out}/lvl-boss.png` });
-results.boss = await run(90, { invincible: true, useSpecials: true });
+results.boss = await run(240, { invincible: true, useSpecials: true });
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/lvl-clear.png` });
 
