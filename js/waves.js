@@ -1,4 +1,4 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.4.2';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.5.0';
 
 // Enemy formations. Levels are built by placing these on a timeline
 // (see levels.js). Every pattern takes the game, a random-number function
@@ -100,6 +100,61 @@ export const PATTERNS = {
   // A cargo pod carrying a pickup.
   carrier(game, rand, { drop, y } = {}) {
     game.spawnEnemy('carrier', VIEW_W + 8, y ?? TOP + 10 + rand() * (BOTTOM - TOP - 20), { drop });
+  },
+
+  // A section of the level begins: show its name.
+  section(game, rand, { name }) {
+    game.showSection(name);
+  },
+
+  // A calm trail of Ember Crystals to collect (breathers between sections).
+  crystals(game, rand, { n = 8, y, wave = 12 } = {}) {
+    game.crystals.trail(n, y ?? TOP + 20 + rand() * (BOTTOM - TOP - 40), wave);
+  },
+
+  // Meteor shower: rocks rain diagonally from the top or bottom edge, each
+  // marked with a red "!" a moment before it arrives.
+  shower(game, rand, { n = 8, from = rand() < 0.5 ? 'top' : 'bottom', dur = 3 } = {}) {
+    const top = from === 'top';
+    for (let i = 0; i < n; i++) {
+      const when = (i * dur) / n;
+      const x = 50 + rand() * (VIEW_W - 50);
+      const big = i % 4 === 3;
+      game.later(when, () => game.warn(x, top ? HUD_H + 3 : VIEW_H - 8, 0.7));
+      game.later(when + 0.7, () => {
+        game.spawnEnemy(big ? 'rockBig' : 'rockSmall', x - 6, top ? -16 : VIEW_H + 4, {
+          vx: -30 - rand() * 18,
+          vy: (top ? 1 : -1) * (72 + rand() * 20),
+          fall: true,
+        });
+      });
+    }
+  },
+
+  // Fast streaking rocks, each announced by a marker on the right edge.
+  streakers(game, rand, { n = 3, gap = 0.45 } = {}) {
+    for (let i = 0; i < n; i++) {
+      const y = TOP + rand() * (BOTTOM - TOP);
+      const vy = (rand() - 0.5) * 50;
+      game.later(i * gap, () => game.warn(VIEW_W - 8, y, 0.55));
+      game.later(i * gap + 0.55, () => game.spawnEnemy('streaker', VIEW_W + 4, y - 4, { vy }));
+    }
+  },
+
+  // Boulders squeezing you into corridors. There are 4 lanes (0 = top);
+  // `open` is one that's guaranteed to stay clear.
+  boulders(game, rand, { open = 1 + Math.floor(rand() * 2), n = 2 } = {}) {
+    const lanes = [TOP + 12, TOP + 44, TOP + 76, TOP + 106].filter((_, i) => i !== open);
+    lanes.sort(() => rand() - 0.5);
+    for (let i = 0; i < Math.min(n, lanes.length); i++) {
+      game.spawnEnemy('boulder', VIEW_W + 6 + i * 26, 0, { centerY: lanes[i] });
+    }
+  },
+
+  // A treasure rock with loot inside ('smart' = whatever you need most).
+  treasure(game, rand, { y, drop = 'smart' } = {}) {
+    const centerY = y ?? TOP + 20 + rand() * (BOTTOM - TOP - 40);
+    game.spawnEnemy('treasure', VIEW_W + 6, 0, { drop, centerY });
   },
 
   // Asteroids, either all at once or spread over a few seconds.
