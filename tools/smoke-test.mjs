@@ -166,6 +166,38 @@ for (const phone of PHONES) {
   console.log(`  ${smartOk ? 'PASS' : 'FAIL'}  smart supply choices ${JSON.stringify(smart)}`);
   if (!smartOk) failures++;
 
+  // Rock fragments: gentle, flying away from the ship's path; spat rocks
+  // warn before splitting into 2 slower pieces.
+  const rocks = await page.evaluate(() => {
+    const g = window.__ember.game;
+    g.enemies = [];
+    g.enemyShots = [];
+    const big = g.spawnEnemy('rockBig', 120, 60, { vx: -50, vy: 0 });
+    g.killEnemy(big);
+    const shards = g.enemies.filter((e) => e.type === 'rockShard');
+    const start = shards.map((s) => ({ vx: Math.round(s.vx), vy: Math.round(Math.abs(s.vy)) }));
+    const spit = g.spawnEnemy('rockSpit', 150, 60, { vx: -40, vy: 0, splitAt: 0.1 });
+    const step = () => g.moveWorld(1 / 60);
+    for (let i = 0; i < 12; i++) step(); // 0.2s: cracking, not yet burst
+    const warned = !spit.dead && g.enemyShots.length === 0;
+    for (let i = 0; i < 30; i++) step(); // past the 0.5s warning
+    const gravel = g.enemyShots.map((s) => Math.round(Math.hypot(s.vx, s.vy)));
+    g.enemies = [];
+    g.enemyShots = [];
+    return {
+      shards: shards.length,
+      ram: shards.map((s) => s.T.ram),
+      vy: start.map((s) => s.vy),
+      vx: start.map((s) => s.vx),
+      warned,
+      gravel,
+    };
+  });
+  const rocksOk = rocks.shards === 2 && rocks.ram.every((r) => r === 1) && rocks.vy.every((v) => v >= 40) &&
+    rocks.vx.every((v) => Math.abs(v) < 30) && rocks.warned && rocks.gravel.length === 2 && rocks.gravel.every((v) => v <= 72);
+  console.log(`  ${rocksOk ? 'PASS' : 'FAIL'}  gentler rock fragments ${JSON.stringify(rocks)}`);
+  if (!rocksOk) failures++;
+
   // Portrait: should ask to rotate.
   await page.setViewportSize({ width: phone.height, height: phone.width });
   await page.waitForTimeout(400);

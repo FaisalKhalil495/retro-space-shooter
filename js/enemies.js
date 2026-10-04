@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.4.1';
-import { ROCKS } from './rockart.js?v=0.4.1';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.4.1';
-import { clamp, rectHitsCircle } from './util.js?v=0.4.1';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.4.2';
+import { ROCKS } from './rockart.js?v=0.4.2';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.4.2';
+import { clamp, rectHitsCircle } from './util.js?v=0.4.2';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -153,29 +153,56 @@ export const ENEMY_TYPES = {
   },
 
   // Asteroids drift across. Big ones split in two when destroyed.
+  // Big rocks break into two fragments when shot. The fragments fly up and
+  // down, away from the ship's path, and blink so they're easy to spot.
   rockBig: rockType('big', 6, 25, 9, 3, (e, game) => {
     for (const side of [-1, 1]) {
-      game.spawnEnemy('rockSmall', e.x + e.w / 2 - 5, e.y + e.h / 2 - 5, {
-        vx: e.vx * 1.15,
-        vy: side * (22 + game.rand() * 12),
+      game.spawnEnemy('rockShard', e.x + e.w / 2 - 5, e.y + e.h / 2 - 5, {
+        vx: e.vx * 0.45,
+        vy: side * (40 + game.rand() * 12),
         byBoss: e.byBoss,
       });
     }
   }),
   rockSmall: rockType('small', 2, 5, 5, 2),
 
-  // A rock spat by Rockjaw. Some burst into a spray of gravel mid-flight.
+  // A fragment of a big rock: weaker (costs 1 health block), slower, and it
+  // just flies off the screen instead of bouncing back into play.
+  rockShard: {
+    ...rockType('small', 1, 3, 4, 1),
+    explodeSize: 0.3,
+    update(e, dt) {
+      e.x += e.vx * dt;
+      e.y += e.vy * dt;
+      e.vy *= 1 - 0.4 * dt;
+      e.flash = e.t < 0.5 && Math.floor(e.t * 16) % 2 === 0 ? 0.02 : e.flash;
+    },
+  },
+
+  // A rock spat by Rockjaw. Some burst into two pieces of gravel mid-flight,
+  // after flashing and shaking for half a second as a warning.
   rockSpit: {
     ...rockType('small', 2, 0, 5, 2),
     update(e, dt, game) {
       e.x += e.vx * dt;
       e.y += e.vy * dt;
-      if (e.splitAt && e.t >= e.splitAt) {
+      if (!e.splitAt) return;
+      const left = e.splitAt + SPLIT_WARNING - e.t;
+      if (left > 0 && left <= SPLIT_WARNING) {
+        // Cracking: blink pale and jitter.
+        e.flash = Math.floor(e.t * 14) % 2 === 0 ? 0.02 : 0;
+        e.y += (game.rand() - 0.5) * 1.5;
+        if (!e.creaked) {
+          e.creaked = true;
+          game.burst(e.x + e.w / 2, e.y + e.h / 2, 3, 30, ['#9c8478', '#c4a68e']);
+        }
+      }
+      if (left <= 0) {
         e.dead = true;
         game.burst(e.x + e.w / 2, e.y + e.h / 2, 8, 60);
         const base = Math.atan2(e.vy, e.vx);
-        for (const off of [-0.45, 0, 0.45]) {
-          game.fireShot(e.x + e.w / 2, e.y + e.h / 2, base + off, 96, 'gravel', true);
+        for (const off of [-0.32, 0.32]) {
+          game.fireShot(e.x + e.w / 2, e.y + e.h / 2, base + off, 72, 'gravel', true);
         }
       }
     },
@@ -183,6 +210,8 @@ export const ENEMY_TYPES = {
 
   rockjaw: ROCKJAW_TYPE,
 };
+
+const SPLIT_WARNING = 0.5; // seconds a spat rock cracks before it bursts
 
 function rockType(size, hp, score, radius, ram, onDeath) {
   return {
