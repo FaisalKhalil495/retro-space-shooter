@@ -1,8 +1,8 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.4.0';
-import { ROCKJAW } from './rockart.js?v=0.4.0';
-import { sfx } from './audio.js?v=0.4.0';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.4.0';
-import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.4.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.4.1';
+import { ROCKJAW } from './rockart.js?v=0.4.1';
+import { sfx } from './audio.js?v=0.4.1';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.4.1';
+import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.4.1';
 
 // ROCKJAW · THE LIVING ASTEROID — boss of The Outer Belt.
 //
@@ -22,6 +22,7 @@ const MID_Y = (HUD_H + VIEW_H) / 2;
 const HOME_X = VIEW_W - 46;
 const SPEED = [0, 1, 1.18, 1.38];
 const IDLE = [0, 1.25, 0.85, 0.6];
+const SUPPLY_EVERY = 20; // seconds between smart supply pods during the fight
 const MOVESETS = [
   null,
   ['charge', 'spit', 'charge', 'spit'],
@@ -379,6 +380,7 @@ export const ROCKJAW_TYPE = {
     e.queued = null;
     e.idle = 1;
     e.toothDmg = 0;
+    e.supplyT = Infinity;
   },
 
   update(e, dt, g) {
@@ -389,6 +391,16 @@ export const ROCKJAW_TYPE = {
       e.mode = mode;
       e.timer = 0;
     };
+
+    // Smart supply pods: one every 20 seconds of fighting. What's inside is
+    // decided when you shoot it open, based on what you need most then.
+    if (e.mode === 'fight' || e.mode === 'transition') {
+      e.supplyT -= dt;
+      if (e.supplyT <= 0) {
+        e.supplyT = SUPPLY_EVERY;
+        supplyPod(e, g);
+      }
+    }
 
     switch (e.mode) {
       case 'enter': {
@@ -424,7 +436,7 @@ export const ROCKJAW_TYPE = {
           g.darkenTo(0);
           set('fight');
           e.idle = 0.6;
-          g.later(3, () => supplyPod(e, g, 'shield'));
+          e.supplyT = 3; // the first pod comes early
         }
         break;
       case 'fight':
@@ -526,7 +538,6 @@ export const ROCKJAW_TYPE = {
         sfx.splat();
       }
       g.showToast(next === 2 ? 'HE IS PISSED OFF NOW' : 'ROCKJAW IS FUCKING ENRAGED');
-      g.later(2.6, () => supplyPod(e, g, next === 2 ? 'repair' : g.rand() < 0.5 ? 'repair' : 'shield'));
     }
   },
 
@@ -554,12 +565,11 @@ export const ROCKJAW_TYPE = {
   },
 };
 
-// One supply pod per phase gives the player a fighting chance. It comes in
-// on the side of the screen away from Rockjaw.
-function supplyPod(e, g, drop) {
+// A supply pod comes in on the side of the screen away from Rockjaw.
+function supplyPod(e, g) {
   if (g.boss !== e || e.mode === 'dying') return;
   const above = center(e).y > MID_Y;
-  g.spawnEnemy('carrier', VIEW_W + 8, above ? HUD_H + 8 : VIEW_H - 20, { drop });
+  g.spawnEnemy('carrier', VIEW_W + 8, above ? HUD_H + 8 : VIEW_H - 20, { drop: 'smart' });
 }
 
 function startAttack(e, g) {

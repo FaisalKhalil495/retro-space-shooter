@@ -1,22 +1,23 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.4.0';
-import { SPRITES } from './sprites.js?v=0.4.0';
-import { ENEMY_TYPES } from './enemies.js?v=0.4.0';
-import { LEVELS, LevelRunner } from './levels.js?v=0.4.0';
-import { Background } from './background.js?v=0.4.0';
-import { Weapons, drawCapsule, pickupInfo } from './weapons.js?v=0.4.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.4.0';
-import { buzz, HAPTIC } from './feedback.js?v=0.4.0';
-import { sfx } from './audio.js?v=0.4.0';
-import { clamp, rectsOverlap } from './util.js?v=0.4.0';
-import { Gore, FLESH, METAL, ROCK, GLASS, HELMET } from './gore.js?v=0.4.0';
-import { BLOOD } from './config.js?v=0.4.0';
-import { startBossMusic, stopMusic } from './music.js?v=0.4.0';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.4.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.4.1';
+import { SPRITES } from './sprites.js?v=0.4.1';
+import { ENEMY_TYPES } from './enemies.js?v=0.4.1';
+import { LEVELS, LevelRunner } from './levels.js?v=0.4.1';
+import { Background } from './background.js?v=0.4.1';
+import { Weapons, drawCapsule, pickupInfo } from './weapons.js?v=0.4.1';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.4.1';
+import { buzz, HAPTIC } from './feedback.js?v=0.4.1';
+import { sfx } from './audio.js?v=0.4.1';
+import { clamp, rectsOverlap } from './util.js?v=0.4.1';
+import { Gore, FLESH, METAL, ROCK, GLASS, HELMET } from './gore.js?v=0.4.1';
+import { BLOOD } from './config.js?v=0.4.1';
+import { startBossMusic, stopMusic } from './music.js?v=0.4.1';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.4.1';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
 const BLOCK_COLORS = [PAL.grey, PAL.cream, PAL.bluePale];
 const LIFE_BONUS = 500;
+const SMART_POD = { color: PAL.cream, light: PAL.amberLight }; // light on a smart supply pod
 
 // Things the game says when you die. Adults-only humour, as agreed.
 const DEATH_LINES = [
@@ -36,7 +37,8 @@ export class Game {
     this.weapons = new Weapons(this);
     this.powerups = new PowerUps(this);
     this.gore = new Gore(this.rand);
-    this.pickupInfo = (kind) => POWERUPS[kind] || pickupInfo(kind);
+    this.pickupInfo = (kind) =>
+      kind === 'smart' ? SMART_POD : POWERUPS[kind] || pickupInfo(kind);
     this.reset();
   }
 
@@ -132,11 +134,26 @@ export class Game {
   }
 
   // Tough enemies sometimes leave a power-up behind.
+  // When you're hurt (2 health blocks or fewer), drops get more likely and
+  // lean towards Repair. At full health they stay as they are.
   maybeDrop(e) {
-    const chance = e.T.dropChance || 0;
+    if (e.byBoss) return;
+    const hurt = this.health <= 2;
+    let chance = e.T.dropChance || 0;
+    if (hurt) chance = chance * 2.5 + 0.06;
     if (chance && this.rand() < chance) {
-      this.spawnPickup(randomPowerup(this.rand), e.x + e.w / 2 - 4, e.y + e.h / 2 - 4);
+      const kind = hurt && this.rand() < 0.6 ? 'repair' : randomPowerup(this.rand);
+      this.spawnPickup(kind, e.x + e.w / 2 - 4, e.y + e.h / 2 - 4);
     }
+  }
+
+  // What a smart supply pod gives you: whatever you need most right now.
+  smartSupply() {
+    if (this.health <= 2) return 'repair';
+    if (!this.powerups.has('shield')) return 'shield';
+    if (this.health < PLAYER.health) return 'repair';
+    if (this.weapons.kind !== 'laser' || this.weapons.ammo < 2) return 'laser';
+    return this.rand() < 0.5 ? 'rapid' : 'spread';
   }
 
   fireAtPlayer(x, y, speed) {

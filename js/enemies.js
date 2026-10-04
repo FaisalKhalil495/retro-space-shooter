@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.4.0';
-import { ROCKS } from './rockart.js?v=0.4.0';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.4.0';
-import { clamp, rectHitsCircle } from './util.js?v=0.4.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.4.1';
+import { ROCKS } from './rockart.js?v=0.4.1';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.4.1';
+import { clamp, rectHitsCircle } from './util.js?v=0.4.1';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -140,7 +140,9 @@ export const ENEMY_TYPES = {
       e.y = e.baseY + Math.sin(e.t * 2) * 3;
     },
     onDeath(e, game) {
-      game.spawnPickup(e.drop, e.x + e.w / 2 - 4, e.y + e.h / 2 - 4);
+      // A 'smart' pod decides what's inside at the moment it's opened.
+      const kind = e.drop === 'smart' ? game.smartSupply() : e.drop;
+      game.spawnPickup(kind, e.x + e.w / 2 - 4, e.y + e.h / 2 - 4);
     },
     draw(e, ctx, snap, game, spr) {
       ctx.drawImage(spr, snap(e.x), snap(e.y));
