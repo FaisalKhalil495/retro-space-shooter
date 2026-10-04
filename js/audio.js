@@ -205,19 +205,6 @@ export const sfx = {
     tone({ type: 'square', f0: 990, dur: 0.07, vol: 0.05, cutoff: 2200 });
     tone({ type: 'square', f0: 990, dur: 0.07, vol: 0.05, cutoff: 2200, when: 0.12 });
   },
-  crystal(rise = 0) {
-    // A tiny glassy chime that climbs in pitch as you collect a run of them.
-    if (!ready()) return;
-    const f = 1320 * (1 + rise * 0.5);
-    tone({ type: 'triangle', f0: f, f1: f * 1.05, dur: 0.07, vol: 0.07 });
-  },
-  surge() {
-    // Ember Surge: a bright rising sweep.
-    if (!ready()) return;
-    [523, 659, 784, 1047, 1319].forEach((f, i) =>
-      tone({ type: 'triangle', f0: f, dur: 0.12, vol: 0.13, when: i * 0.05 }));
-    noise({ dur: 0.5, vol: 0.12, f0: 800, f1: 4000, q: 2, type: 'bandpass' });
-  },
   oneUp() {
     if (!ready()) return;
     [392, 523, 659, 784, 1047].forEach((f, i) =>

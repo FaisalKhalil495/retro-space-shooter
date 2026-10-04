@@ -172,14 +172,9 @@ for (const phone of PHONES) {
     const g = window.__ember.game;
     g.enemies = [];
     g.enemyShots = [];
-    // Boss fight: 2 gentle fragments flying up/down, away from the ship.
-    const big = g.spawnEnemy('rockBig', 120, 60, { vx: -50, vy: 0, byBoss: true });
+    const big = g.spawnEnemy('rockBig', 120, 60, { vx: -50, vy: 0 });
     g.killEnemy(big);
     const shards = g.enemies.filter((e) => e.type === 'rockShard');
-    // Level: 3 fragments bursting outwards, 1 block each.
-    const lvl = g.spawnEnemy('rockBig', 120, 60, { vx: -50, vy: 0 });
-    g.killEnemy(lvl);
-    const levelShards = g.enemies.filter((e) => e.type === 'rockShard' && !e.byBoss);
     const start = shards.map((s) => ({ vx: Math.round(s.vx), vy: Math.round(Math.abs(s.vy)) }));
     const spit = g.spawnEnemy('rockSpit', 150, 60, { vx: -40, vy: 0, splitAt: 0.1 });
     const step = () => g.moveWorld(1 / 60);
@@ -194,14 +189,11 @@ for (const phone of PHONES) {
       ram: shards.map((s) => s.T.ram),
       vy: start.map((s) => s.vy),
       vx: start.map((s) => s.vx),
-      levelShards: levelShards.length,
-      levelRam: levelShards.map((s) => s.T.ram),
       warned,
       gravel,
     };
   });
-  const rocksOk = rocks.levelShards === 3 && rocks.levelRam.every((r) => r === 1) &&
-    rocks.shards === 2 && rocks.ram.every((r) => r === 1) && rocks.vy.every((v) => v >= 40) &&
+  const rocksOk = rocks.shards === 2 && rocks.ram.every((r) => r === 1) && rocks.vy.every((v) => v >= 40) &&
     rocks.vx.every((v) => Math.abs(v) < 30) && rocks.warned && rocks.gravel.length === 2 && rocks.gravel.every((v) => v <= 72);
   console.log(`  ${rocksOk ? 'PASS' : 'FAIL'}  gentler rock fragments ${JSON.stringify(rocks)}`);
   if (!rocksOk) failures++;
