@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.5.0';
-import { ROCKS } from './rockart.js?v=0.5.0';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.5.0';
-import { clamp, rectHitsCircle } from './util.js?v=0.5.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.4.2';
+import { ROCKS } from './rockart.js?v=0.4.2';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.4.2';
+import { clamp, rectHitsCircle } from './util.js?v=0.4.2';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -153,105 +153,18 @@ export const ENEMY_TYPES = {
   },
 
   // Asteroids drift across. Big ones split in two when destroyed.
-  // Big rocks break into blinking fragments when shot.
-  // - In Rockjaw's fight: 2 fragments flying up and down, away from you.
-  // - In the level: 3 fragments bursting out in all directions, including
-  //   towards you, so blasting a big rock in your face is a risk.
+  // Big rocks break into two fragments when shot. The fragments fly up and
+  // down, away from the ship's path, and blink so they're easy to spot.
   rockBig: rockType('big', 6, 25, 9, 3, (e, game) => {
-    const cx = e.x + e.w / 2 - 5;
-    const cy = e.y + e.h / 2 - 5;
-    if (e.byBoss) {
-      for (const side of [-1, 1]) {
-        game.spawnEnemy('rockShard', cx, cy, { vx: e.vx * 0.45, vy: side * (40 + game.rand() * 12), byBoss: true });
-      }
-      return;
-    }
-    const a0 = game.rand() * Math.PI * 2;
-    for (let k = 0; k < 3; k++) {
-      const a = a0 + (k * Math.PI * 2) / 3;
-      game.spawnEnemy('rockShard', cx, cy, { vx: e.vx * 0.3 + Math.cos(a) * 55, vy: Math.sin(a) * 55 });
-    }
-  }, { crystals: [2, 3] }),
-  rockSmall: rockType('small', 2, 5, 5, 2, null, { crystals: [0, 1] }),
-
-  // Streaker: a small rock moving very fast at a slight angle. A red marker
-  // flashes on the right edge just before one arrives.
-  streaker: rockType('small', 1, 15, 4, 2, null, {
-    crystals: [1, 1],
-    init(e, game) {
-      e.variant = Math.floor(game.rand() * ROCKS.small.length);
-      e.w = ROCKS.small[e.variant].width;
-      e.h = ROCKS.small[e.variant].height;
-      e.vx = e.vx ?? -(90 + game.rand() * 16);
-      e.vy = e.vy ?? 0;
-    },
-    update(e, dt, game) {
-      e.x += e.vx * dt;
-      e.y += e.vy * dt;
-      // Dust trail streaming behind it.
-      if (game.rand() < dt * 40) {
-        game.particles.push({
-          x: e.x + e.w / 2 + 3, y: e.y + e.h / 2 + (game.rand() - 0.5) * 3, vx: 30, vy: 0,
-          life: 0.25, max: 0.25, color: game.rand() < 0.5 ? '#75605f' : '#4d3f45', size: 1,
-        });
-      }
-    },
-  }),
-
-  // Boulder: huge and very tough. Mostly you fly around it; break it and it
-  // splits into three big rocks.
-  boulder: rockType('boulder', 40, 120, 15, 3, (e, game) => {
-    for (let k = 0; k < 3; k++) {
-      const a = -Math.PI / 2 + (k - 1) * 1.2 + Math.PI;
-      game.spawnEnemy('rockBig', e.x + e.w / 2 - 14, e.y + e.h / 2 - 14, {
-        vx: e.vx + Math.cos(a) * 25,
-        vy: Math.sin(a) * 30,
+    for (const side of [-1, 1]) {
+      game.spawnEnemy('rockShard', e.x + e.w / 2 - 5, e.y + e.h / 2 - 5, {
+        vx: e.vx * 0.45,
+        vy: side * (40 + game.rand() * 12),
+        byBoss: e.byBoss,
       });
     }
-  }, {
-    solid: true, // ramming it hurts you and knocks you back, but it survives
-    explodeSize: 1.6,
-    dropChance: 0.25,
-    crystals: [5, 5],
-    gore: { rock: 24 },
-    init(e, game) {
-      e.variant = Math.floor(game.rand() * ROCKS.boulder.length);
-      e.w = ROCKS.boulder[e.variant].width;
-      e.h = ROCKS.boulder[e.variant].height;
-      if (e.centerY != null) e.y = e.centerY - e.h / 2;
-      e.vx = e.vx ?? -22;
-      e.vy = e.vy ?? 0;
-    },
   }),
-
-  // Treasure rock: crystal veins glint in the stone. Tough to crack, but it
-  // always holds a power-up (or special weapon) and a burst of crystals.
-  treasure: rockType('treasure', 14, 150, 9, 3, (e, game) => {
-    const kind = !e.drop || e.drop === 'smart' ? game.smartSupply() : e.drop;
-    game.spawnPickup(kind, e.x + e.w / 2 - 4, e.y + e.h / 2 - 4);
-  }, {
-    crystals: [8, 8],
-    gore: { rock: 14 },
-    init(e, game) {
-      e.variant = Math.floor(game.rand() * ROCKS.treasure.length);
-      e.w = ROCKS.treasure[e.variant].width;
-      e.h = ROCKS.treasure[e.variant].height;
-      if (e.centerY != null) e.y = e.centerY - e.h / 2;
-      e.vx = e.vx ?? -26;
-      e.vy = e.vy ?? 0;
-    },
-    draw(e, ctx, snap, game) {
-      const set = e.flash > 0 ? ROCKS.treasureFlash : ROCKS.treasure;
-      ctx.drawImage(set[e.variant], snap(e.x), snap(e.y));
-      // A twinkling glint so it stands out from ordinary rocks.
-      const tw = Math.floor(game.time * 3 + e.variant) % 3;
-      const gx = snap(e.x) + Math.round(e.w * (0.35 + tw * 0.15));
-      const gy = snap(e.y) + Math.round(e.h * (0.3 + (tw % 2) * 0.3));
-      ctx.fillStyle = PAL.cream;
-      ctx.fillRect(gx - 1, gy, 3, 1);
-      ctx.fillRect(gx, gy - 1, 1, 3);
-    },
-  }),
+  rockSmall: rockType('small', 2, 5, 5, 2),
 
   // A fragment of a big rock: weaker (costs 1 health block), slower, and it
   // just flies off the screen instead of bouncing back into play.
@@ -300,7 +213,7 @@ export const ENEMY_TYPES = {
 
 const SPLIT_WARNING = 0.5; // seconds a spat rock cracks before it bursts
 
-function rockType(size, hp, score, radius, ram, onDeath, extra = {}) {
+function rockType(size, hp, score, radius, ram, onDeath) {
   return {
     hp,
     score,
@@ -330,11 +243,10 @@ function rockType(size, hp, score, radius, ram, onDeath, extra = {}) {
         if (e.y > VIEW_H - (e.h * 2) / 3 && e.vy > 0) e.vy = -e.vy;
       }
     },
-    onDeath: onDeath || undefined,
+    onDeath,
     draw(e, ctx, snap) {
       const set = e.flash > 0 ? ROCKS[size + 'Flash'] : ROCKS[size];
       ctx.drawImage(set[e.variant], snap(e.x), snap(e.y));
     },
-    ...extra,
   };
 }
