@@ -101,6 +101,27 @@ await page.evaluate(() => {
   window.__ember.liveOff = true;
 });
 
+// Boss supply pods: count smart pods over 50 seconds of boss fight.
+const pods = await page.evaluate(() => {
+  const g = window.__ember.game;
+  g.reset();
+  g.runner.skipTo(123.5);
+  let pods = 0;
+  const spawn = g.spawnEnemy.bind(g);
+  g.spawnEnemy = (type, x, y, opts = {}) => {
+    if (type === 'carrier' && opts.drop === 'smart') pods++;
+    return spawn(type, x, y, opts);
+  };
+  for (let i = 0; i < 70 * 120; i++) {
+    g.player.invuln = 1;
+    g.update(1 / 120, { dx: 0, dy: 0, fire: false, special: false, tap: false });
+  }
+  g.spawnEnemy = spawn;
+  g.reset();
+  return pods;
+});
+console.log('smart supply pods in ~55s of boss fight:', pods);
+
 const results = {};
 results.early = await run(30, { invincible: true });
 await page.screenshot({ path: `${out}/lvl-early.png` });
@@ -124,6 +145,7 @@ const checks = {
   'spread shot power-up collected': r.collected.includes('spread'),
   'wingman power-up collected': r.collected.includes('wingman'),
   'boss appeared': r.bossSeen,
+  'boss sends a supply pod every ~20s': pods >= 3,
   'level cleared': r.state === 'clear',
   'no script errors': errors.length === 0,
 };

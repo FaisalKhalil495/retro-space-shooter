@@ -72,7 +72,13 @@ a real console controller, so you can play by feel while watching the game.
   (double rate, 12 s), Wingman drone (fires with you, 15 s). They stack;
   re-collecting resets the timer. Sources: cargo pods in the level, random
   drops from gunships (30%), seekers, big rocks and weavers (small chance),
-  and one boss supply pod per boss phase.
+  and boss supply pods.
+- **Smart supplies** (owner request, v0.4.1): during a boss fight a supply
+  pod arrives every 20 s (first one 3 s in). What's inside is decided when
+  it's shot open: health <= 2 → Repair; no shield → Shield; not full health
+  → Repair; no laser → Laser special; otherwise Rapid Fire or Spread Shot.
+  During levels, when health is 2 blocks or fewer, drop chances rise
+  (x2.5 + 6%) and 60% of drops are Repair; at full health drops are unchanged.
 - Level 1 enemies (Hard): some pods shoot, weavers spit acid, gunners fire 4
   faster shots, seekers steer harder; ambushes from behind, dive-bombers from
   top/bottom and pincers, each flagged by a red "!" warning marker first.

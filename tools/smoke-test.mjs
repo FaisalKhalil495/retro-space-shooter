@@ -146,6 +146,26 @@ for (const phone of PHONES) {
   console.log(`  ${hpOk ? 'PASS' : 'FAIL'}  health bar, shield and repair ${JSON.stringify(health)}`);
   if (!hpOk) failures++;
 
+  // Smart supply: the pod gives what you need most.
+  const smart = await page.evaluate(() => {
+    const g = window.__ember.game;
+    g.powerups.reset();
+    g.weapons.reset();
+    g.health = 2;
+    const low = g.smartSupply();
+    g.health = 5;
+    const noShield = g.smartSupply();
+    g.powerups.collect('shield');
+    const shielded = g.smartSupply();
+    g.weapons.collect('laser');
+    const armed = g.smartSupply();
+    return { low, noShield, shielded, armed };
+  });
+  const smartOk = smart.low === 'repair' && smart.noShield === 'shield' && smart.shielded === 'laser' &&
+    ['rapid', 'spread'].includes(smart.armed);
+  console.log(`  ${smartOk ? 'PASS' : 'FAIL'}  smart supply choices ${JSON.stringify(smart)}`);
+  if (!smartOk) failures++;
+
   // Portrait: should ask to rotate.
   await page.setViewportSize({ width: phone.height, height: phone.width });
   await page.waitForTimeout(400);
