@@ -79,6 +79,11 @@ a real console controller, so you can play by feel while watching the game.
   → Repair; no laser → Laser special; otherwise Rapid Fire or Spread Shot.
   During levels, when health is 2 blocks or fewer, drop chances rise
   (x2.5 + 6%) and 60% of drops are Repair; at full health drops are unchanged.
+- **Rock fragments toned down** (owner request, v0.4.2): shooting a big rock
+  breaks it into 2 blinking fragments that fly up/down away from the ship,
+  slower, costing 1 block (a whole small rock still costs 2). Rockjaw's
+  splitting rocks crack and flash for 0.5 s first, then burst into 2 slower
+  pieces of gravel (was 3, no warning).
 - Level 1 enemies (Hard): some pods shoot, weavers spit acid, gunners fire 4
   faster shots, seekers steer harder; ambushes from behind, dive-bombers from
   top/bottom and pincers, each flagged by a red "!" warning marker first.
