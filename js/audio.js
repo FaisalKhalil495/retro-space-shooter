@@ -177,6 +177,34 @@ export const sfx = {
     [523, 659, 784, 1047].forEach((f, i) =>
       tone({ type: 'triangle', f0: f, dur: 0.1, vol: 0.12, when: i * 0.055 }));
   },
+  hurt() {
+    // Taking a hit: a crunchy thud and a short alarm chirp.
+    if (!ready()) return;
+    noise({ dur: 0.22, vol: 0.4, f0: 2600, f1: 300 });
+    tone({ type: 'sine', f0: 160, f1: 60, dur: 0.2, vol: 0.4 });
+    tone({ type: 'square', f0: 880, f1: 660, dur: 0.12, vol: 0.05, cutoff: 2000, when: 0.05 });
+  },
+  shieldHit() {
+    if (!ready()) return;
+    tone({ type: 'triangle', f0: 1400, f1: 900, dur: 0.18, vol: 0.16 });
+    tone({ type: 'sine', f0: 2100, f1: 1700, dur: 0.12, vol: 0.06 });
+  },
+  powerUp() {
+    if (!ready()) return;
+    [392, 494, 587, 784, 988].forEach((f, i) =>
+      tone({ type: 'triangle', f0: f, dur: 0.09, vol: 0.12, when: i * 0.045 }));
+  },
+  repair() {
+    if (!ready()) return;
+    [330, 440, 554, 659].forEach((f, i) =>
+      tone({ type: 'sine', f0: f, f1: f * 1.02, dur: 0.14, vol: 0.16, when: i * 0.08 }));
+  },
+  lowHealth() {
+    // Warning beep at one health block left.
+    if (!ready()) return;
+    tone({ type: 'square', f0: 990, dur: 0.07, vol: 0.05, cutoff: 2200 });
+    tone({ type: 'square', f0: 990, dur: 0.07, vol: 0.05, cutoff: 2200, when: 0.12 });
+  },
   oneUp() {
     if (!ready()) return;
     [392, 523, 659, 784, 1047].forEach((f, i) =>

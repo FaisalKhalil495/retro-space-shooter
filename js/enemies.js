@@ -1,13 +1,15 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.3.0';
-import { ROCKS } from './rockart.js?v=0.3.0';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.3.0';
-import { clamp, rectHitsCircle } from './util.js?v=0.3.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.4.0';
+import { ROCKS } from './rockart.js?v=0.4.0';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.4.0';
+import { clamp, rectHitsCircle } from './util.js?v=0.4.0';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
 // harmless (doesn't hurt on contact), hitTest (custom hit areas), aimPoint
 // (where homing rockets aim), organic (bleeds when hit), gore (what flies
-// out when it dies: blood amount, flesh/metal/rock chunks, a stain).
+// out when it dies: blood amount, flesh/metal/rock chunks, a stain),
+// ram (health blocks lost if it rams you, default 2), dropChance (odds of
+// leaving a random power-up behind).
 export const ENEMY_TYPES = {
   // A small pod with an alien pilot. Flies straight; some take a pot-shot.
   drifter: {
@@ -44,6 +46,7 @@ export const ENEMY_TYPES = {
     hp: 1,
     score: 20,
     organic: true,
+    dropChance: 0.03,
     gore: { blood: 22, flesh: 8, splat: 1.6 },
     init(e, game) {
       e.baseY = e.y;
@@ -67,6 +70,7 @@ export const ENEMY_TYPES = {
     sprite: 'gunner',
     hp: 5,
     score: 50,
+    dropChance: 0.3,
     gore: { blood: 20, flesh: 6, metal: 9, splat: 1.5 },
     init(e) {
       e.mode = 'enter';
@@ -103,6 +107,7 @@ export const ENEMY_TYPES = {
     sprite: 'seeker',
     hp: 2,
     score: 30,
+    dropChance: 0.08,
     gore: { blood: 10, flesh: 3, metal: 3, splat: 1 },
     init(e) {
       e.vy = 0;
@@ -146,7 +151,7 @@ export const ENEMY_TYPES = {
   },
 
   // Asteroids drift across. Big ones split in two when destroyed.
-  rockBig: rockType('big', 6, 25, 9, (e, game) => {
+  rockBig: rockType('big', 6, 25, 9, 3, (e, game) => {
     for (const side of [-1, 1]) {
       game.spawnEnemy('rockSmall', e.x + e.w / 2 - 5, e.y + e.h / 2 - 5, {
         vx: e.vx * 1.15,
@@ -155,11 +160,11 @@ export const ENEMY_TYPES = {
       });
     }
   }),
-  rockSmall: rockType('small', 2, 5, 5),
+  rockSmall: rockType('small', 2, 5, 5, 2),
 
   // A rock spat by Rockjaw. Some burst into a spray of gravel mid-flight.
   rockSpit: {
-    ...rockType('small', 2, 0, 5),
+    ...rockType('small', 2, 0, 5, 2),
     update(e, dt, game) {
       e.x += e.vx * dt;
       e.y += e.vy * dt;
@@ -177,10 +182,12 @@ export const ENEMY_TYPES = {
   rockjaw: ROCKJAW_TYPE,
 };
 
-function rockType(size, hp, score, radius, onDeath) {
+function rockType(size, hp, score, radius, ram, onDeath) {
   return {
     hp,
     score,
+    ram,
+    dropChance: size === 'big' ? 0.06 : 0,
     explodeSize: size === 'big' ? 1 : 0.5,
     gore: { rock: size === 'big' ? 12 : 6 },
     // Rocks are round, so hits are checked against a circle, not a box.

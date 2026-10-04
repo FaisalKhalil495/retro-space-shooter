@@ -1,8 +1,8 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.3.0';
-import { ROCKJAW } from './rockart.js?v=0.3.0';
-import { sfx } from './audio.js?v=0.3.0';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.3.0';
-import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.3.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.4.0';
+import { ROCKJAW } from './rockart.js?v=0.4.0';
+import { sfx } from './audio.js?v=0.4.0';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.4.0';
+import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.4.0';
 
 // ROCKJAW · THE LIVING ASTEROID — boss of The Outer Belt.
 //
@@ -424,6 +424,7 @@ export const ROCKJAW_TYPE = {
           g.darkenTo(0);
           set('fight');
           e.idle = 0.6;
+          g.later(3, () => supplyPod(e, g, 'shield'));
         }
         break;
       case 'fight':
@@ -464,6 +465,15 @@ export const ROCKJAW_TYPE = {
 
   aimPoint(e) {
     return mouth(e);
+  },
+
+  // Health blocks lost by touching him: getting sucked into his mouth is
+  // death, his bite charge takes 3, scraping his hide takes 2.
+  contactDamage(e) {
+    const a = e.attack;
+    if (a && a.name === 'inhale') return 5;
+    if (a && a.name.startsWith('charge') && (a.stage === 'dash' || a.stage === 'bite')) return 3;
+    return 2;
   },
 
   isVulnerable(e) {
@@ -516,6 +526,7 @@ export const ROCKJAW_TYPE = {
         sfx.splat();
       }
       g.showToast(next === 2 ? 'HE IS PISSED OFF NOW' : 'ROCKJAW IS FUCKING ENRAGED');
+      g.later(2.6, () => supplyPod(e, g, next === 2 ? 'repair' : g.rand() < 0.5 ? 'repair' : 'shield'));
     }
   },
 
@@ -542,6 +553,14 @@ export const ROCKJAW_TYPE = {
     }
   },
 };
+
+// One supply pod per phase gives the player a fighting chance. It comes in
+// on the side of the screen away from Rockjaw.
+function supplyPod(e, g, drop) {
+  if (g.boss !== e || e.mode === 'dying') return;
+  const above = center(e).y > MID_Y;
+  g.spawnEnemy('carrier', VIEW_W + 8, above ? HUD_H + 8 : VIEW_H - 20, { drop });
+}
 
 function startAttack(e, g) {
   const options = MOVESETS[e.phase].filter((n) => n !== e.last);

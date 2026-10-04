@@ -1,5 +1,5 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.3.0';
-import { FAR_ROCKS } from './rockart.js?v=0.3.0';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.4.0';
+import { FAR_ROCKS } from './rockart.js?v=0.4.0';
 
 // Deep-space backdrop: a slow distant amber sun, a band of dust, distant
 // asteroids and three layers of stars moving at different speeds, which

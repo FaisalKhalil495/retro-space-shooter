@@ -2,8 +2,8 @@
 // VERSION is shown in-game so the owner can tell whether the phone has the
 // latest copy. Change it with tools/set-version.sh, never by hand, so every
 // file's cache-busting "?v=" stays in step.
-export const VERSION = '0.3.0';
-export const STAGE_LABEL = 'Stage 2 · The Outer Belt (hard)';
+export const VERSION = '0.4.0';
+export const STAGE_LABEL = 'Stage 2 · Health & power-ups';
 
 // The game world is a fixed grid of "game pixels". It is scaled up to fit the
 // phone, so every phone sees exactly the same playfield.
@@ -41,5 +41,7 @@ export const PLAYER = {
   fireInterval: 0.13,  // seconds between shots while Fire is held
   bulletSpeed: 220,
   lives: 3,
+  health: 5,           // health blocks per life
+  hurtInvuln: 1.0,     // seconds of safety after taking a hit
   respawnInvuln: 2.2,
 };

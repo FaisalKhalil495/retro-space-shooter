@@ -1,4 +1,4 @@
-import { PATTERNS } from './waves.js?v=0.3.0';
+import { PATTERNS } from './waves.js?v=0.4.0';
 
 // Level scripts. Each event is [seconds from the start, pattern, options].
 // The final 'boss' event waits for the screen to clear, flashes a warning
@@ -23,6 +23,7 @@ export const LEVELS = [
       [28, 'pincer'],
       [31, 'dive', { n: 4 }],
       [34, 'gunner', { two: true }],
+      [36, 'carrier', { drop: 'shield' }],
       [38, 'seekers', { n: 3 }],
       [39, 'row', { n: 6, shooter: true }],
       [42, 'rocks', { big: 3, small: 6, spread: 6 }],
@@ -33,6 +34,7 @@ export const LEVELS = [
       [54, 'seekers', { n: 2 }],
       [57, 'gunner', { two: true }],
       [58, 'dive', { n: 5 }],
+      [61, 'carrier', { drop: 'spread' }],
       [62, 'pincer'],
       [63, 'seekers', { n: 3 }],
       [67, 'rocks', { big: 4, small: 6, spread: 7 }],
@@ -44,6 +46,7 @@ export const LEVELS = [
       [81, 'dive', { n: 5 }],
       [85, 'gunner', { two: true }],
       [86, 'seekers', { n: 4 }],
+      [89, 'carrier', { drop: 'repair' }],
       [90, 'pincer'],
       [91, 'ambush', { n: 5 }],
       [95, 'rocks', { big: 3, small: 8, spread: 6 }],
@@ -53,6 +56,7 @@ export const LEVELS = [
       [103, 'gunner', { two: true }],
       [108, 'seekers', { n: 4 }],
       [109, 'dive', { n: 6 }],
+      [111, 'carrier', { drop: 'wingman' }],
       [113, 'wall', { shooter: true }],
       [114, 'ambush', { n: 4 }],
       [118, 'row', { n: 7, shooter: true }],
