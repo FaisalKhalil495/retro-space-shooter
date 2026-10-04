@@ -166,13 +166,13 @@ for (const phone of PHONES) {
   console.log(`  ${smartOk ? 'PASS' : 'FAIL'}  smart supply choices ${JSON.stringify(smart)}`);
   if (!smartOk) failures++;
 
-  // Rock fragments: gentle, flying away from the ship's path; spat rocks
-  // warn before splitting into 2 slower pieces.
+  // Rockjaw's rock fragments: gentle, flying away from the ship's path; spat
+  // rocks warn before splitting into 2 slower pieces.
   const rocks = await page.evaluate(() => {
     const g = window.__ember.game;
     g.enemies = [];
     g.enemyShots = [];
-    const big = g.spawnEnemy('rockBig', 120, 60, { vx: -50, vy: 0 });
+    const big = g.spawnEnemy('rockBig', 120, 60, { vx: -50, vy: 0, byBoss: true });
     g.killEnemy(big);
     const shards = g.enemies.filter((e) => e.type === 'rockShard');
     const start = shards.map((s) => ({ vx: Math.round(s.vx), vy: Math.round(Math.abs(s.vy)) }));
@@ -197,6 +197,54 @@ for (const phone of PHONES) {
     rocks.vx.every((v) => Math.abs(v) < 30) && rocks.warned && rocks.gravel.length === 2 && rocks.gravel.every((v) => v <= 72);
   console.log(`  ${rocksOk ? 'PASS' : 'FAIL'}  gentler rock fragments ${JSON.stringify(rocks)}`);
   if (!rocksOk) failures++;
+
+  // Level rocks are deadlier: big rocks burst into 3 shards in all directions
+  // (some towards the ship), small rocks crack into 2 pebbles.
+  const lvlRocks = await page.evaluate(() => {
+    const g = window.__ember.game;
+    g.enemies = [];
+    g.enemyShots = [];
+    g.killEnemy(g.spawnEnemy('rockBig', 120, 60, { vx: -30, vy: 0 }));
+    const shards = g.enemies.filter((e) => e.type === 'rockShard').map((s) => Math.round(s.vx));
+    g.enemies = [];
+    g.killEnemy(g.spawnEnemy('rockSmall', 120, 60, { vx: -30, vy: 0 }));
+    const pebbles = g.enemyShots.filter((s) => s.kind === 'gravel').length;
+    g.enemies = [];
+    g.enemyShots = [];
+    return { shards, pebbles };
+  });
+  const lvlOk = lvlRocks.shards.length === 3 && lvlRocks.shards.some((v) => v < -20) && lvlRocks.pebbles === 2;
+  console.log(`  ${lvlOk ? 'PASS' : 'FAIL'}  level rocks burst outwards ${JSON.stringify(lvlRocks)}`);
+  if (!lvlOk) failures++;
+
+  // New shooters: a sniper shows its aim line then fires a fast shot; a
+  // spinner fires an 8-way star.
+  const shooters = await page.evaluate(() => {
+    const g = window.__ember.game;
+    g.enemies = [];
+    g.enemyShots = [];
+    const sn = g.spawnEnemy('sniper', 180, 40, { targetX: 186 });
+    let aimed = false;
+    for (let i = 0; i < 240 && !g.enemyShots.length; i++) {
+      g.moveWorld(1 / 120);
+      if (sn.aimLine > 0) aimed = true;
+    }
+    const fast = g.enemyShots.filter((s) => s.kind === 'fast').length;
+    g.enemies = [];
+    g.enemyShots = [];
+    g.spawnEnemy('spinner', 180, 60, { targetX: 140 });
+    let star = 0;
+    for (let i = 0; i < 360 && !star; i++) {
+      g.moveWorld(1 / 120);
+      star = g.enemyShots.length;
+    }
+    g.enemies = [];
+    g.enemyShots = [];
+    return { aimed, fast, star };
+  });
+  const shootOk = shooters.aimed && shooters.fast === 1 && shooters.star === 8;
+  console.log(`  ${shootOk ? 'PASS' : 'FAIL'}  sniper aims then fires; spinner star burst ${JSON.stringify(shooters)}`);
+  if (!shootOk) failures++;
 
   // Portrait: should ask to rotate.
   await page.setViewportSize({ width: phone.height, height: phone.width });

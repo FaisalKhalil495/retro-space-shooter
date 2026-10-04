@@ -1,4 +1,4 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.4.2';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.6.0';
 
 // Enemy formations. Levels are built by placing these on a timeline
 // (see levels.js). Every pattern takes the game, a random-number function
@@ -12,7 +12,7 @@ export const PATTERNS = {
   row(game, rand, { n = 5, y, shooter = false } = {}) {
     const yy = y ?? TOP + rand() * (BOTTOM - TOP);
     for (let i = 0; i < n; i++) {
-      game.spawnEnemy('drifter', VIEW_W + 8 + i * 15, yy, { shooter: shooter && i === 0 });
+      game.spawnEnemy('drifter', VIEW_W + 8 + i * 15, yy, { shooter: shooter && (i === 0 || i === n - 1) });
     }
   },
 
@@ -77,6 +77,7 @@ export const PATTERNS = {
         game.spawnEnemy('drifter', x, fromTop ? -10 : VIEW_H + 2, {
           speed: 22,
           vy: fromTop ? 62 : -62,
+          shooter: true,
         });
       });
     }
@@ -88,6 +89,20 @@ export const PATTERNS = {
       game.spawnEnemy('drifter', VIEW_W + 8 + i * 14, TOP, { speed: 54, vy: 9, shooter: i === 0 });
       game.spawnEnemy('drifter', VIEW_W + 8 + i * 14, BOTTOM - 4, { speed: 54, vy: -9, shooter: i === 0 });
     }
+  },
+
+  // Snipers parking at the far right, spread out vertically.
+  snipers(game, rand, { n = 1 } = {}) {
+    for (let i = 0; i < n; i++) {
+      const y = n === 1 ? TOP + rand() * (BOTTOM - TOP - 8) : TOP + ((BOTTOM - TOP - 8) * i) / (n - 1);
+      game.spawnEnemy('sniper', VIEW_W + 8 + i * 10, y, { targetX: VIEW_W - 22 - i * 6 });
+    }
+  },
+
+  // Spinners: one in the middle, or two (top and bottom).
+  spinner(game, rand, { n = 1 } = {}) {
+    const ys = n === 1 ? [VIEW_H / 2 - 5] : [TOP + 12, BOTTOM - 20];
+    ys.forEach((y, i) => game.spawnEnemy('spinner', VIEW_W + 8 + i * 16, y, { targetX: VIEW_W * (0.62 + i * 0.1) }));
   },
 
   // Darts that chase the player's height.

@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.4.2';
-import { ROCKS } from './rockart.js?v=0.4.2';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.4.2';
-import { clamp, rectHitsCircle } from './util.js?v=0.4.2';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.6.0';
+import { ROCKS } from './rockart.js?v=0.6.0';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.6.0';
+import { clamp, rectHitsCircle } from './util.js?v=0.6.0';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -52,7 +52,7 @@ export const ENEMY_TYPES = {
       e.baseY = e.y;
       e.amp = e.amp || 18;
       e.phase = e.phase || 0;
-      e.spitAt = game.rand() < 0.35 ? 0.9 + game.rand() * 2 : 0;
+      e.spitAt = game.rand() < 0.66 ? 0.9 + game.rand() * 2 : 0;
     },
     update(e, dt, game) {
       e.x -= 44 * dt;
@@ -122,6 +122,128 @@ export const ENEMY_TYPES = {
         e.vy *= 1 - dt * 2;
       }
       e.y += e.vy * dt;
+      // Takes one shot as it closes in (muzzle blinks first).
+      const gap = e.x - game.player.x;
+      if (!e.fired && gap < 95 && gap > 30) {
+        e.aim = (e.aim || 0) + dt;
+        e.charge = 1;
+        if (e.aim > 0.3) {
+          e.fired = true;
+          e.charge = 0;
+          game.fireAtPlayer(e.x, e.y + e.h / 2, 80);
+        }
+      }
+    },
+  },
+
+  // Sniper: parks at the far right, shows a thin flashing aiming line for a
+  // moment, then fires a fast shot along it. Three shots, then it leaves.
+  sniper: {
+    sprite: 'sniper',
+    hp: 3,
+    score: 60,
+    dropChance: 0.15,
+    gore: { blood: 14, flesh: 4, metal: 6, splat: 1 },
+    init(e) {
+      e.mode = 'enter';
+      e.targetX = e.targetX || VIEW_W - 24;
+      e.timer = 0.4;
+      e.shots = 0;
+    },
+    update(e, dt, game) {
+      const mx = e.x;
+      const my = e.y + e.h / 2;
+      if (e.mode === 'enter') {
+        e.x += (e.targetX - e.x) * Math.min(1, dt * 3) - 6 * dt;
+        if (e.x - e.targetX < 2) e.mode = 'wait';
+      } else if (e.mode === 'wait') {
+        e.timer -= dt;
+        if (e.timer <= 0) {
+          // Lock on: the aim is fixed from here, so you can dodge it.
+          const p = game.player;
+          e.aimAngle = Math.atan2(p.y + p.h / 2 - my, p.x + p.w / 2 - mx);
+          e.aimLine = 0.6;
+          e.mode = 'aim';
+        }
+      } else if (e.mode === 'aim') {
+        e.aimLine -= dt;
+        e.charge = 1;
+        if (e.aimLine <= 0) {
+          e.aimLine = 0;
+          e.charge = 0;
+          game.fireShot(mx - 1, my, e.aimAngle, 150, 'fast');
+          e.shots++;
+          e.timer = 1.1;
+          e.mode = e.shots >= 3 ? 'leave' : 'wait';
+        }
+      } else {
+        e.x -= 30 * dt;
+        e.y += (e.y < VIEW_H / 2 ? -40 : 40) * dt;
+      }
+    },
+    draw(e, ctx, snap, game, spr) {
+      if (e.aimLine > 0 && Math.floor(e.aimLine * 20) % 2 === 0) {
+        // The aiming line: a dotted red line along the shot's path.
+        const x0 = e.x;
+        const y0 = e.y + e.h / 2;
+        ctx.fillStyle = PAL.red;
+        for (let d = 4; d < 260; d += 4) {
+          const x = x0 + Math.cos(e.aimAngle) * d;
+          const y = y0 + Math.sin(e.aimAngle) * d;
+          if (x < -2 || y < -2 || y > VIEW_H + 2) break;
+          ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
+        }
+      }
+      ctx.drawImage(spr, snap(e.x), snap(e.y));
+    },
+  },
+
+  // Spinner: a rotating disc that drifts in and sprays 8 bullets in a star
+  // pattern every couple of seconds (it blinks just before each burst).
+  spinner: {
+    sprite: 'spinner',
+    hp: 6,
+    score: 80,
+    dropChance: 0.2,
+    gore: { blood: 18, flesh: 6, metal: 8, splat: 1.4 },
+    init(e) {
+      e.targetX = e.targetX || VIEW_W * 0.68;
+      e.timer = 1.0;
+      e.bursts = 0;
+      e.spin = 0;
+    },
+    update(e, dt, game) {
+      e.spin += dt * 2.2;
+      if (e.bursts < 3) {
+        e.x += (e.targetX - e.x) * Math.min(1, dt * 1.5) - 3 * dt;
+      } else {
+        e.x -= 40 * dt;
+      }
+      e.timer -= dt;
+      e.charge = e.timer < 0.4 && e.bursts < 3 ? 1 : 0;
+      if (e.timer <= 0 && e.bursts < 3) {
+        const cx = e.x + e.w / 2;
+        const cy = e.y + e.h / 2;
+        const off = e.bursts * (Math.PI / 8);
+        for (let k = 0; k < 8; k++) {
+          game.fireShot(cx, cy, off + (k * Math.PI) / 4, 52);
+        }
+        e.bursts++;
+        e.timer = 2.1;
+      }
+    },
+    draw(e, ctx, snap, game, spr) {
+      const cx = snap(e.x + e.w / 2);
+      const cy = snap(e.y + e.h / 2);
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(e.spin);
+      ctx.drawImage(spr, -Math.floor(e.w / 2), -Math.floor(e.h / 2));
+      ctx.restore();
+      if (e.charge && Math.floor(game.time * 16) % 2 === 0) {
+        ctx.fillStyle = PAL.amberLight;
+        ctx.fillRect(cx - 1, cy - 1, 3, 3);
+      }
     },
   },
 
@@ -155,16 +277,31 @@ export const ENEMY_TYPES = {
   // Asteroids drift across. Big ones split in two when destroyed.
   // Big rocks break into two fragments when shot. The fragments fly up and
   // down, away from the ship's path, and blink so they're easy to spot.
+  // In Rockjaw's fight the fragments fly gently up and down, away from you.
+  // In the level they burst out in all directions, including at you.
   rockBig: rockType('big', 6, 25, 9, 3, (e, game) => {
-    for (const side of [-1, 1]) {
-      game.spawnEnemy('rockShard', e.x + e.w / 2 - 5, e.y + e.h / 2 - 5, {
-        vx: e.vx * 0.45,
-        vy: side * (40 + game.rand() * 12),
-        byBoss: e.byBoss,
-      });
+    const cx = e.x + e.w / 2 - 5;
+    const cy = e.y + e.h / 2 - 5;
+    if (e.byBoss) {
+      for (const side of [-1, 1]) {
+        game.spawnEnemy('rockShard', cx, cy, { vx: e.vx * 0.45, vy: side * (40 + game.rand() * 12), byBoss: true });
+      }
+      return;
+    }
+    const a0 = game.rand() * Math.PI * 2;
+    for (let k = 0; k < 3; k++) {
+      const a = a0 + (k * Math.PI * 2) / 3;
+      game.spawnEnemy('rockShard', cx, cy, { vx: e.vx * 0.3 + Math.cos(a) * 70, vy: Math.sin(a) * 70 });
     }
   }),
-  rockSmall: rockType('small', 2, 5, 5, 2),
+  // Small rocks crack into 2 sharp pebbles in the level (1 block each).
+  rockSmall: rockType('small', 2, 5, 5, 2, (e, game) => {
+    if (e.byBoss) return;
+    const a0 = game.rand() * Math.PI * 2;
+    for (const off of [0, Math.PI]) {
+      game.fireShot(e.x + e.w / 2, e.y + e.h / 2, a0 + off, 62, 'gravel');
+    }
+  }),
 
   // A fragment of a big rock: weaker (costs 1 health block), slower, and it
   // just flies off the screen instead of bouncing back into play.

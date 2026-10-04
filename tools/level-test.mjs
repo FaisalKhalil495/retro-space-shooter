@@ -43,7 +43,7 @@ await page.waitForTimeout(300);
 // simulation directly in big batches.
 const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
   const g = window.__ember.game;
-  const log = window.__log || (window.__log = { collected: [], specials: 0, bossSeen: false, maxEnemies: 0 });
+  const log = window.__log || (window.__log = { collected: [], specials: 0, bossSeen: false, maxEnemies: 0, types: [] });
   if (!g.__wrapped) {
     const collect = g.collectPickup.bind(g);
     g.collectPickup = (k) => { log.collected.push(k); collect(k); };
@@ -72,6 +72,7 @@ const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
     g.update(step, { dx, dy, fire: true, special, tap: false });
     if (g.boss) log.bossSeen = true;
     log.maxEnemies = Math.max(log.maxEnemies, g.enemies.length);
+    for (const e of g.enemies) if (!log.types.includes(e.type)) log.types.push(e.type);
     if (g.state === 'clear') break;
   }
   return {
@@ -105,7 +106,8 @@ await page.evaluate(() => {
 const pods = await page.evaluate(() => {
   const g = window.__ember.game;
   g.reset();
-  g.runner.skipTo(123.5);
+  const ev = g.runner.level.events;
+  g.runner.skipTo(ev[ev.length - 1][0] - 0.5);
   let pods = 0;
   const spawn = g.spawnEnemy.bind(g);
   g.spawnEnemy = (type, x, y, opts = {}) => {
@@ -125,7 +127,7 @@ console.log('smart supply pods in ~55s of boss fight:', pods);
 const results = {};
 results.early = await run(30, { invincible: true });
 await page.screenshot({ path: `${out}/lvl-early.png` });
-results.mid = await run(70, { invincible: true });
+results.mid = await run(130, { invincible: true });
 await page.screenshot({ path: `${out}/lvl-mid.png` });
 results.preBoss = await run(32, { invincible: true, useSpecials: true });
 await page.screenshot({ path: `${out}/lvl-boss.png` });
@@ -137,6 +139,7 @@ console.log(JSON.stringify(results, null, 1));
 const r = results.boss;
 const checks = {
   'enemies appeared': results.early.maxEnemies > 3,
+  'snipers and spinners appeared': ['sniper', 'spinner'].every((t) => r.types && r.types.includes(t)),
   'rockets pickup collected': r.collected.includes('rockets'),
   'bomb pickup collected': r.collected.includes('bomb'),
   'extra life collected': r.collected.includes('life'),

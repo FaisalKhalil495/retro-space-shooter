@@ -89,6 +89,18 @@ a real console controller, so you can play by feel while watching the game.
   Crystals + Ember Surge, level 1 split into 5 named sections). The owner
   found level 1 boring with it and asked to go back to v0.4.2. Don't
   reintroduce these without asking.
+- **Longer, deadlier level 1** (owner request, v0.6.0): about 3 minutes
+  before Rockjaw, in three parts with no calm breaks — 0:00–1:00 the opening,
+  1:00–2:00 snipers, spinners and asteroid fields, 2:00–3:00 everything.
+  Cargo pods spread out; a second Repair pod at 2:20. **Level rocks only**
+  (Rockjaw's fight keeps the gentle v0.4.2 split): big rocks burst into 3
+  blinking shards in all directions (some towards you), faster, 1 block each;
+  small rocks crack into 2 pebbles (1 block each). More shooters: new
+  **Sniper** (parks on the right, flashes a dotted red aim line for 0.6 s,
+  then a fast shot along it; 3 shots, then leaves) and **Spinner** (rotating
+  disc, 8-way star bursts about every 2 s, 3 bursts, then leaves); rows fire
+  from the first and last pod; weavers spit 2 times in 3; seekers fire once
+  as they pass; dive-bombers fire. Every shot is preceded by a blink warning.
 - Level 1 enemies (Hard): some pods shoot, weavers spit acid, gunners fire 4
   faster shots, seekers steer harder; ambushes from behind, dive-bombers from
   top/bottom and pincers, each flagged by a red "!" warning marker first.
@@ -217,8 +229,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - `js/feedback.js` — vibration (Android) and its strengths.
 - `js/game.js` — game state: player, shots, enemies, pickups, collisions,
   damage/armour, lives, score, HUD, banners, level clear.
-- `js/enemies.js` — enemy types (incl. asteroids, seekers, cargo pods) and
-  how they move/shoot.
+- `js/enemies.js` — enemy types (incl. asteroids, seekers, snipers, spinners,
+  cargo pods) and how they move/shoot.
 - `js/bosses.js` — boss behaviour (Rockjaw so far: 3 phases, 8 attacks,
   entrance, transitions, gory death).
 - `js/weapons.js` — special weapons (bombs, rockets, laser), pickups, corner icon.

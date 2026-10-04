@@ -1,17 +1,17 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.4.2';
-import { SPRITES } from './sprites.js?v=0.4.2';
-import { ENEMY_TYPES } from './enemies.js?v=0.4.2';
-import { LEVELS, LevelRunner } from './levels.js?v=0.4.2';
-import { Background } from './background.js?v=0.4.2';
-import { Weapons, drawCapsule, pickupInfo } from './weapons.js?v=0.4.2';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.4.2';
-import { buzz, HAPTIC } from './feedback.js?v=0.4.2';
-import { sfx } from './audio.js?v=0.4.2';
-import { clamp, rectsOverlap } from './util.js?v=0.4.2';
-import { Gore, FLESH, METAL, ROCK, GLASS, HELMET } from './gore.js?v=0.4.2';
-import { BLOOD } from './config.js?v=0.4.2';
-import { startBossMusic, stopMusic } from './music.js?v=0.4.2';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.4.2';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.6.0';
+import { SPRITES } from './sprites.js?v=0.6.0';
+import { ENEMY_TYPES } from './enemies.js?v=0.6.0';
+import { LEVELS, LevelRunner } from './levels.js?v=0.6.0';
+import { Background } from './background.js?v=0.6.0';
+import { Weapons, drawCapsule, pickupInfo } from './weapons.js?v=0.6.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.6.0';
+import { buzz, HAPTIC } from './feedback.js?v=0.6.0';
+import { sfx } from './audio.js?v=0.6.0';
+import { clamp, rectsOverlap } from './util.js?v=0.6.0';
+import { Gore, FLESH, METAL, ROCK, GLASS, HELMET } from './gore.js?v=0.6.0';
+import { BLOOD } from './config.js?v=0.6.0';
+import { startBossMusic, stopMusic } from './music.js?v=0.6.0';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.6.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -162,7 +162,7 @@ export class Game {
     this.fireShot(x, y, a, speed);
   }
 
-  // kind: 'orb' (glowing enemy bullet) or 'gravel' (a stone, from bosses).
+  // kind: 'orb' (glowing enemy bullet), 'gravel' (a stone) or 'fast' (sniper round).
   fireShot(x, y, angle, speed, kind = 'orb', byBoss = false) {
     this.enemyShots.push({
       x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, t: 0, kind, byBoss,
@@ -692,6 +692,17 @@ export class Game {
         ctx.fillRect(x - 1, y - 1, 2, 2);
         ctx.fillStyle = '#c4a68e';
         ctx.fillRect(x - 1, y - 1, 1, 1);
+        continue;
+      }
+      if (s.kind === 'fast') {
+        // Sniper round: a short streak with a trail along its path.
+        const sp = Math.hypot(s.vx, s.vy) || 1;
+        const dx = s.vx / sp;
+        const dy = s.vy / sp;
+        for (let i = 4; i >= 0; i--) {
+          ctx.fillStyle = i === 0 ? PAL.cream : i < 3 ? PAL.redSoft : PAL.redDark;
+          ctx.fillRect(snap(s.x - dx * i * 1.5) - 1, snap(s.y - dy * i * 1.5) - 1, 2, 2);
+        }
         continue;
       }
       ctx.fillStyle = PAL.red;
