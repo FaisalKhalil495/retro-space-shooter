@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.6.0';
-import { ROCKS } from './rockart.js?v=0.6.0';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.6.0';
-import { clamp, rectHitsCircle } from './util.js?v=0.6.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.6.1';
+import { ROCKS } from './rockart.js?v=0.6.1';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.6.1';
+import { clamp, rectHitsCircle } from './util.js?v=0.6.1';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -75,7 +75,8 @@ export const ENEMY_TYPES = {
     init(e) {
       e.mode = 'enter';
       e.targetX = e.targetX || VIEW_W - 52;
-      e.fireTimer = 0.7;
+      e.fireTimer = e.fireDelay || 0.7;
+      e.laneOff = e.laneOff || 0;
       e.shots = 0;
       e.charge = 0;
     },
@@ -84,7 +85,7 @@ export const ENEMY_TYPES = {
         e.x += (e.targetX - e.x) * Math.min(1, dt * 2.6) - 8 * dt;
         if (e.x - e.targetX < 2) e.mode = 'hold';
       } else if (e.mode === 'hold') {
-        const py = game.player.y + game.player.h / 2 - e.h / 2;
+        const py = game.player.y + game.player.h / 2 - e.h / 2 + e.laneOff;
         e.y += clamp(py - e.y, -1, 1) * 20 * dt;
         e.fireTimer -= dt;
         e.charge = e.fireTimer < 0.28 ? 1 : 0;

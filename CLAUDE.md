@@ -101,6 +101,9 @@ a real console controller, so you can play by feel while watching the game.
   disc, 8-way star bursts about every 2 s, 3 bursts, then leaves); rows fire
   from the first and last pod; weavers spit 2 times in 3; seekers fire once
   as they pass; dive-bombers fire. Every shot is preceded by a blink warning.
+- **More gunships** (owner request, v0.6.1): gunships roughly doubled in
+  level 1 (14 → 28), including groups of 3. Groups hover in separate lanes
+  (above, level with and below the player) and fire in turn, not all at once.
 - Level 1 enemies (Hard): some pods shoot, weavers spit acid, gunners fire 4
   faster shots, seekers steer harder; ambushes from behind, dive-bombers from
   top/bottom and pincers, each flagged by a red "!" warning marker first.

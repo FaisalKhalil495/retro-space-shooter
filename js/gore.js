@@ -1,4 +1,4 @@
-import { VIEW_H, BLOOD } from './config.js?v=0.6.0';
+import { VIEW_H, BLOOD } from './config.js?v=0.6.1';
 
 // Blood and gore. Everything here is switched off by BLOOD in config.js
 // (a menu switch arrives in Stage 5).

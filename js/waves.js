@@ -1,4 +1,4 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.6.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.6.1';
 
 // Enemy formations. Levels are built by placing these on a timeline
 // (see levels.js). Every pattern takes the game, a random-number function
@@ -44,13 +44,18 @@ export const PATTERNS = {
     }
   },
 
-  // One or two gunships.
-  gunner(game, rand, { two = false } = {}) {
-    if (two) {
-      game.spawnEnemy('gunner', VIEW_W + 8, TOP + 6, { targetX: VIEW_W - 48 });
-      game.spawnEnemy('gunner', VIEW_W + 28, BOTTOM - 16, { targetX: VIEW_W - 32 });
-    } else {
+  // One, two or three gunships. Groups hover in separate lanes and fire
+  // one after another rather than all at once.
+  gunner(game, rand, { two = false, n = two ? 2 : 1 } = {}) {
+    if (n === 1) {
       game.spawnEnemy('gunner', VIEW_W + 8, TOP + rand() * (BOTTOM - TOP - 12));
+    } else if (n === 2) {
+      game.spawnEnemy('gunner', VIEW_W + 8, TOP + 6, { targetX: VIEW_W - 48, laneOff: -14 });
+      game.spawnEnemy('gunner', VIEW_W + 28, BOTTOM - 16, { targetX: VIEW_W - 32, laneOff: 14, fireDelay: 1.1 });
+    } else {
+      game.spawnEnemy('gunner', VIEW_W + 8, TOP + 4, { targetX: VIEW_W - 50, laneOff: -24 });
+      game.spawnEnemy('gunner', VIEW_W + 24, (TOP + BOTTOM) / 2 - 6, { targetX: VIEW_W - 30, laneOff: 0, fireDelay: 1.0 });
+      game.spawnEnemy('gunner', VIEW_W + 40, BOTTOM - 14, { targetX: VIEW_W - 50, laneOff: 24, fireDelay: 1.3 });
     }
   },
 
