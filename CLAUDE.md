@@ -84,6 +84,11 @@ a real console controller, so you can play by feel while watching the game.
   slower, costing 1 block (a whole small rock still costs 2). Rockjaw's
   splitting rocks crack and flash for 0.5 s first, then burst into 2 slower
   pieces of gravel (was 3, no warning).
+- **Tried and reverted (v0.5.0):** an asteroid rework (streakers, boulders,
+  treasure rocks, level meteor showers, outward-bursting fragments, Ember
+  Crystals + Ember Surge, level 1 split into 5 named sections). The owner
+  found level 1 boring with it and asked to go back to v0.4.2. Don't
+  reintroduce these without asking.
 - Level 1 enemies (Hard): some pods shoot, weavers spit acid, gunners fire 4
   faster shots, seekers steer harder; ambushes from behind, dive-bombers from
   top/bottom and pincers, each flagged by a red "!" warning marker first.
