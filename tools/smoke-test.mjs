@@ -146,23 +146,27 @@ for (const phone of PHONES) {
   console.log(`  ${hpOk ? 'PASS' : 'FAIL'}  health bar, shield and repair ${JSON.stringify(health)}`);
   if (!hpOk) failures++;
 
-  // Smart supply: the pod gives what you need most.
+  // Boss supply pods: survival pods give what keeps you alive; weapon pods
+  // always give a special (topping up the one you carry, else a Laser).
   const smart = await page.evaluate(() => {
     const g = window.__ember.game;
     g.powerups.reset();
     g.weapons.reset();
     g.health = 2;
     const low = g.smartSupply();
+    const lowWeapon = g.weaponSupply();
     g.health = 5;
     const noShield = g.smartSupply();
+    const weapon = g.weaponSupply();
     g.powerups.collect('shield');
     const shielded = g.smartSupply();
-    g.weapons.collect('laser');
-    const armed = g.smartSupply();
-    return { low, noShield, shielded, armed };
+    g.weapons.collect('bomb');
+    const topUp = g.weaponSupply();
+    g.weapons.reset();
+    return { low, lowWeapon, noShield, weapon, shielded, topUp };
   });
-  const smartOk = smart.low === 'repair' && smart.noShield === 'shield' && smart.shielded === 'laser' &&
-    ['rapid', 'spread'].includes(smart.armed);
+  const smartOk = smart.low === 'repair' && smart.lowWeapon === 'repair' && smart.noShield === 'shield' &&
+    smart.weapon === 'laser' && ['rapid', 'spread'].includes(smart.shielded) && smart.topUp === 'bomb';
   console.log(`  ${smartOk ? 'PASS' : 'FAIL'}  smart supply choices ${JSON.stringify(smart)}`);
   if (!smartOk) failures++;
 

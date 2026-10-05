@@ -1,8 +1,8 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.8.1';
-import { ROCKJAW } from './rockart.js?v=0.8.1';
-import { sfx } from './audio.js?v=0.8.1';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.8.1';
-import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.8.1';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.9.0';
+import { ROCKJAW } from './rockart.js?v=0.9.0';
+import { sfx } from './audio.js?v=0.9.0';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.9.0';
+import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.9.0';
 
 // ROCKJAW · THE LIVING ASTEROID — boss of The Outer Belt.
 //
@@ -566,10 +566,14 @@ export const ROCKJAW_TYPE = {
 };
 
 // A supply pod comes in on the side of the screen away from Rockjaw.
+// Pods take turns: a survival pod (Repair or Shield, whichever you need),
+// then a weapon pod (always a special), and so on.
 function supplyPod(e, g) {
   if (g.boss !== e || e.mode === 'dying') return;
   const above = center(e).y > MID_Y;
-  g.spawnEnemy('carrier', VIEW_W + 8, above ? HUD_H + 8 : VIEW_H - 20, { drop: 'smart' });
+  e.pods = (e.pods || 0) + 1;
+  const drop = e.pods % 2 === 0 ? 'weapon' : 'smart';
+  g.spawnEnemy('carrier', VIEW_W + 8, above ? HUD_H + 8 : VIEW_H - 20, { drop });
 }
 
 function startAttack(e, g) {
