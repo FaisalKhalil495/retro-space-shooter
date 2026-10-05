@@ -1,5 +1,5 @@
-import { PAL } from './config.js?v=0.10.1';
-import { ROCK } from './gore.js?v=0.10.1';
+import { PAL } from './config.js?v=0.10.2';
+import { ROCK } from './gore.js?v=0.10.2';
 
 // Explosions, drawn as chunky pixel art in the warm palette (no neon, no
 // glow). A blast is a quick white-hot flash, a fireball that swells and cools

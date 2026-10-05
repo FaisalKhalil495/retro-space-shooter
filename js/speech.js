@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.10.1';
-import { drawText, textWidth } from './font.js?v=0.10.1';
-import { sfx } from './audio.js?v=0.10.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.10.2';
+import { drawText, textWidth } from './font.js?v=0.10.2';
+import { sfx } from './audio.js?v=0.10.2';
 
 // Comic-book speech bubbles for characters that talk (bosses so far).
 // A bubble sits beside the speaker, follows them around, points its tail at
@@ -27,7 +27,9 @@ export class Speech {
     this.bubble = {
       speaker, lines, style, t: 0, dur, typed: 0,
       total: lines.join('').length,
+      lineW: lines.map((l) => textWidth(l)),
       w: Math.max(...lines.map((l) => textWidth(l))) + 8,
+      spot: -1, // which placement it's using (kept while it still fits)
       h: lines.length * LINE_H + 5,
     };
   }
@@ -56,17 +58,26 @@ export class Speech {
     const ax = snap(anchor.x);
     const ay = snap(anchor.y);
     const { w, h } = b;
-    // Bubbles are drawn under the speaker, so pick the first spot that keeps
-    // clear of their body: up-left of the mouth (towards the player), then
-    // above them, then below them. Always kept on screen.
-    const fit = (x, y) => ({
-      x: Math.round(Math.min(Math.max(x, 2), VIEW_W - w - 2)),
-      y: Math.round(Math.min(Math.max(y, HUD_H + 4), VIEW_H - h - 2)),
-    });
-    const clearOf = (p) =>
-      p.x + w < e.x - 1 || p.x > e.x + e.w + 1 || p.y + h < e.y - 1 || p.y > e.y + e.h + 1;
-    const spots = [fit(ax - w - 6, ay - h - 10), fit(ax - w / 2, e.y - h - 8), fit(ax - w / 2, e.y + e.h + 8)];
-    const { x: bx, y: by } = spots.find(clearOf) || spots[0];
+    // Bubbles are drawn under the speaker, so they must keep clear of their
+    // body. Placements, in order of preference: beside them level with the
+    // mouth (towards the player), up-left of the mouth, above, below. The
+    // bubble keeps its placement while it still fits, so it doesn't jump
+    // about as the speaker moves; otherwise it takes the clearest one.
+    let spot = b.spot >= 0 ? placement(b.spot, e, ax, ay, w, h) : null;
+    if (!spot || overlap(spot, e, w, h) > w * 2) {
+      let best = Infinity;
+      for (let i = 0; i < 4; i++) {
+        const s = placement(i, e, ax, ay, w, h);
+        const o = overlap(s, e, w, h);
+        if (o < best) {
+          best = o;
+          spot = s;
+          b.spot = i;
+          if (o === 0) break;
+        }
+      }
+    }
+    const { x: bx, y: by } = spot;
 
     const roar = b.style === 'roar';
     const fill = roar ? PAL.amberSoft : PAL.cream;
@@ -74,8 +85,11 @@ export class Speech {
     const pop = b.t < 0.08 ? 1 : 0; // a one-frame bigger "pop" as it appears
 
     // Tail: a short tapering line of blocks from the bubble towards the mouth.
-    const tx = Math.min(Math.max(ax, bx + 4), bx + w - 5);
-    const ty = ay > by ? by + h : by;
+    // The tail leaves from the side facing the mouth: the right or left edge
+    // when the mouth is level with the bubble, otherwise the top or bottom.
+    const level = ay > by + 2 && ay < by + h - 2;
+    const tx = level ? (ax > bx ? bx + w : bx - 1) : Math.min(Math.max(ax, bx + 4), bx + w - 5);
+    const ty = level ? ay : ay > by ? by + h : by;
     const dx = ax - tx;
     const dy = ay - ty;
     const len = Math.min(8, Math.hypot(dx, dy));
@@ -130,10 +144,27 @@ export class Speech {
     b.lines.forEach((line, i) => {
       const shown = line.slice(0, Math.max(0, left));
       left -= line.length;
-      const lx = bx + Math.round((w - textWidth(line)) / 2);
+      const lx = bx + Math.round((w - b.lineW[i]) / 2);
       drawText(ctx, shown, lx, by + 3 + i * LINE_H, roar ? PAL.ink : PAL.redDark);
     });
   }
+}
+
+// Where a bubble goes for placement i, kept on screen.
+function placement(i, e, ax, ay, w, h) {
+  const x = i === 0 ? e.x - w - 6 : i === 1 ? ax - w - 6 : ax - w / 2;
+  const y = i === 0 ? ay - h / 2 : i === 1 ? ay - h - 10 : i === 2 ? e.y - h - 8 : e.y + e.h + 8;
+  return {
+    x: Math.round(Math.min(Math.max(x, 2), VIEW_W - w - 2)),
+    y: Math.round(Math.min(Math.max(y, HUD_H + 4), VIEW_H - h - 2)),
+  };
+}
+
+// How many pixels of the bubble would sit under the speaker's body.
+function overlap(p, e, w, h) {
+  const ox = Math.min(p.x + w, e.x + e.w) - Math.max(p.x, e.x);
+  const oy = Math.min(p.y + h, e.y + e.h) - Math.max(p.y, e.y);
+  return ox > 0 && oy > 0 ? ox * oy : 0;
 }
 
 function wrap(text) {
