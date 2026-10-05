@@ -1,8 +1,8 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.13.0';
-import { ROCKJAW } from './rockart.js?v=0.13.0';
-import { sfx } from './audio.js?v=0.13.0';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.13.0';
-import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.13.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.13.1';
+import { ROCKJAW } from './rockart.js?v=0.13.1';
+import { sfx } from './audio.js?v=0.13.1';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.13.1';
+import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.13.1';
 
 // ROCKJAW · THE LIVING ASTEROID — boss of The Outer Belt.
 //
@@ -22,7 +22,6 @@ const MID_Y = (HUD_H + VIEW_H) / 2;
 const HOME_X = VIEW_W - 46;
 const SPEED = [0, 1, 1.18, 1.38];
 const IDLE = [0, 1.25, 0.85, 0.6];
-const SUPPLY_EVERY = 20; // seconds between smart supply pods during the fight
 const MOVESETS = [
   null,
   ['charge', 'spit', 'charge', 'spit'],
@@ -57,11 +56,6 @@ function wander(e, dt, k = 1) {
   moveToward(e, tx, ty, 48 * SPEED[e.phase] * k, dt);
 }
 
-function playerCenter(g) {
-  const p = g.player;
-  return { x: p.x + p.w / 2, y: p.y + p.h / 2 };
-}
-
 function shut(e, dt, speed = 5) {
   e.jaw = Math.max(0, e.jaw - dt * speed);
 }
@@ -82,7 +76,7 @@ const ATTACKS = {
       e.wobble = 1.5;
       e.eyeFlash = 1;
       shut(e, dt);
-      moveToward(e, VIEW_W - R + 10, playerCenter(g).y, 130, dt);
+      moveToward(e, VIEW_W - R + 10, g.playerCenter().y, 130, dt);
       if (a.t >= wind) {
         a.stage = 'dash';
         a.y = c.y;
@@ -98,7 +92,7 @@ const ATTACKS = {
         e.jaw = 0;
         sfx.snap();
         g.shake = Math.max(g.shake, 4);
-        const pc = playerCenter(g);
+        const pc = g.playerCenter();
         const m = mouth(e);
         if (Math.hypot(pc.x - m.x, pc.y - m.y) < 30) g.gore.smear(m.x + 20, m.y, 1.1);
       }
@@ -141,7 +135,7 @@ const ATTACKS = {
     if (a.v < volleys.length && a.t >= volleys[a.v]) {
       a.v++;
       const m = mouth(e);
-      const pc = playerCenter(g);
+      const pc = g.playerCenter();
       const base = Math.atan2(pc.y - m.y, pc.x - m.x);
       const n = e.phase === 1 ? 5 : 7;
       const spread = 1.05;
@@ -254,7 +248,7 @@ const ATTACKS = {
       const m = mouth(e);
       const p = g.player;
       if (g.state === 'playing' && p.entering <= 0) {
-        const pc = playerCenter(g);
+        const pc = g.playerCenter();
         const dx = m.x - pc.x;
         const dy = m.y - pc.y;
         const d = Math.hypot(dx, dy) || 1;
@@ -315,7 +309,7 @@ const ATTACKS = {
     a.fire -= dt;
     if (a.fire <= 0 && a.i < a.path.length - 1) {
       a.fire = 0.28;
-      const pc = playerCenter(g);
+      const pc = g.playerCenter();
       const ang = Math.atan2(pc.y - after.y, pc.x - after.x) + (g.rand() - 0.5) * 0.5;
       g.fireShot(after.x + Math.cos(ang) * R, after.y + Math.sin(ang) * R, ang, 78, 'gravel', true);
     }
@@ -383,7 +377,6 @@ export const ROCKJAW_TYPE = {
     e.queued = null;
     e.idle = 1;
     e.toothDmg = 0;
-    e.supplyT = Infinity;
   },
 
   update(e, dt, g) {
@@ -394,17 +387,6 @@ export const ROCKJAW_TYPE = {
       e.mode = mode;
       e.timer = 0;
     };
-
-    // Supply pods: one every 20 seconds of fighting, taking turns between
-    // survival and weapon pods (see Game.nextSupplyKind). What's inside is
-    // decided when you shoot it open.
-    if (e.mode === 'fight' || e.mode === 'transition') {
-      e.supplyT -= dt;
-      if (e.supplyT <= 0) {
-        e.supplyT = SUPPLY_EVERY;
-        supplyPod(e, g);
-      }
-    }
 
     switch (e.mode) {
       case 'enter': {
@@ -454,7 +436,6 @@ export const ROCKJAW_TYPE = {
         if (e.taunted && g.bossMayAttack(e)) {
           set('fight');
           e.idle = 0.6;
-          e.supplyT = 3; // the first pod comes early
         }
         break;
       case 'fight':
@@ -499,6 +480,11 @@ export const ROCKJAW_TYPE = {
 
   aimPoint(e) {
     return mouth(e);
+  },
+
+  // Supply pods fly in on the side of the screen away from him.
+  supplyY(e) {
+    return center(e).y > MID_Y ? HUD_H + 8 : VIEW_H - 20;
   },
 
   // Is he on screen yet? (Not during his entrance.) Used for his health bar
@@ -574,8 +560,10 @@ export const ROCKJAW_TYPE = {
     const stage = Math.min(2, e.phase - 1);
     const i = Math.round(clamp(e.jaw, 0, 1) * 3);
     const img = e.flash > 0 ? ROCKJAW.flash[i] : ROCKJAW.frames[stage][i];
-    const wx = e.wobble ? Math.round((g.rand() - 0.5) * 2 * e.wobble) : 0;
-    const wy = e.wobble ? Math.round((g.rand() - 0.5) * 2 * e.wobble) : 0;
+    // (Drawing uses Math.random, never the game's own dice, so drawing
+    // frames can't change what happens in the game.)
+    const wx = e.wobble ? Math.round((Math.random() - 0.5) * 2 * e.wobble) : 0;
+    const wy = e.wobble ? Math.round((Math.random() - 0.5) * 2 * e.wobble) : 0;
     if (e.angle) {
       ctx.save();
       ctx.translate(snap(e.x + e.w / 2) + wx, snap(e.y + e.h / 2) + wy);
@@ -593,13 +581,6 @@ export const ROCKJAW_TYPE = {
     }
   },
 };
-
-// A supply pod comes in on the side of the screen away from Rockjaw.
-function supplyPod(e, g) {
-  if (g.boss !== e || e.mode === 'dying') return;
-  const above = center(e).y > MID_Y;
-  g.spawnEnemy('carrier', VIEW_W + 8, above ? HUD_H + 8 : VIEW_H - 20, { drop: g.nextSupplyKind() });
-}
 
 function startAttack(e, g) {
   const options = MOVESETS[e.phase].filter((n) => n !== e.last);

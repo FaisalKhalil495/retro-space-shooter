@@ -101,24 +101,28 @@ a real console controller, so you can play by feel while watching the game.
   - **Weak point**: a core behind armour plates on the front of its hull,
     open only while the main cannon locks on and fires (and ~1 s after),
     and from stage 2 while drones launch. Specials obey the same rule.
-  - **Attacks** (every one warned): **Cannon** (barrel tracks you, then a
-    dotted red aim line 0.8/0.7/0.6 s, a heavy shell costing 2; 3 shells
-    in stage 3); **Mortar barrage** (3/4/5 shells on red rings, the first
+  - **Attacks** (every one warned): **Cannon** (barrel tracks you, snaps
+    on as it locks, then a dotted red aim line 0.8/0.7/0.6 s, a heavy shell
+    costing 2; 3 shells in stage 3; it can aim anywhere above it and tip
+    down over its nose, so there's no safe spot low in front of it or
+    behind it); **Mortar barrage** (3/4/5 shells on red rings, the first
     where you are); **Flak wall** (dotted line across the screen with a
     gap between two posts, 1 line then 2, bursts sweep right to left,
-    1 block, never reaching into the gap); stage 2+: **Mines** (drift,
+    1 block, never reaching into the gap; fragments fly away from the other
+    line, so neither gap is crossed); stage 2+: **Mines** (drift,
     burst after 3 s or 0.5 s after you get close, or on touch, 2 blocks +
     fragments, shootable), **Drones** (hunt you, blink, fire once), **Stomp**
     (rears up 0.6 s, a dust wave rolls along the floor both ways, 2 blocks,
-    fly above it; rocks fall on "!" markers); stage 3: **Tread charge**
+    fly above it; rocks fall straight down onto "!" markers, then roll); stage 3: **Tread charge**
     (revs 1 s with horn and smoke, runs across the screen, 3 blocks, fly
     over it) and **All guns** (flak wall + mortars together).
   - Stages at 66% and 33%: armour blows off ("YOU SCRATCHED MY FUCKING
     PAINT"), then burning ("ALL GUNS. NOW."). Taunt "STEP INTO MY FUCKING
     SIGHTS"; kill lines include "FLATTENED". Talks only in pauses; stage
     bonuses; alternating supply pods (high on the screen).
-  - Bumping into it pushes you away from it (left or right), or up over
-    its turret if it's running you down or you'd hit the screen edge.
+  - Bumping into it pushes you clear: out of its front or back if you hit
+    an end, otherwise (on top of it, while it's charging, or at the screen
+    edge) up over its turret.
   - Death: chain explosions, the turret blows off and spins away, a huge
     blast, and the burnt-out hull drops onto the floor.
 - **Moving between levels** (Stage 3A, v0.11.0): after the level-clear
@@ -234,8 +238,12 @@ a real console controller, so you can play by feel while watching the game.
 - **Boss code conventions** (for Stage 3+): a boss type can define
   `aimPoint(e)` (its mouth/weak point — speech tails and bonus items use it)
   and `onScreen(e)` (false during its entrance — hides the health bar and
-  stops it gloating). Supply pods and stage bonuses live in Game, so every
-  boss gets them by calling `g.nextSupplyKind()` / `g.stageBonus(e, stage)`.
+  stops it gloating). Supply pods and stage bonuses live in Game: pods arrive
+  automatically while a boss is in 'fight' or 'transition' mode (first 3 s
+  in, then every 20 s; a boss can give `supplyY(e, g)` for how high they
+  fly in), and a boss calls `g.stageBonus(e, stage)` when a stage breaks.
+  Drawing code must use `Math.random()`, never `g.rand()` (the game's own
+  dice), so drawing frames can't change what happens.
   **Every boss must check `g.bossMayAttack(e)` before starting any attack
   and before leaving a pause** (false while its speech bubble is up). Its
   opening taunt waits for the name card (`g.title`) to clear, then the boss
