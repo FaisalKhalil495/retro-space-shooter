@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.6.1';
-import { ROCKS } from './rockart.js?v=0.6.1';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.6.1';
-import { clamp, rectHitsCircle } from './util.js?v=0.6.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.7.0';
+import { ROCKS } from './rockart.js?v=0.7.0';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.7.0';
+import { clamp, rectHitsCircle } from './util.js?v=0.7.0';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -16,7 +16,7 @@ export const ENEMY_TYPES = {
     sprite: 'drifter',
     hp: 1,
     score: 10,
-    gore: { blood: 14, flesh: 4, metal: 3, splat: 1 },
+    gore: { metal: 4 },
     init(e) {
       e.vx = -(e.speed || 46);
       e.vy = e.vy || 0;
@@ -24,15 +24,23 @@ export const ENEMY_TYPES = {
     update(e, dt, game) {
       e.x += e.vx * dt;
       e.y += e.vy * dt;
-      if (e.shooter && !e.fired) {
-        const inView = e.flip ? e.x > 30 : e.x < VIEW_W - 34;
-        if (inView) {
+      // Pods only shoot out of their noses. Ambushers coming from behind
+      // have their backs to you, so they never fire; pods coming from the
+      // front only fire while you're still ahead of their gun; dive-bombers
+      // from above or below can fire.
+      if (e.shooter && !e.fired && !e.flip) {
+        const p = game.player;
+        const diving = Math.abs(e.vy) > 30;
+        const facing = diving || p.x + p.w < e.x - 6;
+        const inView = e.x < VIEW_W - 34;
+        if (!facing) e.charge = 0;
+        if (inView && facing) {
           e.aim = (e.aim || 0) + dt;
           e.charge = 1;
           if (e.aim > 0.35) {
             e.fired = true;
             e.charge = 0;
-            game.fireAtPlayer(e.x + (e.flip ? e.w : 0), e.y + e.h / 2, 74);
+            game.fireAtPlayer(e.x, e.y + e.h / 2, 74);
           }
         }
       }
@@ -47,7 +55,7 @@ export const ENEMY_TYPES = {
     score: 20,
     organic: true,
     dropChance: 0.03,
-    gore: { blood: 22, flesh: 8, splat: 1.6 },
+    gore: { blood: 7, flesh: 2 },
     init(e, game) {
       e.baseY = e.y;
       e.amp = e.amp || 18;
@@ -71,7 +79,7 @@ export const ENEMY_TYPES = {
     hp: 5,
     score: 50,
     dropChance: 0.3,
-    gore: { blood: 20, flesh: 6, metal: 9, splat: 1.5 },
+    gore: { metal: 10 },
     init(e) {
       e.mode = 'enter';
       e.targetX = e.targetX || VIEW_W - 52;
@@ -109,7 +117,8 @@ export const ENEMY_TYPES = {
     hp: 2,
     score: 30,
     dropChance: 0.08,
-    gore: { blood: 10, flesh: 3, metal: 3, splat: 1 },
+    explodeSize: 0.5,
+    gore: { metal: 4 },
     init(e) {
       e.vy = 0;
     },
@@ -144,7 +153,7 @@ export const ENEMY_TYPES = {
     hp: 3,
     score: 60,
     dropChance: 0.15,
-    gore: { blood: 14, flesh: 4, metal: 6, splat: 1 },
+    gore: { metal: 7 },
     init(e) {
       e.mode = 'enter';
       e.targetX = e.targetX || VIEW_W - 24;
@@ -206,7 +215,7 @@ export const ENEMY_TYPES = {
     hp: 6,
     score: 80,
     dropChance: 0.2,
-    gore: { blood: 18, flesh: 6, metal: 8, splat: 1.4 },
+    gore: { metal: 9 },
     init(e) {
       e.targetX = e.targetX || VIEW_W * 0.68;
       e.timer = 1.0;
@@ -308,6 +317,7 @@ export const ENEMY_TYPES = {
   // just flies off the screen instead of bouncing back into play.
   rockShard: {
     ...rockType('small', 1, 3, 4, 1),
+    noDrop: true,
     explodeSize: 0.3,
     update(e, dt) {
       e.x += e.vx * dt;
@@ -321,6 +331,7 @@ export const ENEMY_TYPES = {
   // after flashing and shaking for half a second as a warning.
   rockSpit: {
     ...rockType('small', 2, 0, 5, 2),
+    noDrop: true,
     update(e, dt, game) {
       e.x += e.vx * dt;
       e.y += e.vy * dt;
@@ -356,7 +367,11 @@ function rockType(size, hp, score, radius, ram, onDeath) {
     hp,
     score,
     ram,
-    dropChance: size === 'big' ? 0.06 : 0,
+    // Rocks carry real loot: power-ups or special weapon ammo (see maybeDrop
+    // in game.js). Chances go up when you're badly hurt.
+    dropChance: size === 'big' ? 0.25 : 0.06,
+    hurtDropChance: size === 'big' ? 0.4 : 0.12,
+    rockLoot: true,
     explodeSize: size === 'big' ? 1 : 0.5,
     gore: { rock: size === 'big' ? 12 : 6 },
     // Rocks are round, so hits are checked against a circle, not a box.

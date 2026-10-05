@@ -1,4 +1,4 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.6.1';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.7.0';
 
 // Enemy formations. Levels are built by placing these on a timeline
 // (see levels.js). Every pattern takes the game, a random-number function
@@ -60,13 +60,14 @@ export const PATTERNS = {
   },
 
   // Ambush from BEHIND: pods sneak in from the left edge (a warning marker
-  // flashes there first) and fire as they pass.
+  // flashes there first) and try to ram you. Their guns face away from you,
+  // so they never fire.
   ambush(game, rand, { n = 3 } = {}) {
     for (let i = 0; i < n; i++) {
       const y = TOP + rand() * (BOTTOM - TOP);
       game.warn(7, y, 0.9, 'left');
       game.later(0.9 + i * 0.35, () => {
-        game.spawnEnemy('drifter', -12, y, { speed: -64, flip: true, shooter: i % 2 === 0 });
+        game.spawnEnemy('drifter', -12, y, { speed: -64, flip: true });
       });
     }
   },

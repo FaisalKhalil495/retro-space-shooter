@@ -246,6 +246,58 @@ for (const phone of PHONES) {
   console.log(`  ${shootOk ? 'PASS' : 'FAIL'}  sniper aims then fires; spinner star burst ${JSON.stringify(shooters)}`);
   if (!shootOk) failures++;
 
+  // v0.7.0: pods only fire when facing you; machines explode without blood,
+  // weavers bleed lightly; rocks carry real loot.
+  const v7 = await page.evaluate(() => {
+    const g = window.__ember.game;
+    const step = (n) => { for (let i = 0; i < n; i++) g.moveWorld(1 / 120); };
+    const clear = () => { g.enemies = []; g.enemyShots = []; g.pickups = []; };
+    g.player.x = 60; g.player.y = 60;
+    clear();
+    g.spawnEnemy('drifter', 20, 60, { speed: -64, flip: true, shooter: true });
+    step(120);
+    const behind = g.enemyShots.length;
+    clear();
+    g.spawnEnemy('drifter', 40, 40, { shooter: true });
+    step(120);
+    const passed = g.enemyShots.length;
+    clear();
+    g.spawnEnemy('drifter', 120, 20, { speed: 22, vy: 62, shooter: true });
+    step(60);
+    const dive = g.enemyShots.length;
+    clear();
+    g.gore.reset();
+    g.killEnemy(g.spawnEnemy('gunner', 120, 60));
+    const gunner = { blood: g.gore.drops.length, fire: g.blasts.fires.length };
+    g.gore.reset();
+    g.killEnemy(g.spawnEnemy('weaver', 120, 60));
+    step(240);
+    const weaver = { stains: g.gore.splats.length };
+    g.gore.reset();
+    g.killEnemy(g.spawnEnemy('weaver', 120, 60));
+    weaver.blood = g.gore.drops.length;
+    clear();
+    g.health = 5;
+    g.weapons.kind = 'laser';
+    g.weapons.ammo = 1;
+    let drops = 0;
+    const kinds = new Set();
+    for (let i = 0; i < 600; i++) {
+      g.pickups = [];
+      g.killEnemy(g.spawnEnemy('rockBig', 120, 60));
+      if (g.pickups.length) { drops++; kinds.add(g.pickups[0].kind); }
+      g.enemies = [];
+    }
+    g.enemyShots = [];
+    g.pickups = [];
+    return { behind, passed, dive, gunner, weaver, rockRate: +(drops / 600).toFixed(2), kinds: [...kinds] };
+  });
+  const v7ok = v7.behind === 0 && v7.passed === 0 && v7.dive === 1 && v7.gunner.blood === 0 && v7.gunner.fire > 0 &&
+    v7.weaver.blood > 0 && v7.weaver.blood <= 9 && v7.weaver.stains === 0 && v7.rockRate > 0.18 && v7.rockRate < 0.32 &&
+    v7.kinds.includes('laser') && !v7.kinds.includes('bomb') && !v7.kinds.includes('rockets');
+  console.log(`  ${v7ok ? 'PASS' : 'FAIL'}  pods face you, blasts not blood, rock loot ${JSON.stringify(v7)}`);
+  if (!v7ok) failures++;
+
   // Portrait: should ask to rotate.
   await page.setViewportSize({ width: phone.height, height: phone.width });
   await page.waitForTimeout(400);

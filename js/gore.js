@@ -1,7 +1,9 @@
-import { VIEW_H, BLOOD } from './config.js?v=0.6.1';
+import { VIEW_H, BLOOD } from './config.js?v=0.7.0';
 
-// Blood and gore. Everything here is switched off by BLOOD in config.js
-// (a menu switch arrives in Stage 5).
+// Blood, gore and debris. Only living creatures bleed: weavers lightly,
+// Rockjaw fully. Machines and the player explode instead (see blasts.js).
+// All the blood is switched off by BLOOD in config.js (a menu switch arrives
+// in Stage 5).
 //
 // - droplets: small blood particles that spray out and slow down
 // - gibs: tumbling chunks (flesh, bone, rock, metal, molten rock)
@@ -34,7 +36,7 @@ export class Gore {
   }
 
   // A spray of blood. dir (radians) and spread aim it; omit dir for all round.
-  blood(x, y, n, speed = 60, dir = null, spread = Math.PI) {
+  blood(x, y, n, speed = 60, dir = null, spread = Math.PI, stains = true) {
     if (!BLOOD) return;
     const r = this.rand;
     for (let i = 0; i < n; i++) {
@@ -45,7 +47,7 @@ export class Gore {
         x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life, max: life,
         color: BLOOD_COLORS[1 + Math.floor(r() * 3)],
         size: r() < 0.45 ? 2 : 1,
-        stain: r() < 0.12, // some droplets leave a stain where they stop
+        stain: stains && r() < 0.12, // some droplets leave a stain where they stop
       });
     }
   }
@@ -237,4 +239,3 @@ function disc(ctx, cx, cy, r) {
 
 // Little pixel-map pieces.
 export const TOOTH = { rows: ['ab', 'aa', '.a'], colors: { a: BONE[0], b: BONE[1] } };
-export const HELMET = { rows: ['.aaa.', 'abbba', 'abcba', '.aaa.'], colors: { a: '#5a6a9a', b: '#9fb0d0', c: '#3d1014', bleeds: true } };
