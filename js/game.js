@@ -1,18 +1,18 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.10.2';
-import { SPRITES } from './sprites.js?v=0.10.2';
-import { ENEMY_TYPES } from './enemies.js?v=0.10.2';
-import { LEVELS, LevelRunner } from './levels.js?v=0.10.2';
-import { Background } from './background.js?v=0.10.2';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.10.2';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.10.2';
-import { buzz, HAPTIC } from './feedback.js?v=0.10.2';
-import { sfx } from './audio.js?v=0.10.2';
-import { clamp, rectsOverlap } from './util.js?v=0.10.2';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.10.2';
-import { Blasts } from './blasts.js?v=0.10.2';
-import { Speech } from './speech.js?v=0.10.2';
-import { startBossMusic, stopMusic } from './music.js?v=0.10.2';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.10.2';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.10.3';
+import { SPRITES } from './sprites.js?v=0.10.3';
+import { ENEMY_TYPES } from './enemies.js?v=0.10.3';
+import { LEVELS, LevelRunner } from './levels.js?v=0.10.3';
+import { Background } from './background.js?v=0.10.3';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.10.3';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.10.3';
+import { buzz, HAPTIC } from './feedback.js?v=0.10.3';
+import { sfx } from './audio.js?v=0.10.3';
+import { clamp, rectsOverlap } from './util.js?v=0.10.3';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.10.3';
+import { Blasts } from './blasts.js?v=0.10.3';
+import { Speech } from './speech.js?v=0.10.3';
+import { startBossMusic, stopMusic } from './music.js?v=0.10.3';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.10.3';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -48,10 +48,7 @@ export class Game {
     // give if shot open right now (ammo shows the colour of your special).
     this.pickupInfo = (kind) => {
       if (kind === 'smart') return SMART_POD;
-      if (kind === 'weapon') {
-        const inside = this.weaponSupply();
-        return this.pickupInfo(inside === 'ammo' ? this.weapons.kind : inside);
-      }
+      if (kind === 'weapon') return this.pickupInfo(this.weaponSupply()); // ammo shows amber, like the "A" capsule
       return POWERUPS[kind] || pickupInfo(kind);
     };
     this.reset();
@@ -160,10 +157,11 @@ export class Game {
     const m = this.aimPoint(e);
     const bonus = stage === 2 ? 1000 : 2000;
     this.score += bonus;
-    this.popups.push({ x: m.x, y: m.y - 14, text: '+' + bonus, t: 1.5 });
-    // Keep them on screen even if his mouth is off the edge (after a charge).
+    // Keep the items and the bonus number on screen even if his mouth is off
+    // the edge (after a charge).
     const x = clamp(m.x - 6, 4, VIEW_W - 14);
     const y = clamp(m.y - 4, HUD_H + 10, VIEW_H - 18);
+    this.popups.push({ x: clamp(m.x, 16, VIEW_W - 16), y: y - 12, text: '+' + bonus, t: 1.5 });
     this.spawnPickup('bonusSurvival', x, y - 6, true);
     this.spawnPickup('bonusWeapon', x, y + 6, true);
     this.burst(m.x, m.y, 12, 70);
@@ -171,10 +169,14 @@ export class Game {
 
   // Stage-bonus survival item: Repair if you're hurt, else a Shield, or Rapid
   // Fire / Spread Shot if a Shield is already up.
+  // If the weapon item is about to give the same power-up, it gives the
+  // other one, so the two items never show the same thing.
   survivalPick() {
     if (this.health < PLAYER.health) return 'repair';
     if (!this.powerups.has('shield')) return 'shield';
-    return this.powerups.has('rapid') ? 'spread' : 'rapid';
+    const pick = this.powerups.has('rapid') ? 'spread' : 'rapid';
+    if (pick !== this.weaponPick()) return pick;
+    return pick === 'rapid' ? 'spread' : 'rapid';
   }
 
   // Bonus items stand in for whatever they'd give right now.
@@ -197,8 +199,11 @@ export class Game {
   // wasted); Spread Shot and Rapid Fire get its share.
   maybeDrop(e) {
     if (e.byBoss || e.T.noDrop) return;
-    const hurt = this.health <= 2;
+    // Only enemies that carry loot can drop it (never plain pods or cargo
+    // pods, whose contents are fixed).
     let chance = e.T.dropChance || 0;
+    if (!chance) return;
+    const hurt = this.health <= 2;
     if (hurt) chance = e.T.hurtDropChance ?? chance * 2.5 + 0.06;
     if (!chance || this.rand() >= chance) return;
     let kind;
@@ -304,6 +309,12 @@ export class Game {
     return e.T.aimPoint ? e.T.aimPoint(e) : { x: e.x + e.w / 2, y: e.y + e.h / 2 };
   }
 
+  // Has the boss finished its entrance? (Each boss type can say.)
+  bossOnScreen() {
+    const b = this.boss;
+    return !!b && (!b.T.onScreen || b.T.onScreen(b));
+  }
+
   // Does a rectangle touch this enemy? Returns 'hit', 'block' or null.
   contact(e, x, y, w, h) {
     if (e.T.hitTest) return e.T.hitTest(e, x, y, w, h);
@@ -373,7 +384,7 @@ export class Game {
     if (this.title && (this.title.t += dt) > TITLE_TIME) {
       const end = this.title.onEnd;
       this.title = null;
-      if (end && this.state === 'playing') end();
+      if (end) end();
     }
     this.gore.update(dt);
     this.blasts.update(dt);
@@ -530,6 +541,10 @@ export class Game {
     if (this.banner && (this.banner.t += dt) > 3.6) this.banner = null;
     if (this.warning && (this.warning.t += dt) > 2.6) this.warning = null;
     this.shake = Math.max(0, this.shake - dt * 14);
+    // Pick this frame's shake offset here (not when drawing), so a paused
+    // game's frozen picture stays still.
+    this.shakeX = (this.rand() - 0.5) * this.shake * 2;
+    this.shakeY = (this.rand() - 0.5) * this.shake * 2;
     this.flash = Math.max(0, this.flash - dt);
     this.hurtFlash = Math.max(0, this.hurtFlash - dt);
   }
@@ -705,7 +720,7 @@ export class Game {
     this.gore.piece(cx, cy, WING.rows, WING.colors, 10 + this.rand() * 20, 35, -4);
     const byBoss = source && (source.byBoss || (source.T && source.T.boss));
     // Only a boss that's on screen and alive gets to gloat.
-    const bossTalks = byBoss && this.boss && this.boss.mode !== 'dying' && this.boss.mode !== 'enter';
+    const bossTalks = byBoss && this.boss && this.boss.mode !== 'dying' && this.bossOnScreen();
     const lines = bossTalks ? this.boss.T.killLines : DEATH_LINES;
     this.quip = lines[Math.floor(this.rand() * lines.length)];
     this.shake = 5;
@@ -754,12 +769,7 @@ export class Game {
   // ---- drawing (in game pixels) ----
   draw(ctx, snap) {
     ctx.save();
-    if (this.shake > 0) {
-      ctx.translate(
-        snap((this.rand() - 0.5) * this.shake * 2),
-        snap((this.rand() - 0.5) * this.shake * 2),
-      );
-    }
+    if (this.shake > 0) ctx.translate(snap(this.shakeX || 0), snap(this.shakeY || 0));
     this.bg.draw(ctx, snap);
     this.gore.drawBack(ctx, snap);
     if (this.darken > 0.01) {
@@ -943,7 +953,7 @@ export class Game {
 
     // Boss health bar along the bottom.
     const boss = this.boss;
-    if (boss && boss.mode !== 'enter') {
+    if (boss && this.bossOnScreen()) {
       const w = 90;
       const x = Math.round(VIEW_W / 2 - w / 2);
       const y = VIEW_H - 8;

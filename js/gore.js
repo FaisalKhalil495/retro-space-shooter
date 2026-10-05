@@ -1,4 +1,5 @@
-import { VIEW_H, BLOOD } from './config.js?v=0.10.2';
+import { VIEW_H, BLOOD } from './config.js?v=0.10.3';
+import { fillDisc } from './util.js?v=0.10.3';
 
 // Blood, gore and debris. Only living creatures bleed: weavers lightly,
 // Rockjaw fully. Machines and the player explode instead (see blasts.js).
@@ -171,7 +172,7 @@ export class Gore {
       ctx.globalAlpha = Math.min(1, s.life / 1.2) * 0.85;
       for (const b of s.blobs) {
         ctx.fillStyle = b.c;
-        disc(ctx, snap(s.x + b.dx), snap(s.y + b.dy), b.r);
+        fillDisc(ctx, snap(s.x + b.dx), snap(s.y + b.dy), b.r);
       }
     }
     ctx.globalAlpha = 1;
@@ -221,19 +222,11 @@ export class Gore {
     for (const l of this.lens) {
       ctx.globalAlpha = Math.min(0.9, l.life / 0.8);
       ctx.fillStyle = l.c;
-      disc(ctx, Math.round(l.x), Math.round(l.y), l.r);
+      fillDisc(ctx, Math.round(l.x), Math.round(l.y), l.r);
       ctx.fillRect(Math.round(l.x) - 1, Math.round(l.y), 2, Math.round(l.drip));
       ctx.fillRect(Math.round(l.x), Math.round(l.y + l.drip), 1, 2);
     }
     ctx.globalAlpha = 1;
-  }
-}
-
-function disc(ctx, cx, cy, r) {
-  const ri = Math.max(1, Math.round(r));
-  for (let y = -ri; y <= ri; y++) {
-    const half = Math.floor(Math.sqrt(ri * ri - y * y));
-    ctx.fillRect(cx - half, cy + y, half * 2 + 1, 1);
   }
 }
 

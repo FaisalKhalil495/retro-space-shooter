@@ -1,31 +1,12 @@
 // Automated check: opens the game on simulated phones, plays a few seconds
 // with fake thumbs, and saves screenshots. Run: node tools/smoke-test.mjs <outdir>
 import { createRequire } from 'node:module';
-import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
-import { extname, join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { serve } from './serve.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_PATH || 'playwright');
-
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = process.argv[2] || '.';
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
-
-const server = createServer(async (req, res) => {
-  let path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
-  if (path.endsWith('/')) path += 'index.html';
-  try {
-    const body = await readFile(join(root, path));
-    res.writeHead(200, { 'content-type': TYPES[extname(path)] || 'application/octet-stream' });
-    res.end(body);
-  } catch {
-    res.writeHead(404);
-    res.end();
-  }
-}).listen(0);
-const base = `http://localhost:${server.address().port}/`;
+const { server, base } = await serve();
 
 const PHONES = [
   { name: 'android', width: 915, height: 412, dpr: 2.625, query: '' },
@@ -174,7 +155,7 @@ for (const phone of PHONES) {
   const same = (a, b) => a.join() === b.join();
   const smartOk = smart.low === 'repair' && same(smart.lowWeapon, ['repair', 'REPAIR']) &&
     smart.noShield === 'shield' && same(smart.weapon, ['laser', 'LASER']) &&
-    ['rapid', 'spread'].includes(smart.shielded) && same(smart.topUp, ['ammo', 'BOMBS']) &&
+    ['rapid', 'spread'].includes(smart.shielded) && same(smart.topUp, ['ammo', 'AMMO']) &&
     same(smart.full, ['rapid', 'RAPID FIRE']);
   console.log(`  ${smartOk ? 'PASS' : 'FAIL'}  smart supply choices ${JSON.stringify(smart)}`);
   if (!smartOk) failures++;
@@ -381,6 +362,53 @@ for (const phone of PHONES) {
   console.log(`  ${bonusOk ? 'PASS' : 'FAIL'}  stage bonus reaches the ship from off-screen ${JSON.stringify(bonus)}`);
   if (!bonusOk) failures++;
 
+  // Clean-up rules: Rockjaw's inhale only kills while pulling; plain pods
+  // never drop loot (even when you're hurt); weavers blink before spitting;
+  // a seeker that gets too close stops its warning blink.
+  const rules = await page.evaluate(() => {
+    const g = window.__ember.game;
+    g.enemies = [];
+    g.pickups = [];
+    const RJ = (() => { const e = g.spawnEnemy('rockjaw', 300, 40); g.enemies = []; g.boss = null; return e.T; })();
+    const afterSnap = RJ.contactDamage({ attack: { name: 'inhale', pulling: false } });
+    const pulling = RJ.contactDamage({ attack: { name: 'inhale', pulling: true } });
+    g.health = 2;
+    let podDrops = 0;
+    for (let i = 0; i < 300; i++) {
+      g.killEnemy(g.spawnEnemy('drifter', 120, 60));
+      podDrops += g.pickups.length;
+      g.pickups = [];
+      g.enemies = [];
+    }
+    g.health = 5;
+    g.player.x = 20;
+    g.player.y = 60;
+    const w = g.spawnEnemy('weaver', 150, 60);
+    w.spitAt = 0.01;
+    let blinked = false;
+    let shotAt = -1;
+    for (let i = 0; i < 120 && shotAt < 0; i++) {
+      g.moveWorld(1 / 120);
+      if (w.charge) blinked = true;
+      if (g.enemyShots.length) shotAt = i;
+    }
+    g.enemies = [];
+    g.enemyShots = [];
+    const s = g.spawnEnemy('seeker', 120, 60);
+    g.player.x = 50;
+    for (let i = 0; i < 12; i++) g.moveWorld(1 / 120);
+    g.player.x = s.x - 20; // suddenly too close
+    g.moveWorld(1 / 120);
+    const seekerStopped = s.charge === 0 && !s.fired;
+    g.enemies = [];
+    g.enemyShots = [];
+    return { afterSnap, pulling, podDrops, weaverBlinkFirst: blinked && shotAt > 30, seekerStopped };
+  });
+  const rulesOk = rules.afterSnap === 2 && rules.pulling === 5 && rules.podDrops === 0 &&
+    rules.weaverBlinkFirst && rules.seekerStopped;
+  console.log(`  ${rulesOk ? 'PASS' : 'FAIL'}  clean-up rules ${JSON.stringify(rules)}`);
+  if (!rulesOk) failures++;
+
   // Portrait: should ask to rotate.
   await page.setViewportSize({ width: phone.height, height: phone.width });
   await page.waitForTimeout(400);
@@ -390,6 +418,12 @@ for (const phone of PHONES) {
   await page.screenshot({ path: `${out}/${phone.name}-4-portrait.png` });
   await context.close();
 }
+
+// The test web server must refuse paths outside the game folder.
+const escape = await fetch(base + '..%2f..%2f..%2fetc%2fpasswd');
+const serverOk = escape.status === 403;
+console.log(`${serverOk ? 'PASS' : 'FAIL'}  test server refuses paths outside the game (${escape.status})`);
+if (!serverOk) failures++;
 
 await browser.close();
 server.close();

@@ -3,29 +3,12 @@
 // special weapons and the boss all work and the level can be finished.
 // Run: node tools/level-test.mjs <screenshot-dir>
 import { createRequire } from 'node:module';
-import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
-import { extname, join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { serve } from './serve.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_PATH || 'playwright');
-const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const out = process.argv[2] || '.';
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript' };
-const server = createServer(async (req, res) => {
-  let path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
-  if (path.endsWith('/')) path += 'index.html';
-  try {
-    const body = await readFile(join(root, path));
-    res.writeHead(200, { 'content-type': TYPES[extname(path)] || 'application/octet-stream' });
-    res.end(body);
-  } catch {
-    res.writeHead(404);
-    res.end();
-  }
-}).listen(0);
-const base = `http://localhost:${server.address().port}/`;
+const { server, base } = await serve();
 
 const browser = await chromium.launch();
 const context = await browser.newContext({
@@ -90,22 +73,7 @@ const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
 
 // Stop the real-time loop from also stepping the game while we drive it.
 await page.evaluate(() => {
-  const g = window.__ember.game;
-  g.__realUpdate = g.update;
-});
-await page.evaluate(() => {
-  // Pause the live loop by marking the game paused (main.js checks 'paused'
-  // via the overlay); simplest is to make the live update a no-op.
-  const g = window.__ember.game;
-  const real = g.update.bind(g);
-  g.update = () => {};
-  window.__step = real;
-});
-// Re-point run() at the real update.
-await page.evaluate(() => {
-  const g = window.__ember.game;
-  g.update = window.__step;
-  window.__ember.liveOff = true;
+  window.__ember.frozen = true;
 });
 
 // Boss supply pods: count them over about 55 seconds of boss fight, and check

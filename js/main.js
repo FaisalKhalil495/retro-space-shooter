@@ -1,8 +1,8 @@
-import { VERSION, STAGE_LABEL, VIEW_W, VIEW_H, PAL } from './config.js?v=0.10.2';
-import { readSafeArea, computeLayout } from './layout.js?v=0.10.2';
-import { Controls } from './controls.js?v=0.10.2';
-import { Game } from './game.js?v=0.10.2';
-import { unlockAudio, suspendAudio, resumeAudio } from './audio.js?v=0.10.2';
+import { VERSION, STAGE_LABEL, VIEW_W, VIEW_H, PAL } from './config.js?v=0.10.3';
+import { readSafeArea, computeLayout } from './layout.js?v=0.10.3';
+import { Controls } from './controls.js?v=0.10.3';
+import { Game } from './game.js?v=0.10.3';
+import { unlockAudio, suspendAudio, resumeAudio } from './audio.js?v=0.10.3';
 
 const canvas = document.getElementById('screen');
 const ctx = canvas.getContext('2d', { alpha: false });
@@ -25,6 +25,7 @@ let layout = null;
 let dpr = 1;
 let started = false;
 let paused = false;
+let testFreeze = false; // automated tests drive the game themselves
 
 // ---- sizing ----
 function resize() {
@@ -123,7 +124,7 @@ function frame(now) {
   const dt = Math.min((now - lastTime) / 1000, 0.05);
   lastTime = now;
 
-  if (started && !paused) {
+  if (started && !paused && !testFreeze) {
     const input = controls.read();
     let left = dt;
     while (left > 1e-6) {
@@ -195,4 +196,9 @@ resize();
 requestAnimationFrame(frame);
 
 // Small hook so automated tests can inspect the game. Harmless for players.
-window.__ember = { game, controls, get layout() { return layout; } };
+window.__ember = {
+  game,
+  controls,
+  get layout() { return layout; },
+  set frozen(v) { testFreeze = v; }, // stop the live loop stepping the game
+};

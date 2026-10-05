@@ -1,7 +1,8 @@
-import { PAL } from './config.js?v=0.10.2';
-import { drawTextCentered } from './font.js?v=0.10.2';
-import { buzz, canVibrate, HAPTIC } from './feedback.js?v=0.10.2';
-import { sfx } from './audio.js?v=0.10.2';
+import { PAL } from './config.js?v=0.10.3';
+import { clamp } from './util.js?v=0.10.3';
+import { drawTextCentered } from './font.js?v=0.10.3';
+import { buzz, canVibrate, HAPTIC } from './feedback.js?v=0.10.3';
+import { sfx } from './audio.js?v=0.10.3';
 
 // Console-style touch controls.
 //
@@ -376,11 +377,6 @@ function circle(ctx, x, y, r) {
   ctx.beginPath();
   ctx.arc(x, y, Math.max(0, r), 0, Math.PI * 2);
 }
-
-function clamp(v, lo, hi) {
-  return Math.max(lo, Math.min(hi, v));
-}
-
 function mod(n, m) {
   return ((n % m) + m) % m;
 }

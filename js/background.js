@@ -1,5 +1,6 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.10.2';
-import { FAR_ROCKS } from './rockart.js?v=0.10.2';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.10.3';
+import { FAR_ROCKS } from './rockart.js?v=0.10.3';
+import { fillDisc } from './util.js?v=0.10.3';
 
 // Deep-space backdrop: a slow distant amber sun, a band of dust, distant
 // asteroids and three layers of stars moving at different speeds, which
@@ -11,9 +12,13 @@ const LAYERS = [
 ];
 
 // A faint band of space dust, drawn once with a checkerboard "dither"
-// pattern (the classic pixel-art way to fade between two colours).
+// pattern (the classic pixel-art way to fade between two colours). Its
+// wavy edge repeats exactly every screen width, so the loop is seamless.
+// It's built once and shared, not rebuilt on every restart.
 const DUST_H = 26;
+let dustCanvas = null;
 function makeDust() {
+  if (dustCanvas) return dustCanvas;
   const cv = document.createElement('canvas');
   cv.width = VIEW_W * 2;
   cv.height = DUST_H;
@@ -22,12 +27,13 @@ function makeDust() {
   for (let y = 0; y < DUST_H; y++) {
     const edge = Math.min(y, DUST_H - 1 - y); // 0 at the edges, larger inside
     for (let x = 0; x < cv.width; x++) {
-      const wobble = Math.sin((x / cv.width) * Math.PI * 6) * 2;
+      const wobble = Math.sin((x / VIEW_W) * Math.PI * 4) * 2;
       const solid = edge + wobble > 6;
       const dither = edge + wobble > 2 && (x + y) % 2 === 0;
       if (solid || dither) c.fillRect(x, y, 1, 1);
     }
   }
+  dustCanvas = cv;
   return cv;
 }
 
@@ -99,7 +105,7 @@ export class Background {
       ];
       for (const [r, c] of rings) {
         ctx.fillStyle = c;
-        pixelDisc(ctx, sx, sy, r);
+        fillDisc(ctx, sx, sy, r);
       }
     }
 
@@ -110,14 +116,5 @@ export class Background {
     }
 
     for (const r of this.farRocks) ctx.drawImage(r.img, snap(r.x), snap(r.y));
-  }
-}
-
-// A filled circle built from horizontal pixel rows, so its edge is stepped
-// like pixel art rather than smooth.
-function pixelDisc(ctx, cx, cy, r) {
-  for (let y = -r; y <= r; y++) {
-    const half = Math.floor(Math.sqrt(r * r - y * y));
-    ctx.fillRect(Math.round(cx - half), Math.round(cy + y), half * 2 + 1, 1);
   }
 }

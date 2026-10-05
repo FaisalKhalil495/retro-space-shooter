@@ -1,4 +1,4 @@
-import { PAL } from './config.js?v=0.10.2';
+import { PAL } from './config.js?v=0.10.3';
 
 // Asteroids and Rockjaw are drawn by code rather than by hand: a lumpy
 // circle, shaded from the top-left with a pixel-art checkerboard "dither"
@@ -136,23 +136,7 @@ function paintRock(r, seed, { craters = 3, mouth = -1, eye = false, flash = fals
   }
 
   // Dark outline so rocks read clearly against space.
-  const img = ctx.getImageData(0, 0, size, size);
-  const out = ctx.createImageData(size, size);
-  out.data.set(img.data);
-  const alpha = (x, y) => (x < 0 || y < 0 || x >= size || y >= size ? 0 : img.data[(y * size + x) * 4 + 3]);
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      if (alpha(x, y)) continue;
-      if (alpha(x - 1, y) || alpha(x + 1, y) || alpha(x, y - 1) || alpha(x, y + 1)) {
-        const i = (y * size + x) * 4;
-        out.data[i] = 14;
-        out.data[i + 1] = 18;
-        out.data[i + 2] = 34;
-        out.data[i + 3] = 255;
-      }
-    }
-  }
-  ctx.putImageData(out, 0, 0);
+  outline(ctx, size);
   return cv;
 }
 
