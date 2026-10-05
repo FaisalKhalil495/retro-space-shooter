@@ -1,8 +1,8 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.9.1';
-import { ROCKJAW } from './rockart.js?v=0.9.1';
-import { sfx } from './audio.js?v=0.9.1';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.9.1';
-import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.9.1';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.10.0';
+import { ROCKJAW } from './rockart.js?v=0.10.0';
+import { sfx } from './audio.js?v=0.10.0';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.10.0';
+import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.10.0';
 
 // ROCKJAW · THE LIVING ASTEROID — boss of The Outer Belt.
 //
@@ -353,10 +353,11 @@ export const ROCKJAW_TYPE = {
   name: 'ROCKJAW',
   title: 'THE LIVING ASTEROID',
   taunt: 'YOU ARE FUCKING DINNER',
+  // Said in his speech bubble when he kills you (and shown on Game Over).
   killLines: [
-    'ROCKJAW FUCKING ATE YOU',
+    'I FUCKING ATE YOU',
     'CHEWED UP AND SPAT OUT',
-    'ROCKJAW PICKS YOU OUT OF HIS TEETH',
+    'PICKING YOU OUT OF MY TEETH',
     'BITTEN IN FUCKING HALF',
   ],
   hp: 200,
@@ -427,6 +428,10 @@ export const ROCKJAW_TYPE = {
           sfx.roar();
           g.shake = 7;
           g.showTitle(ROCKJAW_TYPE);
+          // Once his name card has faded, he taunts you in a speech bubble.
+          g.later(3.3, () => {
+            if (g.boss === e && e.mode !== 'dying') g.say(e, ROCKJAW_TYPE.taunt);
+          });
         }
         break;
       }
@@ -538,7 +543,8 @@ export const ROCKJAW_TYPE = {
         g.gore.chunks(ex, ey, 8, FLESH, 80);
         sfx.splat();
       }
-      g.showToast(next === 2 ? 'HE IS PISSED OFF NOW' : 'ROCKJAW IS FUCKING ENRAGED');
+      g.say(e, next === 2 ? 'MY FUCKING EYE!' : 'NOW I EAT YOU WHOLE', 'roar');
+      g.stageBonus(e, next);
     }
   },
 

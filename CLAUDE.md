@@ -129,6 +129,21 @@ a real console controller, so you can play by feel while watching the game.
     so it never swaps your weapon away; the rest are power-ups. When hurt, 60%
     of drops are Repair. Fragments, pebbles and Rockjaw's rocks never drop.
     About 14 items per level if every big rock is broken (was about 2).
+- **Bosses talk in speech bubbles** (owner request, v0.10.0): comic-book
+  bubbles beside the boss, tail pointing at its mouth, words typed out with a
+  low growl blip, about 2.5 s. Round cream bubble for taunts, jagged amber
+  bubble for roars. Drawn under pickups, enemies and bullets so they never
+  hide anything. Name cards stay big titles; the boss's lines are spoken in
+  first person (no narrator banners). Rockjaw: taunt "YOU ARE FUCKING
+  DINNER" after his name card, "MY FUCKING EYE!" (stage 2), "NOW I EAT YOU
+  WHOLE" (stage 3), and a kill line in a bubble when he kills you.
+- **Stage bonus** (owner request, v0.10.0): breaking a boss into its next
+  stage gives a score bonus (+1000, then +2000, shown as a small floating
+  number — **no "STAGE BROKEN" banner**, owner's call) and two bonus items
+  that burst from the wound and float to the ship: Repair if hurt (else
+  Shield), plus a weapon item (Laser if no special, else ammo, or Rapid Fire
+  if the special is full). They arrive during the boss's roar, when he
+  doesn't attack.
 - Level 1 enemies (Hard): some pods shoot, weavers spit acid, gunners fire 4
   faster shots, seekers steer harder; ambushes from behind, dive-bombers from
   top/bottom and pincers, each flagged by a red "!" warning marker first.
@@ -279,6 +294,7 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - `js/gore.js` — blood (creatures only), chunks/debris, stains, screen-glass
   smears, boss corpses.
 - `js/blasts.js` — explosions: fireballs, shockwave rings, smoke, rock dust.
+- `js/speech.js` — comic-book speech bubbles for talking bosses.
 - `js/util.js` — small maths helpers.
 - `tools/set-version.sh X.Y.Z` — bump the version everywhere (do this for every
   release so phones fetch fresh files).
