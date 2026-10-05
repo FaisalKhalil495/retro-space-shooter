@@ -102,16 +102,21 @@ await page.evaluate(() => {
   window.__ember.liveOff = true;
 });
 
-// Boss supply pods: count smart pods over 50 seconds of boss fight.
-const pods = await page.evaluate(() => {
+// Boss supply pods: count them over about 55 seconds of boss fight, and check
+// they alternate survival / weapon.
+const supply = await page.evaluate(() => {
   const g = window.__ember.game;
   g.reset();
   const ev = g.runner.level.events;
   g.runner.skipTo(ev[ev.length - 1][0] - 0.5);
   let pods = 0;
+  const kinds = [];
   const spawn = g.spawnEnemy.bind(g);
   g.spawnEnemy = (type, x, y, opts = {}) => {
-    if (type === 'carrier' && opts.drop === 'smart') pods++;
+    if (type === 'carrier' && (opts.drop === 'smart' || opts.drop === 'weapon')) {
+      pods++;
+      kinds.push(opts.drop);
+    }
     return spawn(type, x, y, opts);
   };
   for (let i = 0; i < 70 * 120; i++) {
@@ -120,9 +125,10 @@ const pods = await page.evaluate(() => {
   }
   g.spawnEnemy = spawn;
   g.reset();
-  return pods;
+  return { pods, kinds };
 });
-console.log('smart supply pods in ~55s of boss fight:', pods);
+console.log('supply pods in ~55s of boss fight:', JSON.stringify(supply));
+const pods = supply.pods;
 
 const results = {};
 results.early = await run(30, { invincible: true });
@@ -149,6 +155,7 @@ const checks = {
   'wingman power-up collected': r.collected.includes('wingman'),
   'boss appeared': r.bossSeen,
   'boss sends a supply pod every ~20s': pods >= 3,
+  'supply pods alternate survival / weapon': supply.kinds.slice(0, 3).join() === 'smart,weapon,smart',
   'level cleared': r.state === 'clear',
   'no script errors': errors.length === 0,
 };

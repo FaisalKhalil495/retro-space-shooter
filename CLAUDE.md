@@ -73,10 +73,16 @@ a real console controller, so you can play by feel while watching the game.
   re-collecting resets the timer. Sources: cargo pods in the level, random
   drops from gunships (30%), seekers, rocks (see v0.7.0) and weavers (small
   chance), and boss supply pods.
-- **Smart supplies** (owner request, v0.4.1): during a boss fight a supply
-  pod arrives every 20 s (first one 3 s in). What's inside is decided when
-  it's shot open: health <= 2 → Repair; no shield → Shield; not full health
-  → Repair; no laser → Laser special; otherwise Rapid Fire or Spread Shot.
+- **Smart supplies** (owner request, v0.4.1; reworked v0.9.0): during a boss
+  fight a supply pod arrives every 20 s (first one 3 s in), and pods take
+  turns. What's inside is decided when it's shot open.
+  **Survival pods** (1st, 3rd, 5th…): health <= 2 → Repair; no shield →
+  Shield; not full health → Repair; otherwise Rapid Fire or Spread Shot.
+  **Weapon pods** (2nd, 4th, 6th…): always a special — tops up the one you
+  carry, or a Laser if you carry none; Repair instead when health <= 2. The
+  pod's light shows the special's colour. (Before v0.9.0 the Laser step sat
+  behind "no shield → Shield", and a shield never outlasts the 20 s gap, so
+  bosses effectively never gave specials.)
   During levels, when health is 2 blocks or fewer, drop chances rise
   (x2.5 + 6%) and 60% of drops are Repair. **At full health random drops
   never give Repair** (v0.8.0): its share goes to Spread and Rapid

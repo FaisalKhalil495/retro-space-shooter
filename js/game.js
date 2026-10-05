@@ -1,17 +1,17 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.8.1';
-import { SPRITES } from './sprites.js?v=0.8.1';
-import { ENEMY_TYPES } from './enemies.js?v=0.8.1';
-import { LEVELS, LevelRunner } from './levels.js?v=0.8.1';
-import { Background } from './background.js?v=0.8.1';
-import { Weapons, drawCapsule, pickupInfo } from './weapons.js?v=0.8.1';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.8.1';
-import { buzz, HAPTIC } from './feedback.js?v=0.8.1';
-import { sfx } from './audio.js?v=0.8.1';
-import { clamp, rectsOverlap } from './util.js?v=0.8.1';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.8.1';
-import { Blasts } from './blasts.js?v=0.8.1';
-import { startBossMusic, stopMusic } from './music.js?v=0.8.1';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.8.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.9.0';
+import { SPRITES } from './sprites.js?v=0.9.0';
+import { ENEMY_TYPES } from './enemies.js?v=0.9.0';
+import { LEVELS, LevelRunner } from './levels.js?v=0.9.0';
+import { Background } from './background.js?v=0.9.0';
+import { Weapons, drawCapsule, pickupInfo } from './weapons.js?v=0.9.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.9.0';
+import { buzz, HAPTIC } from './feedback.js?v=0.9.0';
+import { sfx } from './audio.js?v=0.9.0';
+import { clamp, rectsOverlap } from './util.js?v=0.9.0';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.9.0';
+import { Blasts } from './blasts.js?v=0.9.0';
+import { startBossMusic, stopMusic } from './music.js?v=0.9.0';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.9.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -41,7 +41,9 @@ export class Game {
     this.gore = new Gore(this.rand);
     this.blasts = new Blasts(this.rand);
     this.pickupInfo = (kind) =>
-      kind === 'smart' ? SMART_POD : POWERUPS[kind] || pickupInfo(kind);
+      kind === 'smart' ? SMART_POD
+        : kind === 'weapon' ? pickupInfo(this.weapons.kind || 'laser') // shows the special you'll get
+          : POWERUPS[kind] || pickupInfo(kind);
     this.reset();
   }
 
@@ -154,13 +156,20 @@ export class Game {
     this.spawnPickup(kind, e.x + e.w / 2 - 4, e.y + e.h / 2 - 4);
   }
 
-  // What a smart supply pod gives you: whatever you need most right now.
+  // What a survival supply pod gives you: whatever keeps you alive best.
   smartSupply() {
     if (this.health <= 2) return 'repair';
     if (!this.powerups.has('shield')) return 'shield';
     if (this.health < PLAYER.health) return 'repair';
-    if (this.weapons.kind !== 'laser' || this.weapons.ammo < 2) return 'laser';
     return this.rand() < 0.5 ? 'rapid' : 'spread';
+  }
+
+  // What a weapon supply pod gives you: always a special. It tops up the one
+  // you carry, or gives a Laser (best against Rockjaw's open jaw). On your
+  // last 2 health blocks it gives Repair instead.
+  weaponSupply() {
+    if (this.health <= 2) return 'repair';
+    return this.weapons.kind || 'laser';
   }
 
   fireAtPlayer(x, y, speed) {
