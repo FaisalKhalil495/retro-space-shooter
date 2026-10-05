@@ -1,21 +1,24 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.6.1';
-import { SPRITES } from './sprites.js?v=0.6.1';
-import { ENEMY_TYPES } from './enemies.js?v=0.6.1';
-import { LEVELS, LevelRunner } from './levels.js?v=0.6.1';
-import { Background } from './background.js?v=0.6.1';
-import { Weapons, drawCapsule, pickupInfo } from './weapons.js?v=0.6.1';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.6.1';
-import { buzz, HAPTIC } from './feedback.js?v=0.6.1';
-import { sfx } from './audio.js?v=0.6.1';
-import { clamp, rectsOverlap } from './util.js?v=0.6.1';
-import { Gore, FLESH, METAL, ROCK, GLASS, HELMET } from './gore.js?v=0.6.1';
-import { BLOOD } from './config.js?v=0.6.1';
-import { startBossMusic, stopMusic } from './music.js?v=0.6.1';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.6.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.7.0';
+import { SPRITES } from './sprites.js?v=0.7.0';
+import { ENEMY_TYPES } from './enemies.js?v=0.7.0';
+import { LEVELS, LevelRunner } from './levels.js?v=0.7.0';
+import { Background } from './background.js?v=0.7.0';
+import { Weapons, drawCapsule, pickupInfo } from './weapons.js?v=0.7.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.7.0';
+import { buzz, HAPTIC } from './feedback.js?v=0.7.0';
+import { sfx } from './audio.js?v=0.7.0';
+import { clamp, rectsOverlap } from './util.js?v=0.7.0';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.7.0';
+import { Blasts } from './blasts.js?v=0.7.0';
+import { startBossMusic, stopMusic } from './music.js?v=0.7.0';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.7.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
 const BLOCK_COLORS = [PAL.grey, PAL.cream, PAL.bluePale];
+const ROCK_SPECIALS = ['bomb', 'rockets', 'laser'];
+// A broken-off piece of the player's wing, for the death explosion.
+const WING = { rows: ['aab', 'abbc', '.bcc'], colors: { a: PAL.bluePale, b: PAL.blue, c: PAL.amberSoft } };
 const LIFE_BONUS = 500;
 const SMART_POD = { color: PAL.cream, light: PAL.amberLight }; // light on a smart supply pod
 
@@ -37,6 +40,7 @@ export class Game {
     this.weapons = new Weapons(this);
     this.powerups = new PowerUps(this);
     this.gore = new Gore(this.rand);
+    this.blasts = new Blasts(this.rand);
     this.pickupInfo = (kind) =>
       kind === 'smart' ? SMART_POD : POWERUPS[kind] || pickupInfo(kind);
     this.reset();
@@ -85,6 +89,7 @@ export class Game {
     this.title = null;
     this.quip = '';
     this.gore.reset();
+    this.blasts.reset();
     stopMusic(0.3);
     this.bg = new Background(this.rand, this.level.background);
     this.weapons.reset();
@@ -137,14 +142,19 @@ export class Game {
   // When you're hurt (2 health blocks or fewer), drops get more likely and
   // lean towards Repair. At full health they stay as they are.
   maybeDrop(e) {
-    if (e.byBoss) return;
+    if (e.byBoss || e.T.noDrop) return;
     const hurt = this.health <= 2;
     let chance = e.T.dropChance || 0;
-    if (hurt) chance = chance * 2.5 + 0.06;
-    if (chance && this.rand() < chance) {
-      const kind = hurt && this.rand() < 0.6 ? 'repair' : randomPowerup(this.rand);
-      this.spawnPickup(kind, e.x + e.w / 2 - 4, e.y + e.h / 2 - 4);
-    }
+    if (hurt) chance = e.T.hurtDropChance ?? chance * 2.5 + 0.06;
+    if (!chance || this.rand() >= chance) return;
+    let kind;
+    if (hurt && this.rand() < 0.6) kind = 'repair';
+    else if (e.T.rockLoot && this.rand() < 0.3) {
+      // Special weapon ammo: tops up whatever you carry, so a rock never
+      // swaps away the weapon you're saving.
+      kind = this.weapons.kind || ROCK_SPECIALS[Math.floor(this.rand() * ROCK_SPECIALS.length)];
+    } else kind = randomPowerup(this.rand);
+    this.spawnPickup(kind, e.x + e.w / 2 - 4, e.y + e.h / 2 - 4);
   }
 
   // What a smart supply pod gives you: whatever you need most right now.
@@ -237,7 +247,7 @@ export class Game {
     }
     e.hp -= amount;
     if (e.T.onHit) e.T.onHit(e, this, hx, hy, amount);
-    else if (e.T.organic) this.gore.blood(hx, hy, 4, 50, 0, 1.4);
+    else if (e.T.organic) this.gore.blood(hx, hy, 2, 45, 0, 1.2, false);
     // Flash pale when hit, but not on every tick of a laser, or the enemy
     // would turn into a solid white shape.
     if (!(e.flashCd > 0)) {
@@ -277,6 +287,7 @@ export class Game {
     this.darken += clamp(this.darkenTarget - this.darken, -dt * 0.8, dt * 0.8);
     if (this.title && (this.title.t += dt) > 3.6) this.title = null;
     this.gore.update(dt);
+    this.blasts.update(dt);
 
     if (this.state === 'gameover') {
       this.stateTimer += dt;
@@ -483,15 +494,15 @@ export class Game {
     const cx = e.x + e.w / 2;
     const cy = e.y + e.h / 2;
     const gore = e.T.gore || {};
-    // Bloody kills get fewer sparks so the blood reads clearly.
-    const sparks = Math.round((10 + size * 14) * (gore.blood && BLOOD ? 0.4 : 1));
-    this.burst(cx, cy, sparks, 60 + size * 20);
+    // Rocks crumble into dust; everything else explodes.
+    if (gore.rock) this.blasts.dust(cx, cy, size);
+    else this.blasts.blast(cx, cy, size);
+    this.burst(cx, cy, Math.round(6 + size * 10), 60 + size * 20);
     sfx.explode(size);
     if (gore.blood) {
-      this.gore.blood(cx, cy, gore.blood, 75);
+      // Only living creatures bleed (lightly; no stains left behind).
+      this.gore.blood(cx, cy, gore.blood, 70, null, Math.PI, false);
       this.gore.chunks(cx, cy, gore.flesh || 0, FLESH, 70);
-      if (gore.splat) this.gore.splat(cx, cy, gore.splat);
-      sfx.splat();
     }
     if (gore.metal) this.gore.chunks(cx, cy, gore.metal, METAL, 80, false);
     if (gore.rock) this.gore.chunks(cx, cy, gore.rock, ROCK, 60, false);
@@ -573,7 +584,6 @@ export class Game {
     this.shake = Math.max(this.shake, 2 + amount);
     this.burst(cx, cy, 10, 70);
     this.gore.chunks(cx, cy, 4, GLASS, 60, false);
-    this.gore.blood(cx, cy, 4 + amount * 3, 60);
     buzz(HAPTIC.hurt);
     sfx.hurt();
     if (this.health === 1) {
@@ -587,14 +597,12 @@ export class Game {
     const cx = p.x + p.w / 2;
     const cy = p.y + p.h / 2;
     this.burst(cx, cy, 36, 95);
-    // Gritty: cockpit glass, blood, and the pilot's helmet tumbling away.
+    // A big explosion: cockpit glass and wreckage spinning away.
+    this.blasts.blast(cx, cy, 1.6);
     this.gore.chunks(cx, cy, 10, GLASS, 90, false);
-    this.gore.chunks(cx, cy, 8, METAL, 80, false);
-    this.gore.blood(cx, cy, 40, 95);
-    this.gore.chunks(cx, cy, 6, FLESH, 70);
-    this.gore.splat(cx, cy, 2);
-    this.gore.piece(cx, cy, HELMET.rows, HELMET.colors, -30 + this.rand() * 20, -40, 5);
-    this.gore.smear(cx + 10, cy, 0.8);
+    this.gore.chunks(cx, cy, 14, METAL, 90, false);
+    this.gore.piece(cx, cy, WING.rows, WING.colors, -30 + this.rand() * 20, -40, 5);
+    this.gore.piece(cx, cy, WING.rows, WING.colors, 10 + this.rand() * 20, 35, -4);
     const byBoss = source && (source.byBoss || (source.T && source.T.boss));
     const lines = byBoss && this.boss ? this.boss.T.killLines : DEATH_LINES;
     this.quip = lines[Math.floor(this.rand() * lines.length)];
@@ -725,6 +733,7 @@ export class Game {
       ctx.fillRect(x + 3, y, 4, 2);
     }
 
+    this.blasts.draw(ctx, snap);
     for (const q of this.particles) {
       ctx.globalAlpha = Math.min(1, (q.life / q.max) * 1.6);
       ctx.fillStyle = q.color;

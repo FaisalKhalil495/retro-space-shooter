@@ -71,8 +71,8 @@ a real console controller, so you can play by feel while watching the game.
   10 s), Repair (+2 blocks), Spread Shot (3-way fire, 12 s), Rapid Fire
   (double rate, 12 s), Wingman drone (fires with you, 15 s). They stack;
   re-collecting resets the timer. Sources: cargo pods in the level, random
-  drops from gunships (30%), seekers, big rocks and weavers (small chance),
-  and boss supply pods.
+  drops from gunships (30%), seekers, rocks (see v0.7.0) and weavers (small
+  chance), and boss supply pods.
 - **Smart supplies** (owner request, v0.4.1): during a boss fight a supply
   pod arrives every 20 s (first one 3 s in). What's inside is decided when
   it's shot open: health <= 2 → Repair; no shield → Shield; not full health
@@ -104,6 +104,16 @@ a real console controller, so you can play by feel while watching the game.
 - **More gunships** (owner request, v0.6.1): gunships roughly doubled in
   level 1 (14 → 28), including groups of 3. Groups hover in separate lanes
   (above, level with and below the player) and fire in turn, not all at once.
+- **v0.7.0 changes** (owner request):
+  - **Pods only shoot out of their noses.** Pods ambushing from behind never
+    fire (they only ram); pods from the front fire only while the player is
+    still ahead of their gun; dive-bombers from above/below can fire.
+  - **Rocks carry real loot** (no glints, nothing from v0.5.0): big rocks
+    25% (40% when health <= 2), small rocks 6% (12% when hurt). About 30% of
+    rock drops are special weapon ammo, which tops up the special you carry
+    (random one if you carry none); the rest are power-ups. When hurt, 60%
+    of drops are Repair. Fragments, pebbles and Rockjaw's rocks never drop.
+    About 15 items per level if every rock is shot (was about 2).
 - Level 1 enemies (Hard): some pods shoot, weavers spit acid, gunners fire 4
   faster shots, seekers steer harder; ambushes from behind, dive-bombers from
   top/bottom and pincers, each flagged by a red "!" warning marker first.
@@ -141,11 +151,16 @@ a real console controller, so you can play by feel while watching the game.
   on the high-score table.
 
 ### Content rating: adults (18+)
-- **Blood and gore:** enemies have alien pilots / are living creatures; they
-  bleed when hit and burst into blood and chunks when killed; blood splatters
-  drift with the scroll; big hits smear blood on the "screen glass". Bosses
-  bleed, lose teeth/eyes, and die in long, gory sequences. The player's death
-  is gritty too (glass, blood, tumbling helmet).
+- **Explosions, not blood** (owner request, v0.7.0 — blood everywhere was
+  distracting): machines (pods, gunships, seekers, snipers, spinners, cargo
+  pods) explode in pixel-art blasts — flash, fireball cooling from cream to
+  amber to red, smoke, sparks; bigger ones add a shockwave ring and metal
+  wreckage. Rocks crumble into stone dust. The player's ship sparks when hit
+  and explodes with glass and wreckage on death (no blood).
+- **Blood only for living creatures:** weavers bleed lightly (a small spurt
+  when hit, a short puff on death, no stains). Rockjaw keeps the full gore:
+  bleeds, loses teeth and an eye, long gory death. Future living bosses may
+  bleed too; ask before adding blood to anything else.
 - Blood uses deep, dark crimsons that fit the muted palette (no bright
   cartoon red, no neon).
 - **Swearing is allowed** in on-screen text: boss taunts, death / game-over
@@ -246,7 +261,9 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - `js/audio.js` — all sound effects, synthesised in code (incl. boss roar,
   growl, jaw snap, inhale, splat).
 - `js/music.js` — boss music, generated live.
-- `js/gore.js` — blood, chunks, stains, screen-glass smears, boss corpses.
+- `js/gore.js` — blood (creatures only), chunks/debris, stains, screen-glass
+  smears, boss corpses.
+- `js/blasts.js` — explosions: fireballs, shockwave rings, smoke, rock dust.
 - `js/util.js` — small maths helpers.
 - `tools/set-version.sh X.Y.Z` — bump the version everywhere (do this for every
   release so phones fetch fresh files).
