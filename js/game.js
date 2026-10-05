@@ -1,22 +1,24 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.11.0';
-import { SPRITES } from './sprites.js?v=0.11.0';
-import { ENEMY_TYPES } from './enemies.js?v=0.11.0';
-import { LEVELS, LevelRunner } from './levels.js?v=0.11.0';
-import { Background } from './background.js?v=0.11.0';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.11.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.11.0';
-import { buzz, HAPTIC } from './feedback.js?v=0.11.0';
-import { sfx } from './audio.js?v=0.11.0';
-import { clamp, rectsOverlap } from './util.js?v=0.11.0';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.11.0';
-import { Blasts } from './blasts.js?v=0.11.0';
-import { Speech } from './speech.js?v=0.11.0';
-import { startBossMusic, stopMusic } from './music.js?v=0.11.0';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.11.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.12.0';
+import { SPRITES } from './sprites.js?v=0.12.0';
+import { ENEMY_TYPES } from './enemies.js?v=0.12.0';
+import { LEVELS, LevelRunner } from './levels.js?v=0.12.0';
+import { Background } from './background.js?v=0.12.0';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.12.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.12.0';
+import { buzz, HAPTIC } from './feedback.js?v=0.12.0';
+import { sfx } from './audio.js?v=0.12.0';
+import { clamp, rectsOverlap } from './util.js?v=0.12.0';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.12.0';
+import { Blasts } from './blasts.js?v=0.12.0';
+import { Speech } from './speech.js?v=0.12.0';
+import { Terrain } from './terrain.js?v=0.12.0';
+import { startBossMusic, stopMusic } from './music.js?v=0.12.0';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.12.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
 const BLOCK_COLORS = [PAL.grey, PAL.cream, PAL.bluePale];
+const DUST_COLORS = ['#7a4632', '#9a6a4a', '#c4a68e'];
 // A broken-off piece of the player's wing, for the death explosion.
 const WING = { rows: ['aab', 'abbc', '.bcc'], colors: { a: PAL.bluePale, b: PAL.blue, c: PAL.amberSoft } };
 const LIFE_BONUS = 500;
@@ -106,6 +108,7 @@ export class Game {
     this.speech.reset();
     stopMusic(0.3);
     this.bg = new Background(this.rand, this.level.background);
+    this.terrain = new Terrain(this.level.floor || 0);
     this.weapons.reset();
     this.powerups.reset();
     if (carry && carry.weapon) {
@@ -146,6 +149,7 @@ export class Game {
 
   // magnet: the pickup floats towards the ship so it can't be missed.
   spawnPickup(kind, x, y, magnet = false) {
+    y = Math.min(y, this.terrain.floorY - 14); // never inside the ground
     if (kind) this.pickups.push({ kind, x, y, baseY: y, t: 0, magnet });
   }
 
@@ -282,6 +286,7 @@ export class Game {
 
   // kind: 'orb' (glowing enemy bullet), 'gravel' (a stone) or 'fast' (sniper round).
   fireShot(x, y, angle, speed, kind = 'orb', byBoss = false) {
+    speed *= this.level.shotSpeed || 1; // later levels shoot a little faster
     this.enemyShots.push({
       x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, t: 0, kind, byBoss,
     });
@@ -484,7 +489,7 @@ export class Game {
     }
     p.moveX = dx;
     p.x = clamp(p.x + dx * PLAYER.speed * dt, 2, VIEW_W - p.w - 2);
-    p.y = clamp(p.y + dy * PLAYER.speed * dt, HUD_H + 1, VIEW_H - p.h - 1);
+    p.y = clamp(p.y + dy * PLAYER.speed * dt, HUD_H + 1, this.terrain.floorY - p.h - 1);
 
     p.cooldown -= dt;
     if (input.fire && p.cooldown <= 0) {
@@ -500,9 +505,15 @@ export class Game {
   }
 
   moveWorld(dt) {
+    this.terrain.update(dt);
     for (const b of this.bullets) {
       b.x += PLAYER.bulletSpeed * dt;
       b.y += (b.vy || 0) * dt;
+      // Shots stop against solid rock with a puff of dust.
+      if (this.terrain.solid(b.x, b.y, 7, 2)) {
+        b.dead = true;
+        this.burst(b.x + 6, b.y + 1, 3, 30, DUST_COLORS);
+      }
     }
     this.bullets = this.bullets.filter((b) => b.x < VIEW_W + 8 && b.y > -4 && b.y < VIEW_H + 4 && !b.dead);
 
@@ -520,6 +531,10 @@ export class Game {
       s.t += dt;
       s.x += s.vx * dt;
       s.y += s.vy * dt;
+      if (this.terrain.solid(s.x - 1, s.y - 1, 2, 2)) {
+        s.dead = true;
+        this.burst(s.x, s.y, 2, 25, DUST_COLORS);
+      }
     }
     this.enemyShots = this.enemyShots.filter(
       (s) => !s.dead && s.x > -6 && s.x < VIEW_W + 6 && s.y > -6 && s.y < VIEW_H + 6,
@@ -600,6 +615,18 @@ export class Game {
     const hy = p.y + 3;
     const hw = p.w - 9;
     const hh = p.h - 6;
+    // Crashing into a rock spire: 2 blocks, and you're knocked clear of it
+    // (back and up, so a spire can never pin you against the left edge).
+    const spire = this.terrain.hits(hx, hy, hw, hh);
+    if (spire) {
+      const onTop = p.y + p.h / 2 < spire.top + 4;
+      if (!onTop) p.x = Math.max(2, spire.x - p.w - 4); // hit its side: bounce back
+      if (onTop || this.terrain.hits(p.x + 5, hy, hw, hh)) {
+        p.y = Math.max(HUD_H + 1, spire.top - p.h - 2); // hit its top, or pinned: up and over
+      }
+      this.hurtPlayer(2, spire);
+      return;
+    }
     for (const s of this.enemyShots) {
       if (rectsOverlap(hx, hy, hw, hh, s.x - 1.5, s.y - 1.5, 3, 3)) {
         s.dead = true;
@@ -812,6 +839,7 @@ export class Game {
     ctx.save();
     if (this.shake > 0) ctx.translate(snap(this.shakeX || 0), snap(this.shakeY || 0));
     this.bg.draw(ctx, snap);
+    this.terrain.draw(ctx, snap);
     this.gore.drawBack(ctx, snap);
     if (this.darken > 0.01) {
       ctx.fillStyle = `rgba(5, 6, 12, ${this.darken})`;
@@ -846,8 +874,10 @@ export class Game {
       } else ctx.drawImage(spr, snap(e.x), snap(e.y));
       if (e.charge && Math.floor(this.time * 20) % 2 === 0) {
         // Blinking muzzle: a warning that this enemy is about to fire.
+        // (An enemy whose gun isn't at its front-middle says where it is.)
+        const m = e.T.muzzle ? e.T.muzzle(e) : { x: e.flip ? e.x + e.w : e.x - 2, y: e.y + e.h / 2 - 1 };
         ctx.fillStyle = PAL.amberLight;
-        ctx.fillRect(snap(e.flip ? e.x + e.w : e.x - 2), snap(e.y + e.h / 2 - 1), 2, 2);
+        ctx.fillRect(snap(m.x), snap(m.y), 2, 2);
       }
     }
 

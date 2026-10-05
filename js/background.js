@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.11.0';
-import { FAR_ROCKS } from './rockart.js?v=0.11.0';
-import { fillDisc } from './util.js?v=0.11.0';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.12.0';
+import { FAR_ROCKS } from './rockart.js?v=0.12.0';
+import { fillDisc } from './util.js?v=0.12.0';
 
 // Deep-space backdrop: a slow distant amber sun, a band of dust, distant
 // asteroids and three layers of stars moving at different speeds, which
@@ -16,14 +16,14 @@ const LAYERS = [
 // wavy edge repeats exactly every screen width, so the loop is seamless.
 // It's built once and shared, not rebuilt on every restart.
 const DUST_H = 26;
-let dustCanvas = null;
-function makeDust() {
-  if (dustCanvas) return dustCanvas;
+const dustCanvases = new Map();
+function makeDust(color = '#19203a') {
+  if (dustCanvases.has(color)) return dustCanvases.get(color);
   const cv = document.createElement('canvas');
   cv.width = VIEW_W * 2;
   cv.height = DUST_H;
   const c = cv.getContext('2d');
-  c.fillStyle = '#19203a';
+  c.fillStyle = color;
   for (let y = 0; y < DUST_H; y++) {
     const edge = Math.min(y, DUST_H - 1 - y); // 0 at the edges, larger inside
     for (let x = 0; x < cv.width; x++) {
@@ -33,7 +33,51 @@ function makeDust() {
       if (solid || dither) c.fillRect(x, y, 1, 1);
     }
   }
-  dustCanvas = cv;
+  dustCanvases.set(color, cv);
+  return cv;
+}
+
+// ---- Rust Moon canyon scenery ----
+function seeded(seed) {
+  let s = seed >>> 0;
+  return () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+
+// A long strip of skyline (mesas or canyon walls) that repeats seamlessly
+// every `w` pixels. `flat` makes flat-topped mesas; strata adds rock layers.
+const ridgeCache = new Map();
+function makeRidge(key, w, h, seed, { flat, color, strata, rough }) {
+  if (ridgeCache.has(key)) return ridgeCache.get(key);
+  const r = seeded(seed);
+  const tops = new Array(w);
+  let x = 0;
+  while (x < w) {
+    // Runs of level ground (mesa tops) or rough slopes.
+    const run = flat ? 14 + Math.floor(r() * 30) : 3 + Math.floor(r() * 6);
+    const height = Math.floor(h * (0.25 + r() * 0.7));
+    for (let i = 0; i < run && x < w; i++, x++) tops[x] = height + (flat ? 0 : Math.floor((r() - 0.5) * rough));
+  }
+  // Ease the join so the strip loops without a seam.
+  for (let i = 0; i < 6; i++) tops[w - 1 - i] = Math.round(tops[w - 1 - i] * (i / 6) + tops[0] * (1 - i / 6));
+  const cv = document.createElement('canvas');
+  cv.width = w * 2;
+  cv.height = h;
+  const c = cv.getContext('2d');
+  for (let copy = 0; copy < 2; copy++) {
+    for (let xi = 0; xi < w; xi++) {
+      const top = h - tops[xi];
+      c.fillStyle = color;
+      c.fillRect(copy * w + xi, top, 1, h - top);
+      if (strata) {
+        c.fillStyle = strata;
+        for (let y = top + 3; y < h; y += 5) if ((xi + y) % 7 !== 0) c.fillRect(copy * w + xi, y, 1, 1);
+      }
+    }
+  }
+  ridgeCache.set(key, cv);
   return cv;
 }
 
@@ -57,7 +101,16 @@ export class Background {
       for (let i = 0; i < 9; i++) this.farRocks.push(this.newFarRock(rand() * VIEW_W));
     }
     this.sunX = VIEW_W * 0.8;
-    this.dust = this.theme.dust ? makeDust() : null;
+    this.dust = this.theme.dust ? makeDust(this.theme.dustColor) : null;
+    if (this.theme.canyon) {
+      // Far mesas, nearer canyon walls, and the odd dust devil.
+      this.mesas = makeRidge('mesas', VIEW_W, 34, 7, { flat: true, color: '#2a1a1e' });
+      this.walls = makeRidge('walls', VIEW_W, 44, 19, { flat: false, color: '#3a2322', strata: '#412725', rough: 6 });
+      this.mesaX = 0;
+      this.wallX = 0;
+      this.devils = [];
+      this.devilT = 2;
+    }
     this.dustX = 0;
     this.t = 0;
   }
@@ -84,11 +137,38 @@ export class Background {
     this.sunX -= 0.6 * dt;
     if (this.sunX < -40) this.sunX = VIEW_W + 40;
     this.dustX = (this.dustX + 3 * dt) % VIEW_W;
+    if (this.theme.canyon) {
+      this.mesaX = (this.mesaX + 3 * dt) % VIEW_W;
+      this.wallX = (this.wallX + 9 * dt) % VIEW_W;
+      // Dust devils: little spinning columns of dust drifting along the
+      // canyon floor. Pure scenery — they can't hurt you.
+      this.devilT -= dt;
+      if (this.devilT <= 0) {
+        this.devilT = 5 + this.rand() * 6;
+        this.devils.push({ x: VIEW_W + 6, h: 14 + this.rand() * 12, t: 0 });
+      }
+      for (const d of this.devils) {
+        d.x -= 14 * dt;
+        d.t += dt;
+      }
+      this.devils = this.devils.filter((d) => d.x > -12);
+    }
   }
 
   draw(ctx, snap) {
     ctx.fillStyle = this.theme.space;
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+
+    if (this.theme.canyon) {
+      // A dusty sky that lightens towards the horizon, in dithered bands.
+      const bands = ['#24161a', '#2c1a1c', '#35201f', '#3e2622'];
+      for (let i = 1; i < bands.length; i++) {
+        const y0 = 24 + i * 16;
+        ctx.fillStyle = bands[i];
+        ctx.fillRect(0, y0 + 3, VIEW_W, VIEW_H - y0 - 3);
+        for (let x = 0; x < VIEW_W; x += 2) ctx.fillRect(x + (i % 2), y0, 1, 1), ctx.fillRect(x + ((i + 1) % 2), y0 + 2, 1, 1);
+      }
+    }
 
     if (this.dust) ctx.drawImage(this.dust, -snap(this.dustX), Math.round(VIEW_H * 0.6));
 
@@ -96,13 +176,11 @@ export class Background {
       // Distant sun drawn as flat pixel rings (no glow), kept dim so it never
       // hides enemies or shots.
       const sx = snap(this.sunX);
-      const sy = 30;
-      const rings = [
-        [15, '#262638'],
-        [12, '#4a3530'],
-        [9, PAL.amberDark],
-        [6, '#a87545'],
-      ];
+      const low = this.theme.canyon; // Rust Moon: a pale sun low over the mesas
+      const sy = low ? 74 : 30;
+      const rings = low
+        ? [[13, '#3e2824'], [10, '#5e4234'], [7, '#8c6a4e'], [4, '#c4a07a']]
+        : [[15, '#262638'], [12, '#4a3530'], [9, PAL.amberDark], [6, '#a87545']];
       for (const [r, c] of rings) {
         ctx.fillStyle = c;
         fillDisc(ctx, sx, sy, r);
@@ -110,11 +188,29 @@ export class Background {
     }
 
     for (const s of this.stars) {
+      if (this.theme.canyon && s.y > 56) continue; // only a few stars high in the dusty sky
       const bright = s.layer.speed > 20 && Math.sin(this.t * 3 + s.twinkle) > 0.6;
       ctx.fillStyle = bright ? PAL.cream : s.layer.color;
       ctx.fillRect(snap(s.x), snap(s.y), s.layer.size, s.layer.size);
     }
 
     for (const r of this.farRocks) ctx.drawImage(r.img, snap(r.x), snap(r.y));
+
+    if (this.theme.canyon) {
+      const ground = VIEW_H - (this.theme.floorH || 0);
+      ctx.drawImage(this.mesas, -snap(this.mesaX), ground - 34 - 18);
+      ctx.drawImage(this.walls, -snap(this.wallX), ground - 44 + 2);
+      ctx.fillStyle = '#6b4a3a';
+      for (const d of this.devils) {
+        for (let i = 0; i < d.h; i += 2) {
+          const k = i / d.h; // wider at the top
+          const half = 1 + k * 4 + Math.sin(d.t * 9 + i) * 1.2;
+          const y = ground - 1 - i;
+          ctx.fillRect(snap(d.x - half), y, 1, 1);
+          ctx.fillRect(snap(d.x + half), y, 1, 1);
+          if ((i + Math.floor(d.t * 12)) % 4 === 0) ctx.fillRect(snap(d.x + Math.sin(d.t * 7 + i) * half), y - 1, 1, 1);
+        }
+      }
+    }
   }
 }

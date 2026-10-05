@@ -299,6 +299,12 @@ export const sfx = {
     noise({ dur: 0.5, vol: 0.5, f0: 4000, f1: 300, q: 0.7, type: 'highpass' });
     noise({ dur: 0.7, vol: 0.4, f0: 600, f1: 80 });
   },
+  mortar() {
+    // Hollow "thoomp" of a mortar shell leaving its tube.
+    if (!ready()) return;
+    tone({ type: 'sine', f0: 220, f1: 70, dur: 0.16, vol: 0.2 });
+    noise({ dur: 0.12, vol: 0.12, f0: 900, f1: 200 });
+  },
   levelClear() {
     if (!ready()) return;
     const notes = [523, 659, 784, 659, 784, 1047];

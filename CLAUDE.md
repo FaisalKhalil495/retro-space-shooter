@@ -62,6 +62,31 @@ a real console controller, so you can play by feel while watching the game.
 - Stage 5 note: with bosses this hard, suggest a boss checkpoint when the
   continue system is built (owner to decide then).
 - Game over currently restarts the level; the continue system arrives in Stage 5.
+- **Rust Moon (level 2), step 3B-1, v0.12.0** (no boss yet; the Siege
+  Crawler is 3B-2): about 3 min, three parts with no calm breaks, each new
+  enemy shown alone first (turret 0:08, skimmers 0:22, mortar 0:34); the
+  same cargo-pod schedule as level 1; ends with an `'end'` event at 3:05.
+  Enemy shots 10% faster (`shotSpeed: 1.1`).
+  - **Ground**: the bottom 14 px is a canyon floor you can't fly into (it
+    doesn't hurt). **Rock spires** stand on it: crashing costs 2 blocks and
+    knocks you clear; shots stop on them with a dust puff; indestructible.
+    Pods diving from above crash into the ground; snipers leave upwards.
+  - **Cliff turret** (on spires or the floor): shut and armoured 1.6 s,
+    hatch blinks 0.4 s, opens and fires 2 aimed shots, shuts. Only hurt
+    while open (specials too). 4 HP, 50 pts, 15% drop. Never fires at a
+    ship that's behind it.
+  - **Dust skimmer**: races in along the floor (hopping spires), swoops to
+    your height, blinks 0.3 s, fires a 3-shot spread, climbs away. Only
+    fires if you're in front of it. 2 HP, 40 pts, 10% drop.
+  - **Mortar crawler**: walks the floor, lobs a shell every 2.5 s. A red
+    ring with a cross marks where it bursts (where you were at launch)
+    0.9 s ahead; the burst costs 1 if you're on it and throws 4 fragments
+    (1 each). Shells can be shot down. 3 HP, 50 pts, 15% drop.
+  - **Rust boulders**: bounce and roll along the floor (some tumble down
+    from high up) and bound over spires. Same rules as level-1 rocks: big
+    ones 35% loot (no tell), burst into 3 shards; small ones none.
+  - About 15 turrets, 20 skimmers, 9 mortars, 21 gunships, 10 snipers,
+    6 spinners and 30 big boulders.
 - **Moving between levels** (Stage 3A, v0.11.0): after the level-clear
   screen, "TAP TO CONTINUE" flies you into the next level with your **score,
   lives and special weapon**; health refills to 5 blocks; timed power-ups
@@ -293,7 +318,7 @@ Approved by the owner. Keep the status column up to date.
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
-| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon + Siege Crawler → 3C Frostring + Glacier Warden → 3D Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0) |
+| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B-1 done (v0.12.0) |
 | 4 | **Levels 5–8** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |
@@ -314,7 +339,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - `js/game.js` — game state: player, shots, enemies, pickups, collisions,
   damage/armour, lives, score, HUD, banners, level clear.
 - `js/enemies.js` — enemy types (incl. asteroids, seekers, snipers, spinners,
-  cargo pods) and how they move/shoot.
+  cargo pods; Rust Moon's cliff turrets, dust skimmers, mortar crawlers and
+  shells, rust boulders) and how they move/shoot.
 - `js/bosses.js` — boss behaviour (Rockjaw so far: 3 phases, 8 attacks,
   entrance, transitions, gory death).
 - `js/weapons.js` — special weapons (bombs, rockets, laser), pickups, corner icon.
@@ -323,7 +349,9 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - `js/waves.js` — enemy formations. `js/levels.js` — level timelines + runner.
   A level ends with a `'boss'` event or an `'end'` event (no boss: cleared
   once every enemy, including ones still due to arrive, has gone; 8 s max).
-- `js/background.js` — starfield, sun, dust band, distant rocks (per-level theme).
+- `js/background.js` — starfield, sun, dust band, distant rocks, Rust Moon
+  canyon (sky bands, mesas, walls, dust devils) (per-level theme).
+- `js/terrain.js` — solid ground: floor strip, rock spires, `solid()` for shots.
 - `js/sprites.js` — pixel art as text grids. `js/rockart.js` — asteroids and
   Rockjaw drawn by code. `js/font.js` — 5×5 pixel font.
 - `js/audio.js` — all sound effects, synthesised in code (incl. boss roar,
@@ -338,8 +366,9 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   release so phones fetch fresh files).
 - `tools/smoke-test.mjs` — simulated-phone test (Android + iPhone sizes):
   `PLAYWRIGHT_PATH=/opt/node22/lib/node_modules/playwright node tools/smoke-test.mjs <screenshot-dir>`
-- `tools/level-test.mjs` — invincible autopilot plays a whole level at high
-  speed; checks pickups, specials, boss and level clear (same command style).
+- `tools/level-test.mjs` — invincible autopilot plays level 1 then level 2 at
+  high speed; checks pickups, specials, boss, new enemies and level clears
+  (same command style).
   It freezes the live game loop (`window.__ember.frozen = true`) and drives
   the game itself, so results are repeatable.
 - `tools/serve.mjs` — the tests' tiny web server (this computer only; refuses

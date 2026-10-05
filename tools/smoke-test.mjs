@@ -458,7 +458,7 @@ for (const phone of PHONES) {
 
 // Stage 3A: level flow. "?level=2" starts on level 2; clearing level 1
 // carries score, lives and the special into level 2 with full health; the
-// level-2 placeholder clears itself; after the last level you're back on
+// level 2 (no boss yet) clears itself; after the last level you're back on
 // level 1 with a fresh run.
 {
   const context = await browser.newContext({ viewport: { width: 915, height: 412 }, isMobile: true, hasTouch: true });
@@ -475,14 +475,14 @@ for (const phone of PHONES) {
     const startedOn = g.level.number;
     const idle = { dx: 0, dy: 0, fire: true, special: false, tap: false };
     const tap = { ...idle, tap: true };
-    // Play the level-2 placeholder (invincible) until it clears itself.
+    // Play level 2 (invincible) until it clears itself.
     let t = 0;
-    while (g.state !== 'clear' && t < 120) {
+    while (g.state !== 'clear' && t < 220) {
       g.player.invuln = 1;
       g.update(1 / 120, idle);
       t += 1 / 120;
     }
-    const placeholderCleared = g.state === 'clear';
+    const level2Cleared = g.state === 'clear';
     // Tap on: no level 3 yet, so back to level 1, fresh.
     g.stateTimer = 4;
     g.update(1 / 120, tap);
@@ -510,9 +510,9 @@ for (const phone of PHONES) {
       t2 += 1 / 120;
     }
     const clearAfterRespawn = g.state === 'clear';
-    // Starting past a boss-less level's end (?level=2&start=30) still ends it.
+    // Starting past a boss-less level's end (?level=2&start=190) still ends it.
     g.levelIndex = 1;
-    g.startAt = 30;
+    g.startAt = 190;
     g.reset();
     let t3 = 0;
     while (g.state !== 'clear' && t3 < 15) {
@@ -524,11 +524,11 @@ for (const phone of PHONES) {
     g.startAt = 0;
     return {
       clearAfterRespawn, skippedEndStillEnds,
-      startedOn, placeholderCleared, afterLast,
+      startedOn, level2Cleared, afterLast,
       next,
     };
   });
-  const flowOk = flow.startedOn === 2 && flow.placeholderCleared && flow.clearAfterRespawn && flow.skippedEndStillEnds &&
+  const flowOk = flow.startedOn === 2 && flow.level2Cleared && flow.clearAfterRespawn && flow.skippedEndStillEnds &&
     flow.afterLast.level === 1 && flow.afterLast.score === 0 && flow.afterLast.lives === 3 &&
     flow.next.level === 2 && flow.next.score === flow.next.expected && flow.next.lives === 2 &&
     flow.next.health === 5 && flow.next.weapon === 'laser' && flow.next.ammo === 2 && flow.next.state === 'playing' &&
@@ -537,6 +537,136 @@ for (const phone of PHONES) {
   if (!flowOk) failures++;
   await context.close();
 }
+
+
+// Stage 3B-1: Rust Moon's ground, spires and new enemies follow the rules.
+{
+  const context = await browser.newContext({ viewport: { width: 915, height: 412 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  const errs = [];
+  page.on('pageerror', (e) => errs.push(String(e)));
+  await page.goto(base + '?level=2');
+  await page.waitForTimeout(300);
+  await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  await page.waitForTimeout(300);
+  const r = await page.evaluate(() => {
+    window.__ember.frozen = true;
+    const g = window.__ember.game;
+    const idle = { dx: 0, dy: 0, fire: false, special: false, tap: false };
+    const step = (sec, keepSafe = true) => {
+      for (let i = 0; i < sec * 120; i++) {
+        if (keepSafe) g.player.invuln = 1;
+        g.update(1 / 120, idle);
+      }
+    };
+    // A quiet level 2 with nothing scheduled.
+    const quiet = () => {
+      g.reset();
+      g.runner.next = g.level.events.length;
+      g.banner = null;
+      g.player.entering = 0;
+      g.player.x = 20;
+      g.player.y = 40;
+    };
+    const res = {};
+
+    // Cliff turret: shots spark off while it's shut; only hurt while open.
+    quiet();
+    const tur = g.spawnEnemy('cliffTurret', 150, 0);
+    step(0.1);
+    g.damage(tur, 1);
+    res.turretShutHp = tur.hp; // still 4
+    let opened = false;
+    for (let i = 0; i < 400 && !opened; i++) {
+      step(1 / 120);
+      opened = tur.open;
+    }
+    g.damage(tur, 1);
+    res.turretOpenHp = tur.hp; // 3
+    // ...and it never fires backwards at a ship that's behind it.
+    quiet();
+    const tur2 = g.spawnEnemy('cliffTurret', 60, 0);
+    g.player.x = 120;
+    step(4);
+    res.turretShotsWhenBehind = g.enemyShots.length;
+    res.turretOpenedWhenBehind = tur2.open || tur2.mode !== 'shut';
+
+    // Mortar: the red ring (the shell's target) is up for ~0.9 s before the
+    // burst, sits where you were at launch, and the burst throws 4 fragments.
+    quiet();
+    g.spawnEnemy('mortarCrawler', 150, 0);
+    let shell = null;
+    let launchAt = null;
+    for (let i = 0; i < 600 && !shell; i++) {
+      step(1 / 120);
+      shell = g.enemies.find((e) => e.type === 'mortarShell');
+    }
+    const p = g.player;
+    res.ringOnYou = !!shell && Math.abs(shell.tx - (p.x + p.w / 2)) < 1 && Math.abs(shell.ty - (p.y + p.h / 2)) < 1;
+    launchAt = g.time;
+    g.player.y = 100; // dodge
+    let burstAt = null;
+    for (let i = 0; i < 240 && burstAt === null; i++) {
+      step(1 / 120);
+      if (shell.dead) burstAt = g.time;
+    }
+    res.ringWarning = burstAt === null ? -1 : +(burstAt - launchAt).toFixed(2);
+    res.fragments = g.enemyShots.filter((s) => s.kind === 'gravel').length;
+
+    // Crashing into a spire costs exactly 2 blocks and knocks you clear.
+    quiet();
+    const sp = g.terrain.addSpire(60, 14, 5);
+    sp.x = 60;
+    g.player.x = 52;
+    g.player.y = g.terrain.floorY - 30;
+    g.player.invuln = 0;
+    g.health = 5;
+    g.update(1 / 120, idle);
+    res.spireDamage = 5 - g.health;
+    const q = g.player;
+    res.knockedClear = !g.terrain.hits(q.x + 5, q.y + 3, q.w - 9, q.h - 6);
+
+    // Enemy shots fly 10% faster on Rust Moon.
+    quiet();
+    g.enemyShots = [];
+    g.fireShot(100, 60, 0, 100);
+    res.shotSpeed = +g.enemyShots[0].vx.toFixed(1);
+
+    // Dive-bombers crash into the ground here instead of flying through it.
+    quiet();
+    const diver = g.spawnEnemy('drifter', 100, g.terrain.floorY - 12, { speed: 10, vy: 62 });
+    step(0.5);
+    res.diverCrashed = diver.dead;
+
+    // Big rusty boulders carry loot about 35% of the time; small ones never.
+    quiet();
+    let big = 0;
+    let small = 0;
+    const N = 2000;
+    for (let i = 0; i < N; i++) {
+      g.pickups = [];
+      g.killEnemy(g.spawnEnemy('rockBig', 100, 60, { rust: true, ground: true }));
+      big += g.pickups.length;
+      g.pickups = [];
+      g.killEnemy(g.spawnEnemy('rockSmall', 100, 60, { rust: true, ground: true }));
+      small += g.pickups.length;
+      g.enemies = [];
+      g.enemyShots = [];
+    }
+    res.bigLoot = +(big / N).toFixed(3);
+    res.smallLoot = small;
+    g.reset();
+    return res;
+  });
+  const ok = r.turretShutHp === 4 && r.turretOpenHp === 3 && r.turretShotsWhenBehind === 0 && !r.turretOpenedWhenBehind &&
+    r.ringOnYou && r.ringWarning >= 0.85 && r.ringWarning <= 0.95 && r.fragments === 4 &&
+    r.spireDamage === 2 && r.knockedClear && r.shotSpeed === 110 && r.diverCrashed &&
+    r.bigLoot > 0.31 && r.bigLoot < 0.39 && r.smallLoot === 0 && errs.length === 0;
+  console.log(`${ok ? 'PASS' : 'FAIL'}  Rust Moon rules ${JSON.stringify(r)} ${errs.join(' ')}`);
+  if (!ok) failures++;
+  await context.close();
+}
+
 
 // The test web server must refuse paths outside the game folder.
 const escape = await fetch(base + '..%2f..%2f..%2fetc%2fpasswd');

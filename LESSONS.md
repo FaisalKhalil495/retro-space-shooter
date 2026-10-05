@@ -137,6 +137,8 @@ Last updated: end of Stage 2 (v0.10.3).
 | Speech bubbles distracted mid-fight | Anything that asks to be read must happen when the player isn't busy dodging. Flavour goes in pauses, never on top of the action. |
 | A quick self-review missed bugs a deeper one found (v0.10.4) | Self-review every release at the **deeper** level, not the quick one. |
 | A new check couldn't fail (the test player never dies, so no kill line) | When adding a check, also break the code on purpose and confirm the check fails. |
+| Turrets got stuck at the left edge once their spire scrolled away (3B-1) | Don't make one object follow another that can be removed; give each its own movement and only *read* shared facts (like the spire's height). |
+| Adding a floor nearly changed level 1 (dust puffs and bouncing shards at the screen's bottom edge) | When a new level adds a shared rule, check what it does on the old levels too; guard it so levels without that feature behave exactly as before. |
 
 ## 5. Our working process (what works)
 
@@ -178,6 +180,14 @@ Last updated: end of Stage 2 (v0.10.3).
   invincible autopilot plays the whole level at high speed. The lint
   config is kept outside the repo (in the session scratchpad) — consider
   adding one to the repo so it's always available.
+- **Ground (`js/terrain.js`)**: a level with `floor: N` gets a solid floor
+  strip and rock spires (`spires` pattern). Everything on the ground
+  scrolls at `GROUND_SPEED`; `terrain.solid()` stops shots on rock. Levels
+  with `floor: 0` behave exactly as before. The Ember Mines' tunnels will
+  build on this.
+- **Per-level difficulty**: `shotSpeed` on a level scales every enemy shot
+  (Rust Moon 1.1). An enemy whose gun isn't at its front-middle gives a
+  `muzzle(e)` so the warning blink shows in the right place.
 
 ## 7. Stage retrospectives
 
