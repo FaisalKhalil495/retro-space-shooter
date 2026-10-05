@@ -1,22 +1,21 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.7.0';
-import { SPRITES } from './sprites.js?v=0.7.0';
-import { ENEMY_TYPES } from './enemies.js?v=0.7.0';
-import { LEVELS, LevelRunner } from './levels.js?v=0.7.0';
-import { Background } from './background.js?v=0.7.0';
-import { Weapons, drawCapsule, pickupInfo } from './weapons.js?v=0.7.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.7.0';
-import { buzz, HAPTIC } from './feedback.js?v=0.7.0';
-import { sfx } from './audio.js?v=0.7.0';
-import { clamp, rectsOverlap } from './util.js?v=0.7.0';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.7.0';
-import { Blasts } from './blasts.js?v=0.7.0';
-import { startBossMusic, stopMusic } from './music.js?v=0.7.0';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.7.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.7.1';
+import { SPRITES } from './sprites.js?v=0.7.1';
+import { ENEMY_TYPES } from './enemies.js?v=0.7.1';
+import { LEVELS, LevelRunner } from './levels.js?v=0.7.1';
+import { Background } from './background.js?v=0.7.1';
+import { Weapons, drawCapsule, pickupInfo } from './weapons.js?v=0.7.1';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.7.1';
+import { buzz, HAPTIC } from './feedback.js?v=0.7.1';
+import { sfx } from './audio.js?v=0.7.1';
+import { clamp, rectsOverlap } from './util.js?v=0.7.1';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.7.1';
+import { Blasts } from './blasts.js?v=0.7.1';
+import { startBossMusic, stopMusic } from './music.js?v=0.7.1';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.7.1';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
 const BLOCK_COLORS = [PAL.grey, PAL.cream, PAL.bluePale];
-const ROCK_SPECIALS = ['bomb', 'rockets', 'laser'];
 // A broken-off piece of the player's wing, for the death explosion.
 const WING = { rows: ['aab', 'abbc', '.bcc'], colors: { a: PAL.bluePale, b: PAL.blue, c: PAL.amberSoft } };
 const LIFE_BONUS = 500;
@@ -149,11 +148,8 @@ export class Game {
     if (!chance || this.rand() >= chance) return;
     let kind;
     if (hurt && this.rand() < 0.6) kind = 'repair';
-    else if (e.T.rockLoot && this.rand() < 0.3) {
-      // Special weapon ammo: tops up whatever you carry, so a rock never
-      // swaps away the weapon you're saving.
-      kind = this.weapons.kind || ROCK_SPECIALS[Math.floor(this.rand() * ROCK_SPECIALS.length)];
-    } else kind = randomPowerup(this.rand);
+    else if (e.T.rockLoot && this.rand() < 0.3) kind = 'ammo'; // special ammo, see weapons.js
+    else kind = randomPowerup(this.rand);
     this.spawnPickup(kind, e.x + e.w / 2 - 4, e.y + e.h / 2 - 4);
   }
 
@@ -502,7 +498,7 @@ export class Game {
     if (gore.blood) {
       // Only living creatures bleed (lightly; no stains left behind).
       this.gore.blood(cx, cy, gore.blood, 70, null, Math.PI, false);
-      this.gore.chunks(cx, cy, gore.flesh || 0, FLESH, 70);
+      this.gore.chunks(cx, cy, gore.flesh || 0, FLESH, 70, false);
     }
     if (gore.metal) this.gore.chunks(cx, cy, gore.metal, METAL, 80, false);
     if (gore.rock) this.gore.chunks(cx, cy, gore.rock, ROCK, 60, false);
@@ -690,6 +686,9 @@ export class Game {
       }
     }
 
+    // Explosions sit under bullets and the player, so they never hide a shot.
+    this.blasts.draw(ctx, snap);
+
     for (const s of this.enemyShots) {
       const x = snap(s.x);
       const y = snap(s.y);
@@ -733,7 +732,6 @@ export class Game {
       ctx.fillRect(x + 3, y, 4, 2);
     }
 
-    this.blasts.draw(ctx, snap);
     for (const q of this.particles) {
       ctx.globalAlpha = Math.min(1, (q.life / q.max) * 1.6);
       ctx.fillStyle = q.color;

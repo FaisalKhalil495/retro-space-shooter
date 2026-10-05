@@ -290,11 +290,26 @@ for (const phone of PHONES) {
     }
     g.enemyShots = [];
     g.pickups = [];
-    return { behind, passed, dive, gunner, weaver, rockRate: +(drops / 600).toFixed(2), kinds: [...kinds] };
+    // Rock ammo is decided when collected: it tops up what you carry then.
+    g.weapons.kind = 'bomb';
+    g.weapons.ammo = 1;
+    g.collectPickup('ammo');
+    const ammo = { kind: g.weapons.kind, n: g.weapons.ammo };
+    // A pod that turns away loses its wind-up, so the next shot gets the
+    // full warning blink.
+    g.player.x = 60;
+    const pod = g.spawnEnemy('drifter', 100, 60, { speed: 0.01, shooter: true });
+    for (let i = 0; i < 36; i++) g.moveWorld(1 / 120);
+    g.player.x = 140;
+    g.moveWorld(1 / 120);
+    const aimReset = pod.aim === 0 && !pod.fired;
+    g.enemies = [];
+    return { behind, passed, dive, gunner, weaver, rockRate: +(drops / 600).toFixed(2), kinds: [...kinds], ammo, aimReset };
   });
   const v7ok = v7.behind === 0 && v7.passed === 0 && v7.dive === 1 && v7.gunner.blood === 0 && v7.gunner.fire > 0 &&
     v7.weaver.blood > 0 && v7.weaver.blood <= 9 && v7.weaver.stains === 0 && v7.rockRate > 0.18 && v7.rockRate < 0.32 &&
-    v7.kinds.includes('laser') && !v7.kinds.includes('bomb') && !v7.kinds.includes('rockets');
+    v7.kinds.includes('ammo') && !v7.kinds.some((k) => ['bomb', 'rockets', 'laser'].includes(k)) &&
+    v7.ammo.kind === 'bomb' && v7.ammo.n === 4 && v7.aimReset;
   console.log(`  ${v7ok ? 'PASS' : 'FAIL'}  pods face you, blasts not blood, rock loot ${JSON.stringify(v7)}`);
   if (!v7ok) failures++;
 
