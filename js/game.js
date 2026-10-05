@@ -1,17 +1,17 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.9.0';
-import { SPRITES } from './sprites.js?v=0.9.0';
-import { ENEMY_TYPES } from './enemies.js?v=0.9.0';
-import { LEVELS, LevelRunner } from './levels.js?v=0.9.0';
-import { Background } from './background.js?v=0.9.0';
-import { Weapons, drawCapsule, pickupInfo } from './weapons.js?v=0.9.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.9.0';
-import { buzz, HAPTIC } from './feedback.js?v=0.9.0';
-import { sfx } from './audio.js?v=0.9.0';
-import { clamp, rectsOverlap } from './util.js?v=0.9.0';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.9.0';
-import { Blasts } from './blasts.js?v=0.9.0';
-import { startBossMusic, stopMusic } from './music.js?v=0.9.0';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.9.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.9.1';
+import { SPRITES } from './sprites.js?v=0.9.1';
+import { ENEMY_TYPES } from './enemies.js?v=0.9.1';
+import { LEVELS, LevelRunner } from './levels.js?v=0.9.1';
+import { Background } from './background.js?v=0.9.1';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.9.1';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.9.1';
+import { buzz, HAPTIC } from './feedback.js?v=0.9.1';
+import { sfx } from './audio.js?v=0.9.1';
+import { clamp, rectsOverlap } from './util.js?v=0.9.1';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.9.1';
+import { Blasts } from './blasts.js?v=0.9.1';
+import { startBossMusic, stopMusic } from './music.js?v=0.9.1';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.9.1';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -19,7 +19,7 @@ const BLOCK_COLORS = [PAL.grey, PAL.cream, PAL.bluePale];
 // A broken-off piece of the player's wing, for the death explosion.
 const WING = { rows: ['aab', 'abbc', '.bcc'], colors: { a: PAL.bluePale, b: PAL.blue, c: PAL.amberSoft } };
 const LIFE_BONUS = 500;
-const SMART_POD = { color: PAL.cream, light: PAL.amberLight }; // light on a smart supply pod
+const SMART_POD = { color: PAL.cream, light: '#ffffff' }; // white light on a survival supply pod
 
 // Things the game says when you die. Adults-only humour, as agreed.
 const DEATH_LINES = [
@@ -40,10 +40,16 @@ export class Game {
     this.powerups = new PowerUps(this);
     this.gore = new Gore(this.rand);
     this.blasts = new Blasts(this.rand);
-    this.pickupInfo = (kind) =>
-      kind === 'smart' ? SMART_POD
-        : kind === 'weapon' ? pickupInfo(this.weapons.kind || 'laser') // shows the special you'll get
-          : POWERUPS[kind] || pickupInfo(kind);
+    // What a pod's light shows. A weapon pod shows exactly what it would
+    // give if shot open right now (ammo shows the colour of your special).
+    this.pickupInfo = (kind) => {
+      if (kind === 'smart') return SMART_POD;
+      if (kind === 'weapon') {
+        const inside = this.weaponSupply();
+        return this.pickupInfo(inside === 'ammo' ? this.weapons.kind : inside);
+      }
+      return POWERUPS[kind] || pickupInfo(kind);
+    };
     this.reset();
   }
 
@@ -53,6 +59,7 @@ export class Game {
 
   reset() {
     this.score = 0;
+    this.supplyCount = 0; // boss supply pods so far (they take turns)
     this.lives = PLAYER.lives;
     this.health = PLAYER.health;
     this.hurtFlash = 0;
@@ -156,6 +163,20 @@ export class Game {
     this.spawnPickup(kind, e.x + e.w / 2 - 4, e.y + e.h / 2 - 4);
   }
 
+  // Boss supply pods take turns: survival, weapon, survival, weapon...
+  nextSupplyKind() {
+    this.supplyCount++;
+    return this.supplyCount % 2 === 0 ? 'weapon' : 'smart';
+  }
+
+  // What a boss supply pod holds, decided when it's shot open (null for an
+  // ordinary cargo pod, whose contents are fixed).
+  supplyContents(drop) {
+    if (drop === 'smart') return this.smartSupply();
+    if (drop === 'weapon') return this.weaponSupply();
+    return null;
+  }
+
   // What a survival supply pod gives you: whatever keeps you alive best.
   smartSupply() {
     if (this.health <= 2) return 'repair';
@@ -164,12 +185,18 @@ export class Game {
     return this.rand() < 0.5 ? 'rapid' : 'spread';
   }
 
-  // What a weapon supply pod gives you: always a special. It tops up the one
-  // you carry, or gives a Laser (best against Rockjaw's open jaw). On your
-  // last 2 health blocks it gives Repair instead.
+  // What a weapon supply pod gives you: special weapon ammo. With no special
+  // you get a Laser (best against Rockjaw's open jaw); otherwise an "A" ammo
+  // capsule that tops up whatever you carry when you grab it, so it can never
+  // swap your weapon. If your special is already full, ammo would be wasted,
+  // so you get Rapid Fire (or Spread Shot if Rapid is running). On your last
+  // 2 health blocks it gives Repair instead.
   weaponSupply() {
     if (this.health <= 2) return 'repair';
-    return this.weapons.kind || 'laser';
+    const w = this.weapons;
+    if (!w.kind) return 'laser';
+    if (w.ammo >= SPECIALS[w.kind].max) return this.powerups.has('rapid') ? 'spread' : 'rapid';
+    return 'ammo';
   }
 
   fireAtPlayer(x, y, speed) {

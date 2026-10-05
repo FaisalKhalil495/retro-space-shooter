@@ -147,26 +147,35 @@ for (const phone of PHONES) {
   if (!hpOk) failures++;
 
   // Boss supply pods: survival pods give what keeps you alive; weapon pods
-  // always give a special (topping up the one you carry, else a Laser).
+  // give special ammo, and their light always matches what's inside.
   const smart = await page.evaluate(() => {
     const g = window.__ember.game;
+    const light = () => g.pickupInfo('weapon').name;
     g.powerups.reset();
     g.weapons.reset();
     g.health = 2;
     const low = g.smartSupply();
-    const lowWeapon = g.weaponSupply();
+    const lowWeapon = [g.weaponSupply(), light()];
     g.health = 5;
     const noShield = g.smartSupply();
-    const weapon = g.weaponSupply();
+    const weapon = [g.weaponSupply(), light()];
     g.powerups.collect('shield');
     const shielded = g.smartSupply();
-    g.weapons.collect('bomb');
-    const topUp = g.weaponSupply();
+    g.weapons.kind = 'bomb';
+    g.weapons.ammo = 1;
+    const topUp = [g.weaponSupply(), light()];
+    g.weapons.ammo = 5;
+    const full = [g.weaponSupply(), light()];
     g.weapons.reset();
-    return { low, lowWeapon, noShield, weapon, shielded, topUp };
+    g.powerups.reset();
+    g.health = 5;
+    return { low, lowWeapon, noShield, weapon, shielded, topUp, full };
   });
-  const smartOk = smart.low === 'repair' && smart.lowWeapon === 'repair' && smart.noShield === 'shield' &&
-    smart.weapon === 'laser' && ['rapid', 'spread'].includes(smart.shielded) && smart.topUp === 'bomb';
+  const same = (a, b) => a.join() === b.join();
+  const smartOk = smart.low === 'repair' && same(smart.lowWeapon, ['repair', 'REPAIR']) &&
+    smart.noShield === 'shield' && same(smart.weapon, ['laser', 'LASER']) &&
+    ['rapid', 'spread'].includes(smart.shielded) && same(smart.topUp, ['ammo', 'BOMBS']) &&
+    same(smart.full, ['rapid', 'RAPID FIRE']);
   console.log(`  ${smartOk ? 'PASS' : 'FAIL'}  smart supply choices ${JSON.stringify(smart)}`);
   if (!smartOk) failures++;
 

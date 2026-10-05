@@ -1,8 +1,8 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.9.0';
-import { ROCKJAW } from './rockart.js?v=0.9.0';
-import { sfx } from './audio.js?v=0.9.0';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.9.0';
-import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.9.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.9.1';
+import { ROCKJAW } from './rockart.js?v=0.9.1';
+import { sfx } from './audio.js?v=0.9.1';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.9.1';
+import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.9.1';
 
 // ROCKJAW · THE LIVING ASTEROID — boss of The Outer Belt.
 //
@@ -392,8 +392,9 @@ export const ROCKJAW_TYPE = {
       e.timer = 0;
     };
 
-    // Smart supply pods: one every 20 seconds of fighting. What's inside is
-    // decided when you shoot it open, based on what you need most then.
+    // Supply pods: one every 20 seconds of fighting, taking turns between
+    // survival and weapon pods (see Game.nextSupplyKind). What's inside is
+    // decided when you shoot it open.
     if (e.mode === 'fight' || e.mode === 'transition') {
       e.supplyT -= dt;
       if (e.supplyT <= 0) {
@@ -566,14 +567,10 @@ export const ROCKJAW_TYPE = {
 };
 
 // A supply pod comes in on the side of the screen away from Rockjaw.
-// Pods take turns: a survival pod (Repair or Shield, whichever you need),
-// then a weapon pod (always a special), and so on.
 function supplyPod(e, g) {
   if (g.boss !== e || e.mode === 'dying') return;
   const above = center(e).y > MID_Y;
-  e.pods = (e.pods || 0) + 1;
-  const drop = e.pods % 2 === 0 ? 'weapon' : 'smart';
-  g.spawnEnemy('carrier', VIEW_W + 8, above ? HUD_H + 8 : VIEW_H - 20, { drop });
+  g.spawnEnemy('carrier', VIEW_W + 8, above ? HUD_H + 8 : VIEW_H - 20, { drop: g.nextSupplyKind() });
 }
 
 function startAttack(e, g) {
