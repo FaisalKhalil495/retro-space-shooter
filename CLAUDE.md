@@ -62,6 +62,13 @@ a real console controller, so you can play by feel while watching the game.
 - Stage 5 note: with bosses this hard, suggest a boss checkpoint when the
   continue system is built (owner to decide then).
 - Game over currently restarts the level; the continue system arrives in Stage 5.
+- **Moving between levels** (Stage 3A, v0.11.0): after the level-clear
+  screen, "TAP TO CONTINUE" flies you into the next level with your **score,
+  lives and special weapon**; health refills to 5 blocks; timed power-ups
+  don't carry. Game over restarts the current level fresh (score 0, 3
+  lives, no special). After the last level that exists, you go back to
+  level 1 with a fresh run. If you die in the seconds after a boss dies,
+  the level still clears once you respawn.
 - **Health bar** (owner request, v0.4.0): 3 lives, each with **5 health
   blocks**. Bullets/acid/gravel cost 1, small rocks and ramming small enemies
   2, big rocks 3, Rockjaw's bite charge 3, being sucked into his mouth 5
@@ -286,7 +293,7 @@ Approved by the owner. Keep the status column up to date.
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
-| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. | |
+| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon + Siege Crawler → 3C Frostring + Glacier Warden → 3D Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0) |
 | 4 | **Levels 5–8** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |
@@ -314,6 +321,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - `js/powerups.js` — automatic power-ups (shield, repair, spread, rapid,
   wingman), their orbs, timers and HUD icons.
 - `js/waves.js` — enemy formations. `js/levels.js` — level timelines + runner.
+  A level ends with a `'boss'` event or an `'end'` event (no boss: cleared
+  once every enemy, including ones still due to arrive, has gone; 8 s max).
 - `js/background.js` — starfield, sun, dust band, distant rocks (per-level theme).
 - `js/sprites.js` — pixel art as text grids. `js/rockart.js` — asteroids and
   Rockjaw drawn by code. `js/font.js` — 5×5 pixel font.
@@ -337,7 +346,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   paths outside the repository).
 - Testing aids: add `?safe=62` to the URL to fake an iPhone camera cutout;
   `?start=boss` jumps straight to the boss with a laser loaded;
-  `?start=60` starts 60 seconds into the level.
+  `?start=60` starts 60 seconds into the level; `?level=2` starts on level 2
+  (combine them: `?level=2&start=boss`).
 
 ## HOW TO WORK WITH ME — these rules apply for the whole project, every session
 - I'm not an experienced coder. Assume I don't know the technical details, but work at full strength. Just keep me in the loop in language I can follow.

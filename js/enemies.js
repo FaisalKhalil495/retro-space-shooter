@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.10.5';
-import { ROCKS } from './rockart.js?v=0.10.5';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.10.5';
-import { clamp, rectHitsCircle } from './util.js?v=0.10.5';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.11.0';
+import { ROCKS } from './rockart.js?v=0.11.0';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.11.0';
+import { clamp, rectHitsCircle } from './util.js?v=0.11.0';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),

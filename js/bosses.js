@@ -1,8 +1,8 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.10.5';
-import { ROCKJAW } from './rockart.js?v=0.10.5';
-import { sfx } from './audio.js?v=0.10.5';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.10.5';
-import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.10.5';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.11.0';
+import { ROCKJAW } from './rockart.js?v=0.11.0';
+import { sfx } from './audio.js?v=0.11.0';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.11.0';
+import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.11.0';
 
 // ROCKJAW · THE LIVING ASTEROID — boss of The Outer Belt.
 //
