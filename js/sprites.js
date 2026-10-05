@@ -1,4 +1,4 @@
-import { PAL } from './config.js?v=0.12.1';
+import { PAL } from './config.js?v=0.13.0';
 
 // Pixel art is written as text grids: each character is one pixel and maps
 // to a palette colour ('.' is transparent). Each sprite is drawn once onto
@@ -159,6 +159,24 @@ const ART = {
     '..kRRRRRRRRRk.',
     '..k.k.k.k.k.k.',
     '.k.k.k...k.k.k',
+  ],
+  // Siege Crawler's floating mine (its light blinks, see crawler.js).
+  mine: [
+    '...p...',
+    '.p.k.p.',
+    '..kBk..',
+    'pkBsBkp',
+    '..kBk..',
+    '.p.k.p.',
+    '...p...',
+  ],
+  // Siege Crawler's attack drone, gun at the front (left).
+  drone: [
+    '.kkkkk..',
+    'kgAoooAk',
+    'lcooooRk',
+    'kgAoooAk',
+    '.kkkkk..',
   ],
   // Tiny ship used for the lives counter.
   lifeIcon: [

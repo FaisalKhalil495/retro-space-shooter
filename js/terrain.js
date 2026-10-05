@@ -1,5 +1,5 @@
-import { VIEW_W, VIEW_H } from './config.js?v=0.12.1';
-import { seeded } from './util.js?v=0.12.1';
+import { VIEW_W, VIEW_H } from './config.js?v=0.13.0';
+import { seeded } from './util.js?v=0.13.0';
 
 // Solid ground for levels that have it (Rust Moon first; the Ember Mines'
 // tunnels will build on this). Two parts:

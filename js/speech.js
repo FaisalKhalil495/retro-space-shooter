@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.12.1';
-import { drawText, textWidth } from './font.js?v=0.12.1';
-import { sfx } from './audio.js?v=0.12.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.13.0';
+import { drawText, textWidth } from './font.js?v=0.13.0';
+import { sfx } from './audio.js?v=0.13.0';
 
 // Comic-book speech bubbles for characters that talk (bosses so far).
 // A bubble sits beside the speaker, follows them around, points its tail at
@@ -50,7 +50,7 @@ export class Speech {
     b.t += dt;
     const typed = Math.min(b.total, Math.floor(b.t * TYPE_SPEED));
     // A low growl blip every few letters while it's typing.
-    if (typed > b.typed && Math.floor(typed / 3) > Math.floor(b.typed / 3)) sfx.voice(b.style === 'roar');
+    if (typed > b.typed && Math.floor(typed / 3) > Math.floor(b.typed / 3)) sfx.voice(b.style === 'roar', b.speaker.T && b.speaker.T.voice);
     b.typed = typed;
   }
 

@@ -1,19 +1,19 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.12.1';
-import { SPRITES } from './sprites.js?v=0.12.1';
-import { ENEMY_TYPES } from './enemies.js?v=0.12.1';
-import { LEVELS, LevelRunner } from './levels.js?v=0.12.1';
-import { Background } from './background.js?v=0.12.1';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.12.1';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.12.1';
-import { buzz, HAPTIC } from './feedback.js?v=0.12.1';
-import { sfx } from './audio.js?v=0.12.1';
-import { clamp, rectsOverlap } from './util.js?v=0.12.1';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.12.1';
-import { Blasts } from './blasts.js?v=0.12.1';
-import { Speech } from './speech.js?v=0.12.1';
-import { Terrain } from './terrain.js?v=0.12.1';
-import { startBossMusic, stopMusic } from './music.js?v=0.12.1';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.12.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.13.0';
+import { SPRITES } from './sprites.js?v=0.13.0';
+import { ENEMY_TYPES } from './enemies.js?v=0.13.0';
+import { LEVELS, LevelRunner } from './levels.js?v=0.13.0';
+import { Background } from './background.js?v=0.13.0';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.13.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.13.0';
+import { buzz, HAPTIC } from './feedback.js?v=0.13.0';
+import { sfx } from './audio.js?v=0.13.0';
+import { clamp, rectsOverlap } from './util.js?v=0.13.0';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.13.0';
+import { Blasts } from './blasts.js?v=0.13.0';
+import { Speech } from './speech.js?v=0.13.0';
+import { Terrain } from './terrain.js?v=0.13.0';
+import { startBossMusic, stopMusic } from './music.js?v=0.13.0';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.13.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -45,7 +45,9 @@ export class Game {
     this.gore = new Gore(this.rand);
     this.blasts = new Blasts(this.rand);
     this.speech = new Speech();
-    this.aimPointOf = (e) => this.aimPoint(e); // made once, used every frame
+    // Where a speech bubble's tail points (a boss's mouth, or wherever its
+    // voice comes from). Made once, used every frame.
+    this.voicePointOf = (e) => (e.T.voicePoint ? e.T.voicePoint(e) : this.aimPoint(e));
     // What a pod's light shows. A weapon pod shows exactly what it would
     // give if shot open right now (ammo shows the colour of your special).
     this.pickupInfo = (kind) => {
@@ -279,18 +281,38 @@ export class Game {
     return 'ammo';
   }
 
-  fireAtPlayer(x, y, speed) {
+  fireAtPlayer(x, y, speed, kind = 'orb', byBoss = false) {
     const p = this.player;
     const a = Math.atan2(p.y + p.h / 2 - y, p.x + p.w / 2 - x);
-    this.fireShot(x, y, a, speed);
+    return this.fireShot(x, y, a, speed, kind, byBoss);
   }
 
-  // kind: 'orb' (glowing enemy bullet), 'gravel' (a stone) or 'fast' (sniper round).
+  // kind: 'orb' (glowing enemy bullet), 'gravel' (a stone), 'fast' (sniper
+  // round) or 'shell' (a heavy cannon shell).
   fireShot(x, y, angle, speed, kind = 'orb', byBoss = false) {
     speed *= this.level.shotSpeed || 1; // later levels shoot a little faster
-    this.enemyShots.push({
-      x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, t: 0, kind, byBoss,
-    });
+    const shot = { x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, t: 0, kind, byBoss };
+    this.enemyShots.push(shot);
+    return shot;
+  }
+
+  // The player's hitbox: smaller than the drawing, so scrapes that look like
+  // near-misses really are misses. Everything that can hit you uses this.
+  playerHitbox() {
+    const p = this.player;
+    return { x: p.x + 5, y: p.y + 3, w: p.w - 9, h: p.h - 6 };
+  }
+
+  // Can you be hurt right now? (In play, not flying in, not flashing.)
+  playerVulnerable() {
+    const p = this.player;
+    return this.state === 'playing' && !(p.entering > 0) && !(p.invuln > 0);
+  }
+
+  // Does a rectangle touch the player's hitbox?
+  touchesPlayer(x, y, w, h) {
+    const b = this.playerHitbox();
+    return rectsOverlap(b.x, b.y, b.w, b.h, x, y, w, h);
   }
 
   // A flashing warning marker, shown before something arrives there.
@@ -609,12 +631,8 @@ export class Game {
       }
     }
 
-    // Anything hitting the player. The player's hitbox is smaller than the
-    // drawing so scrapes that look like near-misses really are misses.
-    const hx = p.x + 5;
-    const hy = p.y + 3;
-    const hw = p.w - 9;
-    const hh = p.h - 6;
+    // Anything hitting the player (see playerHitbox).
+    const { x: hx, y: hy, w: hw, h: hh } = this.playerHitbox();
     // Crashing into a rock spire: 2 blocks, and you're knocked clear of it,
     // back the way you came (or up and over if that's blocked, so a spire
     // can never pin you against the screen edge). Spires stay solid while
@@ -647,7 +665,8 @@ export class Game {
         const dmg = e.T.contactDamage ? e.T.contactDamage(e, this) : e.T.ram ?? 2;
         if (e.T.boss) {
           // Bounced off the boss: knocked back so you don't keep scraping it.
-          p.x = clamp(p.x - 14, 2, VIEW_W - p.w - 2);
+          if (e.T.knockback) e.T.knockback(e, p);
+          else p.x = clamp(p.x - 14, 2, VIEW_W - p.w - 2);
         } else {
           this.killEnemy(e);
         }
@@ -750,7 +769,7 @@ export class Game {
   startWarning() {
     this.warning = { t: 0 };
     sfx.warning();
-    startBossMusic();
+    startBossMusic(ENEMY_TYPES[this.level.boss].music);
   }
 
   // Something hit the player. The shield soaks it up if it's running;
@@ -855,7 +874,7 @@ export class Game {
 
     // Speech bubbles go under pickups, enemies, rocks and bullets, so a
     // bubble can never hide anything that matters.
-    this.speech.draw(ctx, snap, this.aimPointOf);
+    this.speech.draw(ctx, snap, this.voicePointOf);
 
     for (const pk of this.pickups) {
       const blink = !pk.magnet && pk.x < 40 && Math.floor(pk.t * 8) % 2 === 0;
@@ -901,6 +920,23 @@ export class Game {
         ctx.fillRect(x - 1, y - 1, 2, 2);
         ctx.fillStyle = '#c4a68e';
         ctx.fillRect(x - 1, y - 1, 1, 1);
+        continue;
+      }
+      if (s.kind === 'shell') {
+        // Heavy cannon shell: a fat round with a smoky trail.
+        const sp = Math.hypot(s.vx, s.vy) || 1;
+        const dx = s.vx / sp;
+        const dy = s.vy / sp;
+        for (let i = 6; i >= 1; i--) {
+          ctx.fillStyle = i > 3 ? '#4d3f45' : PAL.redDark;
+          ctx.fillRect(snap(s.x - dx * i * 2) - 1, snap(s.y - dy * i * 2) - 1, 2, 2);
+        }
+        ctx.fillStyle = PAL.ink;
+        ctx.fillRect(x - 3, y - 3, 6, 6);
+        ctx.fillStyle = PAL.red;
+        ctx.fillRect(x - 2, y - 2, 4, 4);
+        ctx.fillStyle = Math.floor(s.t * 12) % 2 ? PAL.amberLight : PAL.cream;
+        ctx.fillRect(x - 1, y - 1, 2, 2);
         continue;
       }
       if (s.kind === 'fast') {
@@ -1079,11 +1115,13 @@ export class Game {
       // Boss title card.
       const t = this.title.t;
       const T = this.title.T;
-      const cx = Math.round(VIEW_W * 0.4);
+      // Big letters, or a size smaller if the name wouldn't fit.
+      const px = textWidth(T.name, 3) <= VIEW_W - 12 ? 3 : 2;
+      const cx = Math.round(Math.max(VIEW_W * 0.4, textWidth(T.name, px) / 2 + 6));
       if (t > 0.3 || Math.floor(t * 20) % 2 === 0) {
-        drawTextCentered(ctx, T.name, cx + 2, 34, PAL.ink, 3);
-        drawTextCentered(ctx, T.name, cx + 1, 33, PAL.redDark, 3);
-        drawTextCentered(ctx, T.name, cx, 32, PAL.amber, 3);
+        drawTextCentered(ctx, T.name, cx + 2, 34, PAL.ink, px);
+        drawTextCentered(ctx, T.name, cx + 1, 33, PAL.redDark, px);
+        drawTextCentered(ctx, T.name, cx, 32, PAL.amber, px);
         if (t > 0.6) drawTextCentered(ctx, T.title, cx, 54, PAL.cream);
       }
     }

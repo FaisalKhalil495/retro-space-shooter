@@ -61,7 +61,7 @@ const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
     }
     g.update(step, { dx, dy, fire: true, special, tap: false });
     if (g.boss) log.bossSeen = true;
-    // While Rockjaw talks (taunt, roars) he must be holding back, not
+    // While a boss talks (taunt, roars) it must be holding back, not
     // fighting. (No kill lines here: the autopilot is invincible.)
     if (g.boss && g.isSpeaking(g.boss) && (g.boss.mode === 'fight' || g.boss.attack)) {
       log.talkAttacks = (log.talkAttacks || 0) + 1;
@@ -130,9 +130,12 @@ const level2 = await page.evaluate(() => {
   log.types = [];
   log.maxEnemies = 0;
   log.bossSeen = false;
+  log.said = [];
+  log.bonuses = 0;
+  log.talkAttacks = 0;
   return { level: g.level.number, state: g.state };
 });
-results.rust = await run(240, { invincible: true });
+results.rust = await run(560, { invincible: true, useSpecials: true });
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/lvl2-clear.png` });
 
@@ -162,7 +165,11 @@ const checks = {
   'Rust Moon enemies appeared': ['cliffTurret', 'dustSkimmer', 'mortarCrawler', 'mortarShell', 'rockBig', 'sniper', 'spinner', 'gunner']
     .every((t) => r2.types.includes(t)),
   'Rust Moon cargo pods all collected': pickups2.every((k) => r2.collected.includes(k)),
-  'Rust Moon lasts about 3 minutes': r2.t >= 180 && r2.t <= 200,
+  'Siege Crawler appeared': r2.bossSeen,
+  'Siege Crawler talks in speech bubbles': ['STEP INTO MY FUCKING SIGHTS', 'YOU SCRATCHED MY FUCKING PAINT', 'ALL GUNS. NOW.']
+    .every((line) => r2.said.includes(line)),
+  'a Siege Crawler stage bonus for each broken stage': r2.bonuses === 2,
+  'Siege Crawler never attacks while talking': !r2.talkAttacks,
   'Rust Moon cleared': r2.state === 'clear',
   'no script errors': errors.length === 0,
 };

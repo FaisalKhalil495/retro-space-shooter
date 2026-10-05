@@ -263,11 +263,42 @@ export const sfx = {
     growlVoice({ f0: 62, f1: 74, dur: 0.75, vol: 0.24, cutoff: 600, wobble: 16 });
     noise({ dur: 0.7, vol: 0.12, f0: 220, f1: 500, q: 2, type: 'bandpass' });
   },
-  voice(roar = false) {
-    // A low growly blip while a boss's speech bubble types out.
+  voice(roar = false, kind) {
+    // A low growly blip while a boss's speech bubble types out ('metal': a
+    // harsher, radio-like buzz for machines).
     if (!ready()) return;
+    if (kind === 'metal') {
+      const f = (roar ? 110 : 150) + Math.random() * 30;
+      tone({ type: 'square', f0: f, f1: f * 0.9, dur: 0.05, vol: roar ? 0.06 : 0.045, cutoff: 1400 });
+      return;
+    }
     const f = (roar ? 70 : 95) + Math.random() * 25;
     tone({ type: 'sawtooth', f0: f, f1: f * 0.8, dur: 0.06, vol: roar ? 0.09 : 0.06, cutoff: 700 });
+  },
+  horn() {
+    // A war machine's roar: a deep, detuned horn blast with engine noise.
+    if (!ready()) return;
+    tone({ type: 'sawtooth', f0: 73, f1: 62, dur: 1.3, vol: 0.2, attack: 0.08, cutoff: 600 });
+    tone({ type: 'sawtooth', f0: 110, f1: 92, dur: 1.3, vol: 0.13, attack: 0.08, cutoff: 800 });
+    noise({ dur: 1.2, vol: 0.18, f0: 500, f1: 120 });
+  },
+  stomp() {
+    // A huge iron foot hitting the ground.
+    if (!ready()) return;
+    tone({ type: 'sine', f0: 90, f1: 32, dur: 0.35, vol: 0.4 });
+    noise({ dur: 0.3, vol: 0.3, f0: 700, f1: 90 });
+  },
+  cannon() {
+    // The main gun: a sharp crack and a deep boom.
+    if (!ready()) return;
+    noise({ dur: 0.12, vol: 0.4, f0: 5000, f1: 800, type: 'highpass' });
+    noise({ dur: 0.5, vol: 0.35, f0: 900, f1: 80 });
+    tone({ type: 'sine', f0: 120, f1: 40, dur: 0.4, vol: 0.3 });
+  },
+  charge(dur) {
+    // A rising whine as the cannon powers up (a warning).
+    if (!ready()) return;
+    tone({ type: 'sawtooth', f0: 180, f1: 900, dur, vol: 0.05, attack: 0.05, cutoff: 1800 });
   },
   snap() {
     // Jaws slamming shut: a crunch and a thump.

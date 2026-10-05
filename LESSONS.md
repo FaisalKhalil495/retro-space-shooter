@@ -141,6 +141,9 @@ Last updated: end of Stage 2 (v0.10.3).
 | Adding a floor nearly changed level 1 (dust puffs and bouncing shards at the screen's bottom edge) | When a new level adds a shared rule, check what it does on the old levels too; guard it so levels without that feature behave exactly as before. |
 | Floor turrets sat 1 pixel too low for the ship's gun to ever hit them (v0.12.0 review) | For every enemy that can't move, check the ship can actually line up a shot on it from somewhere it's allowed to fly. Now an automatic check. |
 | A test kept a reference to the ship from before a level reset, so it could never fail | Tests must re-read game objects after anything that rebuilds them (reset, respawn, next level). Breaking the code on purpose caught it. |
+| The Siege Crawler's open core was almost unhittable: shots clipped the armour a pixel in front of it (v0.13.0, before release) | **Time the boss fight on autopilot and compare with the last boss.** A fight 10x longer than expected meant a bug, not a balance problem. A weak point's hit area must reach the edge a shot arrives from. |
+| A check on the flak gap passed on broken code only by luck (the gap's position is random) | When a rule depends on random positions, pin the worst case in the test instead of hoping the dice land on it. |
+| The boss's knock-back assumed you were always in front of it | Knock-backs, pushes and "away from" moves must work from every side, including behind a boss. |
 
 ## 5. Our working process (what works)
 
@@ -187,6 +190,14 @@ Last updated: end of Stage 2 (v0.10.3).
   scrolls at `GROUND_SPEED`; `terrain.solid()` stops shots on rock. Levels
   with `floor: 0` behave exactly as before. The Ember Mines' tunnels will
   build on this.
+- **Boss toolkit** (from building the second boss): a boss is a plain enemy
+  type with modes (enter → intro → taunt → fight ↔ transition → dying),
+  a moveset per stage that never repeats the last attack, attacks as small
+  functions that return true when done, and a warning flag for each
+  attack that the tests can read. Shared help lives in Game (supply pods,
+  stage bonuses, talking rules, player hitbox). Measuring each boss on
+  autopilot (fight length, how long the weak point is open) keeps
+  difficulty steps honest.
 - **Per-level difficulty**: `shotSpeed` on a level scales every enemy shot
   (Rust Moon 1.1). An enemy whose gun isn't at its front-middle gives a
   `muzzle(e)` so the warning blink shows in the right place.

@@ -1,34 +1,64 @@
-import { audioOut } from './audio.js?v=0.12.1';
+import { audioOut } from './audio.js?v=0.13.0';
 
 // Boss music, generated live: pounding drums, a growling bass line and dark
-// stabbing chords in D minor with a flattened second (the "phrygian" sound
-// used in a lot of heavy, ominous music). Notes are scheduled slightly ahead
+// stabbing chords. Rockjaw's is in D minor with a flattened second (the
+// "phrygian" sound used in a lot of heavy, ominous music); the Siege
+// Crawler's is a slower military march. Notes are scheduled slightly ahead
 // of time so the rhythm stays tight even if the game is busy.
 
-const BPM = 150;
-const STEP = 60 / BPM / 4; // one 16th note
 const LOOKAHEAD = 0.15;
 
 // MIDI note numbers. 38 = D2.
-const BASS = [
-  // bar 1: D
-  38, 0, 38, 50, 38, 0, 38, 48, 38, 0, 38, 50, 51, 0, 50, 48,
-  // bar 2: Eb
-  39, 0, 39, 51, 39, 0, 39, 50, 39, 0, 39, 51, 53, 0, 51, 50,
-  // bar 3: D
-  38, 0, 38, 50, 38, 0, 38, 48, 38, 0, 38, 50, 51, 0, 50, 48,
-  // bar 4: C then Bb, climbing back
-  36, 0, 36, 48, 36, 0, 36, 46, 34, 0, 34, 46, 44, 45, 46, 47,
-];
-const KICK = [1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0];
-const SNARE = [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1];
-// Chord stabs at the start of each bar.
-const CHORDS = [
-  [62, 65, 69], // Dm
-  [63, 67, 70], // Eb
-  [62, 65, 69], // Dm
-  [60, 63, 67], // Cm
-];
+const SONGS = {
+  // Rockjaw: fast and frantic.
+  rockjaw: {
+    bpm: 150,
+    bass: [
+      // bar 1: D
+      38, 0, 38, 50, 38, 0, 38, 48, 38, 0, 38, 50, 51, 0, 50, 48,
+      // bar 2: Eb
+      39, 0, 39, 51, 39, 0, 39, 50, 39, 0, 39, 51, 53, 0, 51, 50,
+      // bar 3: D
+      38, 0, 38, 50, 38, 0, 38, 48, 38, 0, 38, 50, 51, 0, 50, 48,
+      // bar 4: C then Bb, climbing back
+      36, 0, 36, 48, 36, 0, 36, 46, 34, 0, 34, 46, 44, 45, 46, 47,
+    ],
+    kick: [1, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 0],
+    snare: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+    // Chord stabs at the start of each bar.
+    chords: [
+      [62, 65, 69], // Dm
+      [63, 67, 70], // Eb
+      [62, 65, 69], // Dm
+      [60, 63, 67], // Cm
+    ],
+    bell: 80,
+  },
+  // The Siege Crawler: slower and heavier, a military march in C minor with
+  // a kick on every beat and snare rolls, like marching boots.
+  march: {
+    bpm: 126,
+    bass: [
+      // bar 1: C
+      36, 0, 0, 36, 36, 0, 43, 0, 36, 0, 0, 36, 36, 0, 46, 0,
+      // bar 2: Ab
+      32, 0, 0, 32, 32, 0, 39, 0, 32, 0, 0, 32, 32, 0, 43, 0,
+      // bar 3: C
+      36, 0, 0, 36, 36, 0, 43, 0, 36, 0, 0, 36, 36, 0, 46, 0,
+      // bar 4: G, stomping up
+      31, 0, 0, 31, 31, 0, 38, 0, 31, 31, 33, 33, 35, 35, 37, 38,
+    ],
+    kick: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0],
+    snare: [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1],
+    chords: [
+      [60, 63, 67], // Cm
+      [56, 60, 63], // Ab
+      [60, 63, 67], // Cm
+      [55, 59, 62], // G
+    ],
+    bell: 79,
+  },
+};
 
 const hz = (n) => 440 * 2 ** ((n - 69) / 12);
 
@@ -36,10 +66,14 @@ let timer = null;
 let step = 0;
 let nextTime = 0;
 let bus = null;
+let song = SONGS.rockjaw;
+let STEP = 60 / song.bpm / 4; // one 16th note
 
-export function startBossMusic() {
+export function startBossMusic(name = 'rockjaw') {
   const out = audioOut();
   if (!out || timer) return;
+  song = SONGS[name] || SONGS.rockjaw;
+  STEP = 60 / song.bpm / 4;
   const { ac, master } = out;
   bus = ac.createGain();
   bus.gain.setValueAtTime(0.0001, ac.currentTime);
@@ -73,21 +107,21 @@ function schedule() {
   while (nextTime < ac.currentTime + LOOKAHEAD) {
     playStep(out, step, nextTime);
     nextTime += STEP;
-    step = (step + 1) % BASS.length;
+    step = (step + 1) % song.bass.length;
   }
 }
 
 function playStep({ ac, noiseBuf }, i, t) {
   const s16 = i % 16;
   const bar = Math.floor(i / 16);
-  const note = BASS[i];
+  const note = song.bass[i];
   if (note) bass(ac, hz(note), t);
-  if (KICK[s16]) kick(ac, t);
-  if (SNARE[s16]) snare(ac, noiseBuf, t);
+  if (song.kick[s16]) kick(ac, t);
+  if (song.snare[s16]) snare(ac, noiseBuf, t);
   if (s16 % 2 === 0) hat(ac, noiseBuf, t, s16 % 4 === 2 ? 0.05 : 0.025);
-  if (s16 === 0) stab(ac, CHORDS[bar].map(hz), t);
+  if (s16 === 0) stab(ac, song.chords[bar].map(hz), t);
   // An eerie high bell every other bar, on the off-beat.
-  if (s16 === 10 && bar % 2 === 1) bell(ac, hz(80), t);
+  if (s16 === 10 && bar % 2 === 1) bell(ac, hz(song.bell), t);
 }
 
 function bass(ac, f, t) {

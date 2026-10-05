@@ -62,11 +62,10 @@ a real console controller, so you can play by feel while watching the game.
 - Stage 5 note: with bosses this hard, suggest a boss checkpoint when the
   continue system is built (owner to decide then).
 - Game over currently restarts the level; the continue system arrives in Stage 5.
-- **Rust Moon (level 2), step 3B-1, v0.12.0** (no boss yet; the Siege
-  Crawler is 3B-2): about 3 min, three parts with no calm breaks, each new
-  enemy shown alone first (turret 0:08, skimmers 0:22, mortar 0:34); the
-  same cargo-pod schedule as level 1; ends with an `'end'` event at 3:05.
-  Enemy shots 10% faster (`shotSpeed: 1.1`).
+- **Rust Moon (level 2), step 3B-1, v0.12.0**: about 3 min, three parts
+  with no calm breaks, each new enemy shown alone first (turret 0:08,
+  skimmers 0:22, mortar 0:34); the same cargo-pod schedule as level 1; the
+  boss event at 3:04 (v0.13.0). Enemy shots 10% faster (`shotSpeed: 1.1`).
   - **Ground**: the bottom 14 px is a canyon floor you can't fly into (it
     doesn't hurt). **Rock spires** stand on it: crashing costs 2 blocks and
     knocks you back the way you came (or up and over); shots stop on them
@@ -92,6 +91,36 @@ a real console controller, so you can play by feel while watching the game.
     ones 35% loot (no tell), burst into 3 shards; small ones none.
   - About 15 turrets, 20 skimmers, 9 mortars, 21 gunships, 10 snipers,
     6 spinners and 30 big boulders.
+- **The Siege Crawler** (boss of Rust Moon, step 3B-2, v0.13.0): a giant
+  six-legged gunmetal war machine walking the canyon floor (gunmetal so it
+  stands out against the red canyon). Name card "SIEGE CRAWLER / THE
+  WALKING FORTRESS" (names too wide for big letters are drawn a size
+  smaller), horn blast, a marching version of the boss music, metallic
+  voice blips. 210 HP (Rockjaw 200); on autopilot it lasts about 1.6x as
+  long as Rockjaw. Machine: explosions, no blood.
+  - **Weak point**: a core behind armour plates on the front of its hull,
+    open only while the main cannon locks on and fires (and ~1 s after),
+    and from stage 2 while drones launch. Specials obey the same rule.
+  - **Attacks** (every one warned): **Cannon** (barrel tracks you, then a
+    dotted red aim line 0.8/0.7/0.6 s, a heavy shell costing 2; 3 shells
+    in stage 3); **Mortar barrage** (3/4/5 shells on red rings, the first
+    where you are); **Flak wall** (dotted line across the screen with a
+    gap between two posts, 1 line then 2, bursts sweep right to left,
+    1 block, never reaching into the gap); stage 2+: **Mines** (drift,
+    burst after 3 s or 0.5 s after you get close, or on touch, 2 blocks +
+    fragments, shootable), **Drones** (hunt you, blink, fire once), **Stomp**
+    (rears up 0.6 s, a dust wave rolls along the floor both ways, 2 blocks,
+    fly above it; rocks fall on "!" markers); stage 3: **Tread charge**
+    (revs 1 s with horn and smoke, runs across the screen, 3 blocks, fly
+    over it) and **All guns** (flak wall + mortars together).
+  - Stages at 66% and 33%: armour blows off ("YOU SCRATCHED MY FUCKING
+    PAINT"), then burning ("ALL GUNS. NOW."). Taunt "STEP INTO MY FUCKING
+    SIGHTS"; kill lines include "FLATTENED". Talks only in pauses; stage
+    bonuses; alternating supply pods (high on the screen).
+  - Bumping into it pushes you away from it (left or right), or up over
+    its turret if it's running you down or you'd hit the screen edge.
+  - Death: chain explosions, the turret blows off and spins away, a huge
+    blast, and the burnt-out hull drops onto the floor.
 - **Moving between levels** (Stage 3A, v0.11.0): after the level-clear
   screen, "TAP TO CONTINUE" flies you into the next level with your **score,
   lives and special weapon**; health refills to 5 blocks; timed power-ups
@@ -210,7 +239,13 @@ a real console controller, so you can play by feel while watching the game.
   **Every boss must check `g.bossMayAttack(e)` before starting any attack
   and before leaving a pause** (false while its speech bubble is up). Its
   opening taunt waits for the name card (`g.title`) to clear, then the boss
-  holds back until it has finished talking.
+  holds back until it has finished talking. More optional hooks (v0.13.0):
+  `voicePoint(e)` (where the speech tail points, if not its weak point),
+  `knockback(e, p)` (how it shoves you when you touch it),
+  `contactDamage(e)`, `music` (which boss song) and `voice` ('metal' for
+  machines). Hazards a boss handles itself use `g.playerVulnerable()` and
+  `g.touchesPlayer(x, y, w, h)` (one shared player hitbox, `g.playerHitbox()`).
+  `fireShot` returns the shot, so a boss can give it more damage (`.dmg`).
 
 ### The 8 levels and bosses (in order)
 1. **The Outer Belt** — asteroid field in deep blue space, distant amber sun.
@@ -323,7 +358,7 @@ Approved by the owner. Keep the status column up to date.
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
-| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B-1 done (v0.12.1, after review) |
+| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0) |
 | 4 | **Levels 5–8** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |
@@ -346,8 +381,12 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - `js/enemies.js` — enemy types (incl. asteroids, seekers, snipers, spinners,
   cargo pods; Rust Moon's cliff turrets, dust skimmers, mortar crawlers and
   shells, rust boulders) and how they move/shoot.
-- `js/bosses.js` — boss behaviour (Rockjaw so far: 3 phases, 8 attacks,
-  entrance, transitions, gory death).
+- `js/bosses.js` — Rockjaw (3 phases, 8 attacks, entrance, transitions,
+  gory death).
+- `js/crawler.js` — the Siege Crawler (3 stages, 7 attacks + paired attacks,
+  entrance, transitions, death) and its mines and drones.
+  `js/crawlerart.js` — its hull painted by code; legs, cannon and core
+  hatch drawn each frame.
 - `js/weapons.js` — special weapons (bombs, rockets, laser), pickups, corner icon.
 - `js/powerups.js` — automatic power-ups (shield, repair, spread, rapid,
   wingman), their orbs, timers and HUD icons.
@@ -361,7 +400,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   Rockjaw drawn by code. `js/font.js` — 5×5 pixel font.
 - `js/audio.js` — all sound effects, synthesised in code (incl. boss roar,
   growl, jaw snap, inhale, splat).
-- `js/music.js` — boss music, generated live.
+- `js/music.js` — boss music, generated live (Rockjaw's, and the Siege
+  Crawler's march).
 - `js/gore.js` — blood (creatures only), chunks/debris, stains, screen-glass
   smears, boss corpses.
 - `js/blasts.js` — explosions: fireballs, shockwave rings, smoke, rock dust.
@@ -371,9 +411,10 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   release so phones fetch fresh files).
 - `tools/smoke-test.mjs` — simulated-phone test (Android + iPhone sizes):
   `PLAYWRIGHT_PATH=/opt/node22/lib/node_modules/playwright node tools/smoke-test.mjs <screenshot-dir>`
-- `tools/level-test.mjs` — invincible autopilot plays level 1 then level 2 at
-  high speed; checks pickups, specials, boss, new enemies and level clears
-  (same command style).
+- `tools/level-test.mjs` — invincible autopilot plays level 1 then level 2
+  (with both bosses) at high speed; checks pickups, specials, bosses,
+  talking, stage bonuses, new enemies and level clears (same command
+  style).
   It freezes the live game loop (`window.__ember.frozen = true`) and drives
   the game itself, so results are repeatable.
 - `tools/serve.mjs` — the tests' tiny web server (this computer only; refuses
