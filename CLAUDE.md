@@ -78,9 +78,12 @@ a real console controller, so you can play by feel while watching the game.
   turns. What's inside is decided when it's shot open.
   **Survival pods** (1st, 3rd, 5th…): health <= 2 → Repair; no shield →
   Shield; not full health → Repair; otherwise Rapid Fire or Spread Shot.
-  **Weapon pods** (2nd, 4th, 6th…): always a special — tops up the one you
-  carry, or a Laser if you carry none; Repair instead when health <= 2. The
-  pod's light shows the special's colour. (Before v0.9.0 the Laser step sat
+  **Weapon pods** (2nd, 4th, 6th…): a Laser if you carry no special;
+  otherwise an "A" ammo capsule (tops up whatever you carry when grabbed);
+  if your special is already full, Rapid Fire (Spread Shot if Rapid is
+  running); Repair instead when health <= 2. The pod's light always shows
+  what it would give right now (ammo shows your special's colour). Survival
+  pods have a white light. (Before v0.9.0 the Laser step sat
   behind "no shield → Shield", and a shield never outlasts the 20 s gap, so
   bosses effectively never gave specials.)
   During levels, when health is 2 blocks or fewer, drop chances rise
