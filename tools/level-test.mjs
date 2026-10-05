@@ -40,6 +40,7 @@ const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
     g.__wrapped = true;
   }
   const step = 1 / 120;
+  const VIEW_W_ = 208; // the game's width in game pixels
   for (let i = 0; i < seconds / step; i++) {
     const p = g.player;
     if (opts.invincible) p.invuln = Math.max(p.invuln, 1);
@@ -47,7 +48,19 @@ const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
     // drift towards pickups.
     let ty = p.y;
     const pk = g.pickups[0];
-    const target = g.nearestEnemy(p.x, p.y + p.h / 2);
+    // The autopilot's own pick: the nearest thing on screen, cargo pods
+    // first (rockets ignore pods, but the autopilot must shoot them open).
+    let target = null;
+    let best = Infinity;
+    for (const e of g.enemies) {
+      if (e.dead || e.mode === 'dying' || e.x > VIEW_W_ || e.x + e.w < 0) continue;
+      const tp = g.aimPoint(e);
+      const d = Math.hypot(tp.x - p.x, tp.y - p.y - p.h / 2) + (tp.x < p.x ? 80 : 0) - (e.type === 'carrier' ? 40 : 0);
+      if (d < best) {
+        best = d;
+        target = e;
+      }
+    }
     if (pk) ty = pk.y - 1;
     else if (target) ty = g.aimPoint(target).y - p.h / 2;
     let dx = 0;

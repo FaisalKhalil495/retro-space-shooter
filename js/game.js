@@ -1,19 +1,19 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.13.1';
-import { SPRITES } from './sprites.js?v=0.13.1';
-import { ENEMY_TYPES } from './enemies.js?v=0.13.1';
-import { LEVELS, LevelRunner } from './levels.js?v=0.13.1';
-import { Background } from './background.js?v=0.13.1';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.13.1';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.13.1';
-import { buzz, HAPTIC } from './feedback.js?v=0.13.1';
-import { sfx } from './audio.js?v=0.13.1';
-import { clamp, rectsOverlap } from './util.js?v=0.13.1';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.13.1';
-import { Blasts } from './blasts.js?v=0.13.1';
-import { Speech } from './speech.js?v=0.13.1';
-import { Terrain } from './terrain.js?v=0.13.1';
-import { startBossMusic, stopMusic } from './music.js?v=0.13.1';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.13.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.13.2';
+import { SPRITES } from './sprites.js?v=0.13.2';
+import { ENEMY_TYPES } from './enemies.js?v=0.13.2';
+import { LEVELS, LevelRunner } from './levels.js?v=0.13.2';
+import { Background } from './background.js?v=0.13.2';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.13.2';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.13.2';
+import { buzz, HAPTIC } from './feedback.js?v=0.13.2';
+import { sfx } from './audio.js?v=0.13.2';
+import { clamp, rectsOverlap } from './util.js?v=0.13.2';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.13.2';
+import { Blasts } from './blasts.js?v=0.13.2';
+import { Speech } from './speech.js?v=0.13.2';
+import { Terrain } from './terrain.js?v=0.13.2';
+import { startBossMusic, stopMusic } from './music.js?v=0.13.2';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.13.2';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -154,7 +154,7 @@ export class Game {
 
   // magnet: the pickup floats towards the ship so it can't be missed.
   spawnPickup(kind, x, y, magnet = false) {
-    y = Math.min(y, this.terrain.floorY - 14); // never inside the ground
+    y = Math.min(y, this.terrain.groundTop(x, 9) - 12); // never inside the ground or a spire
     if (kind) this.pickups.push({ kind, x, y, baseY: y, t: 0, magnet });
   }
 
@@ -360,13 +360,19 @@ export class Game {
     this.toast = { text, t: 1.4 };
   }
 
+  // The best target near a point (for homing rockets). Real fighters only:
+  // never cargo pods, mines or mortar shells. A boss with its weak spot open
+  // comes first; armoured targets come after open ones.
   nearestEnemy(x, y) {
+    const b = this.boss;
+    if (b && this.bossOnScreen() && b.mode !== 'dying' && b.T.isVulnerable && b.T.isVulnerable(b)) return b;
     let best = null;
     let bestD = Infinity;
     for (const e of this.enemies) {
-      if (e.dead || e.mode === 'dying' || e.x > VIEW_W || e.x + e.w < 0) continue;
+      if (e.dead || e.mode === 'dying' || e.T.harmless || e.x > VIEW_W || e.x + e.w < 0) continue;
       const tp = this.aimPoint(e);
-      const d = Math.hypot(tp.x - x, tp.y - y) + (tp.x < x ? 80 : 0); // prefer targets ahead
+      let d = Math.hypot(tp.x - x, tp.y - y) + (tp.x < x ? 80 : 0); // prefer targets ahead
+      if (e.T.isVulnerable && !e.T.isVulnerable(e)) d += 60; // armour up: try something else first
       if (d < bestD) {
         bestD = d;
         best = e;
@@ -690,6 +696,10 @@ export class Game {
           // Bounced off the boss: knocked back so you don't keep scraping it.
           if (e.T.knockback) e.T.knockback(e, p);
           else p.x = clamp(p.x - 14, 2, VIEW_W - p.w - 2);
+        } else if (e.T.isVulnerable && !e.T.isVulnerable(e)) {
+          // Rammed something armoured (a shut turret): it shrugs you off.
+          p.x = clamp(p.x - 12, 2, VIEW_W - p.w - 2);
+          this.blocked(p.x + p.w, p.y + p.h / 2);
         } else {
           this.killEnemy(e);
         }

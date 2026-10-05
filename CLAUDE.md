@@ -31,7 +31,9 @@ a real console controller, so you can play by feel while watching the game.
   fixed paths, chase the ship, or shoot at it.
 - 8 levels, each in a different setting, with a boss at the end of each.
 - Pickups give extra lives or special weapons: bombs, rockets, and a
-  long-range laser.
+  long-range laser. Rockets (v0.13.2) go for a boss's open weak spot first,
+  prefer unarmoured targets, and never chase cargo pods, mines or mortar
+  shells.
 - The game keeps a score and a high-score table.
 - **Difficulty: Hard** (changed from "Classic" after Stage 2 testing — the
   owner found level 1 and Rockjaw far too easy). Bosses should feel like
@@ -71,17 +73,20 @@ a real console controller, so you can play by feel while watching the game.
     knocks you back the way you came (or up and over); shots stop on them
     with a dust puff; indestructible. Spires stay solid while you're
     flashing after a hit or respawn (they just don't hurt then; v0.12.1).
+    Dropped items always appear above spires, never inside them.
     Pods diving from above crash into the ground; snipers leave upwards.
   - **Cliff turret** (on spires, or on a low rock mound on the floor, so
     the ordinary gun can always reach it): shut and armoured 1.6 s, hatch
     blinks 0.4 s, opens and fires 2 aimed shots at least 0.35 s apart,
     shuts. Only hurt
-    while open (specials too). 4 HP, 50 pts, 15% drop. Never fires at a
+    while open (specials too; ramming a shut turret costs you 2 blocks and
+    doesn't break it). 4 HP, 50 pts, 15% drop. Never fires at a
     ship that's behind it.
   - **Dust skimmer**: races in along the floor (hopping spires), swoops to
     your height, blinks 0.3 s, fires a 3-shot spread, climbs away. Only
     fires if you're in front of it. 2 HP, 40 pts, 10% drop.
-  - **Mortar crawler**: walks the floor, lobs a shell every 2.5 s. A red
+  - **Mortar crawler**: walks the floor (climbing over spires, never
+    hiding inside one), lobs a shell every 2.5 s. A red
     ring with a cross marks where it bursts (where you were at launch)
     0.9 s ahead; the burst costs 1 if you're on it and throws 4 fragments
     (1 each). A shell that touches you on the way bursts right there.
@@ -104,8 +109,9 @@ a real console controller, so you can play by feel while watching the game.
   - **Attacks** (every one warned): **Cannon** (barrel tracks you, snaps
     on as it locks, then a dotted red aim line 0.8/0.7/0.6 s, a heavy shell
     costing 2; 3 shells in stage 3; it can aim anywhere above it and tip
-    down over its nose, so there's no safe spot low in front of it or
-    behind it); **Mortar barrage** (3/4/5 shells on red rings, the first
+    steeply down over its nose, so there's no safe spot low in front of it
+    or behind it; between attacks it walks straight at a ship hiding low
+    at its feet); **Mortar barrage** (3/4/5 shells on red rings, the first
     where you are); **Flak wall** (dotted line across the screen with a
     gap between two posts, 1 line then 2, bursts sweep right to left,
     1 block, never reaching into the gap; fragments fly away from the other

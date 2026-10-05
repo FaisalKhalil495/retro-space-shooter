@@ -146,6 +146,8 @@ Last updated: end of Stage 2 (v0.10.3).
 | The boss's knock-back assumed you were always in front of it | Knock-backs, pushes and "away from" moves must work from every side, including behind a boss — and must fully clear it, not just nudge. |
 | v0.13.0 review: the cannon couldn't aim low and close, leaving a safe spot right where you shoot the core | For every boss, look for **safe pockets** (low in front, behind, on top) and check at least one attack reaches each. A boss's weak spot must never also be a safe spot. |
 | Boss drawing used the game's dice for its wobble | Drawing must never use the game's random numbers, or tests stop being repeatable. |
+| Whole-level review (v0.13.2): enemies hid inside spires, drops landed in rock, a shut turret could be rammed to death, rockets chased junk | When a new obstacle arrives (spires), check **every** moving thing against it — walkers, drops, homing weapons — not just the player and bullets. Armour rules must cover every way of doing damage, ramming included. |
+| A check passed on the old code by chance (the boss sometimes wandered into the ship anyway) | Test the decision itself (where it's heading), not just an outcome that luck can also produce. |
 
 ## 5. Our working process (what works)
 

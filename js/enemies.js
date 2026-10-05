@@ -1,11 +1,11 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.13.1';
-import { ROCKS } from './rockart.js?v=0.13.1';
-import { SPRITES } from './sprites.js?v=0.13.1';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.13.1';
-import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.13.1';
-import { clamp, rectHitsCircle } from './util.js?v=0.13.1';
-import { GROUND_SPEED } from './terrain.js?v=0.13.1';
-import { sfx } from './audio.js?v=0.13.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.13.2';
+import { ROCKS } from './rockart.js?v=0.13.2';
+import { SPRITES } from './sprites.js?v=0.13.2';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.13.2';
+import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.13.2';
+import { clamp, rectHitsCircle } from './util.js?v=0.13.2';
+import { GROUND_SPEED } from './terrain.js?v=0.13.2';
+import { sfx } from './audio.js?v=0.13.2';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -539,7 +539,12 @@ export const ENEMY_TYPES = {
     },
     update(e, dt, game) {
       e.x -= (GROUND_SPEED + 8) * dt;
-      e.y = game.terrain.floorY - e.h + (Math.floor(e.t * 6) % 2); // little steps
+      // It walks along the floor and clambers up and over any spire in its
+      // way, starting just before it gets there (so it can never hide
+      // inside the rock).
+      const want = game.terrain.groundTop(e.x - 12, e.w + 10) - e.h;
+      e.base = e.base === undefined ? want : e.base + clamp(want - e.base, -60 * dt, 90 * dt);
+      e.y = e.base + (Math.floor(e.t * 6) % 2); // little steps
       const inRange = e.x > 40 && e.x < VIEW_W - 20;
       if (!inRange) {
         e.charge = 0;

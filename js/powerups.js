@@ -1,6 +1,6 @@
-import { PAL, PLAYER } from './config.js?v=0.13.1';
-import { sfx } from './audio.js?v=0.13.1';
-import { buzz } from './feedback.js?v=0.13.1';
+import { PAL, PLAYER } from './config.js?v=0.13.2';
+import { sfx } from './audio.js?v=0.13.2';
+import { buzz } from './feedback.js?v=0.13.2';
 
 // Automatic power-ups: they work the moment you fly into them, no button.
 // They're drawn as ROUND orbs, so they never get mixed up with the square

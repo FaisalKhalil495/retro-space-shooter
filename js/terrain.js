@@ -1,5 +1,5 @@
-import { VIEW_W, VIEW_H } from './config.js?v=0.13.1';
-import { seeded } from './util.js?v=0.13.1';
+import { VIEW_W, VIEW_H } from './config.js?v=0.13.2';
+import { seeded } from './util.js?v=0.13.2';
 
 // Solid ground for levels that have it (Rust Moon first; the Ember Mines'
 // tunnels will build on this). Two parts:
@@ -14,11 +14,9 @@ export const GROUND_SPEED = 20;
 const FLOOR_COLORS = ['#3a2224', '#57302a', '#7a4632', '#9a6a4a'];
 const SPIRE_COLORS = ['#2e1c1f', '#4a2a27', '#6b3d2e', '#8c5a3e', '#a8785a'];
 
-// A spire is a tapering column of layered rock, painted once and reused.
-const spireCache = new Map();
+// A spire is a tapering column of layered rock, painted once when it's made
+// (each spire keeps its own picture; nothing is kept after it scrolls away).
 function spireImage(w, h, seed) {
-  const key = w + 'x' + h + ':' + seed;
-  if (spireCache.has(key)) return spireCache.get(key);
   const cv = document.createElement('canvas');
   cv.width = w;
   cv.height = h;
@@ -46,7 +44,6 @@ function spireImage(w, h, seed) {
       c.fillRect(x, y, 1, 1);
     }
   }
-  spireCache.set(key, cv);
   return cv;
 }
 
@@ -84,6 +81,17 @@ export class Terrain {
       if (x < s.x + s.w - 2 && x + w > s.x + 2 && y + h > s.top + 3 && y < this.floorY) return s;
     }
     return null;
+  }
+
+  // The top of the ground under a strip from x to x + w: the floor, or the
+  // top of the tallest spire there. (Walkers climb over spires; dropped
+  // items float above them.)
+  groundTop(x, w) {
+    let top = this.floorY;
+    for (const s of this.spires) {
+      if (x < s.x + s.w - 2 && x + w > s.x + 2) top = Math.min(top, s.top);
+    }
+    return top;
   }
 
   // Does a shot (or anything small) touch rock: a spire or the floor?

@@ -1,12 +1,12 @@
-import { VIEW_W, HUD_H, PAL } from './config.js?v=0.13.1';
-import { sfx } from './audio.js?v=0.13.1';
-import { clamp, rectsOverlap } from './util.js?v=0.13.1';
-import { METAL, MOLTEN } from './gore.js?v=0.13.1';
-import { GROUND_SPEED } from './terrain.js?v=0.13.1';
+import { VIEW_W, HUD_H, PAL } from './config.js?v=0.13.2';
+import { sfx } from './audio.js?v=0.13.2';
+import { clamp, rectsOverlap } from './util.js?v=0.13.2';
+import { METAL, MOLTEN } from './gore.js?v=0.13.2';
+import { GROUND_SPEED } from './terrain.js?v=0.13.2';
 import {
   CRAWLER, CRAWLER_W, CRAWLER_H, PIVOT, CORE, MORTAR_RACK, FLAK_GUNS, DRONE_BAY, MINE_HATCH, SLIT,
   drawLegs, drawBarrel, drawCore,
-} from './crawlerart.js?v=0.13.1';
+} from './crawlerart.js?v=0.13.2';
 
 // THE SIEGE CRAWLER · THE WALKING FORTRESS — boss of Rust Moon.
 //
@@ -36,8 +36,9 @@ const MOVESETS = [
   ['cannon', 'charge', 'allguns', 'mines', 'cannon', 'drones', 'stomp', 'mortars', 'flak'],
 ];
 const DUST = ['#6b4a3a', '#9a6a4a', '#c4a68e'];
-// Its solid parts (relative to its body): turret, hull, legs.
-const ARMOUR = [[20, 5, 26, 14], [4, 18, 67, 20], [6, 38, 62, 14]];
+// Its solid parts (relative to its body), following the drawing: turret,
+// the hull in three bands (its nose slopes back at the top), and the legs.
+const ARMOUR = [[21, 5, 26, 14], [14, 18, 52, 6], [7, 24, 63, 10], [8, 34, 58, 4], [6, 38, 62, 14]];
 const SMOKE = ['#3a2a2a', '#4d3f45', '#5e4a44'];
 
 // ---------------------------------------------------------------- helpers
@@ -51,8 +52,8 @@ const core = (e) => ({ x: e.x + CORE.x, y: bodyY(e) + CORE.y });
 // up and over: 0 = left, PI/2 = up, PI = right. It can tip well below
 // level either way (down over its nose, so there's no safe spot low in
 // front of it), but never swings down through its own body.
-const AIM_MIN = -0.6;
-const AIM_MAX = Math.PI + 0.6;
+const AIM_MIN = -0.8;
+const AIM_MAX = Math.PI + 0.8;
 const aimDir = (a) => ({ x: -Math.cos(a), y: -Math.sin(a) });
 function aimTo(e, x, y) {
   const p = pivot(e);
@@ -185,6 +186,7 @@ const ATTACKS = {
         const gap = 18 + g.rand() * (VIEW_W - 64);
         return { y: Math.round(y), gap0: gap, gap1: gap + 30, next: VIEW_W - 6, count: 0 };
       });
+      a.lowest = Math.max(...a.lines.map((L) => L.y));
       e.flak = a.lines;
       sfx.warning();
     }
@@ -212,7 +214,7 @@ const ATTACKS = {
         // Every other burst throws a hot fragment back and away from the
         // other line (the top line's go up, the bottom line's go down), so
         // no fragment can fall through the other line's gap.
-        const up = a.lines.length > 1 && L.y < Math.max(...a.lines.map((o) => o.y));
+        const up = L.y < a.lowest;
         if (L.count++ % 2 === 0) g.fireShot(x, L.y + (up ? -2 : 2), Math.PI * (up ? -0.62 : 0.62), 46, 'gravel', true);
       }
       if (L.next > 0) left = true;
@@ -363,12 +365,13 @@ const ATTACKS = {
   // Stage 3: everything at once — a mortar barrage during a flak wall.
   allguns(e, a, dt, g) {
     if (!a.parts) a.parts = [{ t: 0 }, { t: 0 }];
+    if (!a.finished) a.finished = [false, false];
     let done = true;
     ['flak', 'mortars'].forEach((name, i) => {
+      if (a.finished[i]) return;
       const part = a.parts[i];
-      if (part.done) return;
       part.t += dt;
-      if (ATTACKS[name](e, part, dt, g)) part.done = true;
+      if (ATTACKS[name](e, part, dt, g)) a.finished[i] = true;
       else done = false;
     });
     return done;
@@ -481,7 +484,14 @@ export const SIEGE_CRAWLER_TYPE = {
         break;
       case 'fight': {
         if (!e.attack) {
-          pace(e, dt, g);
+          // A ship hiding low at its feet gets walked over.
+          const low = g.playerCenter();
+          if (low.y > bodyY(e) + 20 && low.x > e.x - 50 && low.x < e.x + 6) {
+            e.targetX = clamp(low.x - 4, LEFT_LIMIT[e.phase], HOME_X);
+            walkTo(e, e.targetX, 28 * SPEED[e.phase], dt);
+          } else {
+            pace(e, dt, g);
+          }
           e.hatchTarget = 0;
           // Between attacks the cannon idly follows you.
           const pc = g.playerCenter();
@@ -568,7 +578,7 @@ export const SIEGE_CRAWLER_TYPE = {
     const by = bodyY(e);
     // The open core counts from the front edge of the hull, so a shot at
     // its height can't clip the armour just in front of it first.
-    if (SIEGE_CRAWLER_TYPE.isVulnerable(e) && rectsOverlap(x, y, w, h, e.x, by + CORE.y - 5, CORE.x + 5, 10)) return 'hit';
+    if (SIEGE_CRAWLER_TYPE.isVulnerable(e) && rectsOverlap(x, y, w, h, e.x + 5, by + CORE.y - 5, CORE.x, 10)) return 'hit';
     for (const [px, py, pw, ph] of ARMOUR) {
       if (rectsOverlap(x, y, w, h, e.x + px, by + py, pw, ph)) return 'block';
     }
@@ -619,7 +629,7 @@ export const SIEGE_CRAWLER_TYPE = {
       ctx.drawImage(CRAWLER.bodies[stage], x, y);
     }
     drawCore(ctx, x + CORE.x, y + CORE.y, e.hatch, g.time, e.flash > 0);
-    if (!e.turretGone) drawBarrel(ctx, x + PIVOT.x, y + PIVOT.y, Math.atan2(aimDir(e.ang).y, aimDir(e.ang).x), BARREL, e.recoil);
+    if (!e.turretGone) drawBarrel(ctx, x + PIVOT.x, y + PIVOT.y, e.ang + Math.PI, BARREL, e.recoil);
     drawLegs(ctx, x, y, e.step + 1, Math.min(1, e.walk), true);
     const blink = Math.floor(g.time * 16) % 2 === 0;
     // The vision slit glows while it's taking aim or revving.
