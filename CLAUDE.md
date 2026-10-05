@@ -138,8 +138,10 @@ a real console controller, so you can play by feel while watching the game.
   low growl blip, about 2 s. **A boss only talks when it isn't attacking**
   (owner, v0.10.4 — bubbles mid-fight were distracting): after its name card
   it hangs back, says its taunt, then starts the fight; at a stage break it
-  doesn't attack again until it has finished shouting. Bubbles sit **above**
-  the boss (out of the space between you and it), two short lines at most. Round cream bubble for taunts, jagged amber
+  doesn't attack again until it has finished shouting; after a kill line it
+  doesn't start a new attack until the bubble is gone. Bubbles sit **above**
+  the boss, or **below** it if it's high on the screen (out of the space
+  between you and it), two short lines at most. Round cream bubble for taunts, jagged amber
   bubble for roars. Drawn under pickups, enemies and bullets so they never
   hide anything. Name cards stay big titles; the boss's lines are spoken in
   first person (no narrator banners). Rockjaw: taunt "YOU ARE FUCKING
@@ -168,6 +170,10 @@ a real console controller, so you can play by feel while watching the game.
   and `onScreen(e)` (false during its entrance — hides the health bar and
   stops it gloating). Supply pods and stage bonuses live in Game, so every
   boss gets them by calling `g.nextSupplyKind()` / `g.stageBonus(e, stage)`.
+  **Every boss must check `g.bossMayAttack(e)` before starting any attack
+  and before leaving a pause** (false while its speech bubble is up). Its
+  opening taunt waits for the name card (`g.title`) to clear, then the boss
+  holds back until it has finished talking.
 
 ### The 8 levels and bosses (in order)
 1. **The Outer Belt** — asteroid field in deep blue space, distant amber sun.

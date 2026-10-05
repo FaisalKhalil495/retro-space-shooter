@@ -60,7 +60,11 @@ const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
     }
     g.update(step, { dx, dy, fire: true, special, tap: false });
     if (g.boss) log.bossSeen = true;
-    if (g.boss && g.isSpeaking(g.boss) && g.boss.attack) log.talkAttacks = (log.talkAttacks || 0) + 1;
+    // While Rockjaw talks (taunt, roars) he must be holding back, not
+    // fighting. (No kill lines here: the autopilot is invincible.)
+    if (g.boss && g.isSpeaking(g.boss) && (g.boss.mode === 'fight' || g.boss.attack)) {
+      log.talkAttacks = (log.talkAttacks || 0) + 1;
+    }
     log.maxEnemies = Math.max(log.maxEnemies, g.enemies.length);
     for (const e of g.enemies) if (!log.types.includes(e.type)) log.types.push(e.type);
     if (g.state === 'clear') break;
