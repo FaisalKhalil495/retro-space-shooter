@@ -60,6 +60,7 @@ const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
     }
     g.update(step, { dx, dy, fire: true, special, tap: false });
     if (g.boss) log.bossSeen = true;
+    if (g.boss && g.isSpeaking(g.boss) && g.boss.attack) log.talkAttacks = (log.talkAttacks || 0) + 1;
     log.maxEnemies = Math.max(log.maxEnemies, g.enemies.length);
     for (const e of g.enemies) if (!log.types.includes(e.type)) log.types.push(e.type);
     if (g.state === 'clear') break;
@@ -131,6 +132,7 @@ const checks = {
   'Rockjaw talks in speech bubbles': ['YOU ARE FUCKING DINNER', 'MY FUCKING EYE!', 'NOW I EAT YOU WHOLE']
     .every((line) => r.said.includes(line)),
   'a stage bonus for each broken stage': r.bonuses === 2,
+  'Rockjaw never attacks while talking': !r.talkAttacks,
   'boss sends a supply pod every ~20s': pods >= 3,
   'supply pods alternate survival / weapon': supply.kinds.slice(0, 3).join() === 'smart,weapon,smart',
   'level cleared': r.state === 'clear',
