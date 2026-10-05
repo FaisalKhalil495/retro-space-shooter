@@ -110,8 +110,9 @@ a real console controller, so you can play by feel while watching the game.
     still ahead of their gun; dive-bombers from above/below can fire.
   - **Rocks carry real loot** (no glints, nothing from v0.5.0): big rocks
     25% (40% when health <= 2), small rocks 6% (12% when hurt). About 30% of
-    rock drops are special weapon ammo, which tops up the special you carry
-    (random one if you carry none); the rest are power-ups. When hurt, 60%
+    rock drops are an amber **"A" ammo capsule**: when collected it tops up
+    the special you carry at that moment (a random one if you carry none),
+    so it never swaps your weapon away; the rest are power-ups. When hurt, 60%
     of drops are Repair. Fragments, pebbles and Rockjaw's rocks never drop.
     About 15 items per level if every rock is shot (was about 2).
 - Level 1 enemies (Hard): some pods shoot, weavers spit acid, gunners fire 4

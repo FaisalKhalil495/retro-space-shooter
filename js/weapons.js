@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.7.0';
-import { drawText } from './font.js?v=0.7.0';
-import { sfx } from './audio.js?v=0.7.0';
-import { buzz } from './feedback.js?v=0.7.0';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.7.1';
+import { drawText } from './font.js?v=0.7.1';
+import { sfx } from './audio.js?v=0.7.1';
+import { buzz } from './feedback.js?v=0.7.1';
 
 // Special weapons and pickups.
 // The player carries ONE special at a time. A pickup gives some shots;
@@ -13,6 +13,10 @@ export const SPECIALS = {
   laser: { label: 'L', name: 'LASER', color: PAL.blue, light: PAL.bluePale, ammo: 3, max: 5 },
 };
 export const LIFE_PICKUP = { label: '+', name: 'EXTRA LIFE', color: PAL.cream, light: '#ffffff' };
+// Ammo from rocks: tops up whatever special you carry when you collect it
+// (a random one if you carry none), so it never swaps your weapon away.
+export const AMMO_PICKUP = { label: 'A', name: 'AMMO', color: PAL.amberSoft, light: PAL.amberLight };
+const SPECIAL_KINDS = Object.keys(SPECIALS);
 
 const BOMB_DAMAGE = 8;
 const BOMB_SPEED = 300;  // how fast the shockwave ring spreads (game px/s)
@@ -21,7 +25,7 @@ const LASER_TIME = 0.8;
 const LASER_DPS = 18;
 
 export function pickupInfo(kind) {
-  return kind === 'life' ? LIFE_PICKUP : SPECIALS[kind];
+  return kind === 'life' ? LIFE_PICKUP : kind === 'ammo' ? AMMO_PICKUP : SPECIALS[kind];
 }
 
 // Draw a pickup capsule (also used for the corner icon).
@@ -57,6 +61,7 @@ export class Weapons {
       g.showToast('EXTRA LIFE');
       return;
     }
+    if (kind === 'ammo') kind = this.kind || SPECIAL_KINDS[Math.floor(g.rand() * SPECIAL_KINDS.length)];
     const s = SPECIALS[kind];
     if (this.kind === kind) this.ammo = Math.min(s.max, this.ammo + s.ammo);
     else {

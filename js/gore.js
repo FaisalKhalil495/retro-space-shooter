@@ -1,4 +1,4 @@
-import { VIEW_H, BLOOD } from './config.js?v=0.7.0';
+import { VIEW_H, BLOOD } from './config.js?v=0.7.1';
 
 // Blood, gore and debris. Only living creatures bleed: weavers lightly,
 // Rockjaw fully. Machines and the player explode instead (see blasts.js).
@@ -54,7 +54,7 @@ export class Gore {
 
   // Tumbling chunks. Flesh chunks leave a trail of blood.
   chunks(x, y, n, palette = FLESH, speed = 70, bleeds = true) {
-    if (!BLOOD && palette !== ROCK && palette !== METAL && palette !== MOLTEN) return;
+    if (!BLOOD && palette !== ROCK && palette !== METAL && palette !== MOLTEN && palette !== GLASS) return;
     const r = this.rand;
     for (let i = 0; i < n; i++) {
       const a = r() * Math.PI * 2;

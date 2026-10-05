@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.7.0';
-import { ROCKS } from './rockart.js?v=0.7.0';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.7.0';
-import { clamp, rectHitsCircle } from './util.js?v=0.7.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.7.1';
+import { ROCKS } from './rockart.js?v=0.7.1';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.7.1';
+import { clamp, rectHitsCircle } from './util.js?v=0.7.1';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -33,7 +33,10 @@ export const ENEMY_TYPES = {
         const diving = Math.abs(e.vy) > 30;
         const facing = diving || p.x + p.w < e.x - 6;
         const inView = e.x < VIEW_W - 34;
-        if (!facing) e.charge = 0;
+        if (!facing) {
+          e.charge = 0;
+          e.aim = 0; // full warning blink again if it faces you later
+        }
         if (inView && facing) {
           e.aim = (e.aim || 0) + dt;
           e.charge = 1;

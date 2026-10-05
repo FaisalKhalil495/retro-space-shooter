@@ -1,4 +1,5 @@
-import { PAL } from './config.js?v=0.7.0';
+import { PAL } from './config.js?v=0.7.1';
+import { ROCK } from './gore.js?v=0.7.1';
 
 // Explosions, drawn as chunky pixel art in the warm palette (no neon, no
 // glow). A blast is a quick white-hot flash, a fireball that swells and cools
@@ -16,7 +17,6 @@ const FIRE = [
   [PAL.redDark, PAL.red, PAL.amberSoft],
 ];
 const SMOKE = [PAL.grey, '#3a3a52', PAL.blueDark];
-const DUST = ['#4d3f45', '#75605f', '#9c8478'];
 
 export class Blasts {
   constructor(rand) {
@@ -70,7 +70,7 @@ export class Blasts {
         x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
         r: 1 + r() * (1.5 + size * 2), grow: 2 + r() * 3,
         t: 0, life: 0.35 + r() * 0.3,
-        color: DUST[Math.floor(r() * DUST.length)],
+        color: ROCK[Math.floor(r() * ROCK.length)],
       });
     }
     this.fire(x, y, 2 + size * 3, 0.12, 0); // a brief flash of impact
@@ -86,7 +86,10 @@ export class Blasts {
       f.x -= SCROLL * 0.3 * dt;
     }
     this.fires = this.fires.filter((f) => f.t < f.life);
-    for (const g of this.rings) g.t += dt;
+    for (const g of this.rings) {
+      g.t += dt;
+      g.x -= SCROLL * 0.3 * dt;
+    }
     this.rings = this.rings.filter((g) => g.t < g.life);
     for (const p of this.puffs) {
       p.t += dt;
@@ -105,8 +108,7 @@ export class Blasts {
     for (const p of this.puffs) {
       if (p.t < 0) continue;
       const k = p.t / p.life;
-      ctx.fillStyle = p.color;
-      disc(ctx, snap(p.x), snap(p.y), p.r, k > 0.5 ? (k > 0.8 ? 2 : 1) : 0);
+      disc(ctx, snap(p.x), snap(p.y), p.r, p.color, k > 0.5 ? (k > 0.8 ? 2 : 1) : 0);
     }
     for (const g of this.rings) {
       const k = g.t / g.life;
@@ -122,33 +124,42 @@ export class Blasts {
       const r = Math.max(1.5, f.R * Math.min(1, 0.35 + k * 2.2));
       const [outer, inner, core] = FIRE[Math.min(FIRE.length - 1, Math.floor(k * FIRE.length))];
       const breakup = k > 0.75 ? 2 : k > 0.55 ? 1 : 0;
-      ctx.fillStyle = outer;
-      disc(ctx, x, y, r, breakup);
-      ctx.fillStyle = inner;
-      disc(ctx, x, y, r * 0.66, breakup ? 1 : 0);
-      if (k < 0.6) {
-        ctx.fillStyle = core;
-        disc(ctx, x, y, r * 0.33, 0);
-      }
+      disc(ctx, x, y, r, outer, breakup);
+      disc(ctx, x, y, r * 0.66, inner, breakup ? 1 : 0);
+      if (k < 0.6) disc(ctx, x, y, r * 0.33, core, 0);
     }
   }
 }
 
-// A filled pixel disc. dither 1 skips every other pixel, 2 keeps one in four,
-// so things look like they're breaking up as they fade.
-function disc(ctx, cx, cy, r, dither = 0) {
+// A filled pixel disc. dither 1 keeps every other pixel (a checkerboard),
+// 2 keeps one in four, so things look like they're breaking up as they fade.
+// Dithered rows are filled with a repeating pattern: one draw call per row
+// instead of one per pixel, which keeps big explosions cheap on phones.
+function disc(ctx, cx, cy, r, color, dither = 0) {
+  ctx.fillStyle = dither ? ditherPattern(ctx, color, dither) : color;
   const ri = Math.max(1, Math.round(r));
   for (let y = -ri; y <= ri; y++) {
     const half = Math.floor(Math.sqrt(ri * ri - y * y));
-    if (!dither) {
-      ctx.fillRect(cx - half, cy + y, half * 2 + 1, 1);
-      continue;
-    }
-    for (let x = -half; x <= half; x++) {
-      const keep = dither === 1 ? (x + y) % 2 === 0 : x % 2 === 0 && y % 2 === 0;
-      if (keep) ctx.fillRect(cx + x, cy + y, 1, 1);
-    }
+    ctx.fillRect(cx - half, cy + y, half * 2 + 1, 1);
   }
+}
+
+const patterns = new Map();
+function ditherPattern(ctx, color, dither) {
+  const key = color + dither;
+  let pat = patterns.get(key);
+  if (!pat) {
+    const cv = document.createElement('canvas');
+    cv.width = 2;
+    cv.height = 2;
+    const c = cv.getContext('2d');
+    c.fillStyle = color;
+    c.fillRect(0, 0, 1, 1);
+    if (dither === 1) c.fillRect(1, 1, 1, 1);
+    pat = ctx.createPattern(cv, 'repeat');
+    patterns.set(key, pat);
+  }
+  return pat;
 }
 
 // A one-pixel circle outline (optionally dotted).
