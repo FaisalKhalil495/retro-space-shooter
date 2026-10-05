@@ -1,6 +1,6 @@
-import { PAL, PLAYER } from './config.js?v=0.8.0';
-import { sfx } from './audio.js?v=0.8.0';
-import { buzz } from './feedback.js?v=0.8.0';
+import { PAL, PLAYER } from './config.js?v=0.8.1';
+import { sfx } from './audio.js?v=0.8.1';
+import { buzz } from './feedback.js?v=0.8.1';
 
 // Automatic power-ups: they work the moment you fly into them, no button.
 // They're drawn as ROUND orbs, so they never get mixed up with the square
@@ -18,19 +18,27 @@ export const REPAIR_AMOUNT = 2;
 
 // How likely each power-up is when an enemy or rock drops a random one.
 const DROP_WEIGHTS = { repair: 3, shield: 2, spread: 2, rapid: 2, wingman: 1 };
-// At full health a Repair would be wasted, so its share goes to Spread Shot
-// and Rapid Fire instead.
-const FULL_HEALTH_WEIGHTS = { shield: 2, spread: 3.5, rapid: 3.5, wingman: 1 };
+// At full health a Repair would be wasted, so its share is split between
+// Spread Shot and Rapid Fire instead.
+const { repair: REPAIR_SHARE, ...REST } = DROP_WEIGHTS;
+const FULL_HEALTH_WEIGHTS = {
+  ...REST,
+  spread: REST.spread + REPAIR_SHARE / 2,
+  rapid: REST.rapid + REPAIR_SHARE / 2,
+};
+const TABLES = [DROP_WEIGHTS, FULL_HEALTH_WEIGHTS].map((weights) => ({
+  entries: Object.entries(weights),
+  total: Object.values(weights).reduce((a, b) => a + b, 0),
+}));
 
 export function randomPowerup(rand, fullHealth = false) {
-  const weights = fullHealth ? FULL_HEALTH_WEIGHTS : DROP_WEIGHTS;
-  const total = Object.values(weights).reduce((a, b) => a + b, 0);
+  const { entries, total } = TABLES[fullHealth ? 1 : 0];
   let r = rand() * total;
-  for (const [kind, w] of Object.entries(weights)) {
+  for (const [kind, w] of entries) {
     r -= w;
     if (r < 0) return kind;
   }
-  return 'repair';
+  return entries[entries.length - 1][0];
 }
 
 // 5x5 pixel icons shown inside the orbs.

@@ -1,17 +1,17 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.8.0';
-import { SPRITES } from './sprites.js?v=0.8.0';
-import { ENEMY_TYPES } from './enemies.js?v=0.8.0';
-import { LEVELS, LevelRunner } from './levels.js?v=0.8.0';
-import { Background } from './background.js?v=0.8.0';
-import { Weapons, drawCapsule, pickupInfo } from './weapons.js?v=0.8.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.8.0';
-import { buzz, HAPTIC } from './feedback.js?v=0.8.0';
-import { sfx } from './audio.js?v=0.8.0';
-import { clamp, rectsOverlap } from './util.js?v=0.8.0';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.8.0';
-import { Blasts } from './blasts.js?v=0.8.0';
-import { startBossMusic, stopMusic } from './music.js?v=0.8.0';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.8.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.8.1';
+import { SPRITES } from './sprites.js?v=0.8.1';
+import { ENEMY_TYPES } from './enemies.js?v=0.8.1';
+import { LEVELS, LevelRunner } from './levels.js?v=0.8.1';
+import { Background } from './background.js?v=0.8.1';
+import { Weapons, drawCapsule, pickupInfo } from './weapons.js?v=0.8.1';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.8.1';
+import { buzz, HAPTIC } from './feedback.js?v=0.8.1';
+import { sfx } from './audio.js?v=0.8.1';
+import { clamp, rectsOverlap } from './util.js?v=0.8.1';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.8.1';
+import { Blasts } from './blasts.js?v=0.8.1';
+import { startBossMusic, stopMusic } from './music.js?v=0.8.1';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.8.1';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -137,9 +137,10 @@ export class Game {
     else this.weapons.collect(kind);
   }
 
-  // Tough enemies sometimes leave a power-up behind.
+  // Tough enemies and big rocks sometimes leave a power-up behind.
   // When you're hurt (2 health blocks or fewer), drops get more likely and
-  // lean towards Repair. At full health they stay as they are.
+  // lean towards Repair. At full health they never give Repair (it would be
+  // wasted); Spread Shot and Rapid Fire get its share.
   maybeDrop(e) {
     if (e.byBoss || e.T.noDrop) return;
     const hurt = this.health <= 2;
