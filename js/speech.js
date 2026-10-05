@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.10.0';
-import { drawText, textWidth } from './font.js?v=0.10.0';
-import { sfx } from './audio.js?v=0.10.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.10.1';
+import { drawText, textWidth } from './font.js?v=0.10.1';
+import { sfx } from './audio.js?v=0.10.1';
 
 // Comic-book speech bubbles for characters that talk (bosses so far).
 // A bubble sits beside the speaker, follows them around, points its tail at
@@ -23,7 +23,13 @@ export class Speech {
   }
 
   say(speaker, text, style = 'talk', dur = 2.6) {
-    this.bubble = { speaker, lines: wrap(text), style, t: 0, dur, typed: 0 };
+    const lines = wrap(text);
+    this.bubble = {
+      speaker, lines, style, t: 0, dur, typed: 0,
+      total: lines.join('').length,
+      w: Math.max(...lines.map((l) => textWidth(l))) + 8,
+      h: lines.length * LINE_H + 5,
+    };
   }
 
   update(dt) {
@@ -34,28 +40,33 @@ export class Speech {
       return;
     }
     b.t += dt;
-    const total = b.lines.join('').length;
-    const typed = Math.min(total, Math.floor(b.t * TYPE_SPEED));
+    const typed = Math.min(b.total, Math.floor(b.t * TYPE_SPEED));
     // A low growl blip every few letters while it's typing.
     if (typed > b.typed && Math.floor(typed / 3) > Math.floor(b.typed / 3)) sfx.voice(b.style === 'roar');
     b.typed = typed;
   }
 
-  draw(ctx, snap) {
+  // anchorOf(e) gives the point the tail aims at (the speaker's mouth).
+  draw(ctx, snap, anchorOf) {
     const b = this.bubble;
     if (!b) return;
     if (b.t > b.dur - 0.25 && Math.floor(b.t * 20) % 2 === 0) return; // blinks out
     const e = b.speaker;
-    const anchor = e.T.aimPoint ? e.T.aimPoint(e) : { x: e.x + e.w / 2, y: e.y + e.h / 2 };
+    const anchor = anchorOf(e);
     const ax = snap(anchor.x);
     const ay = snap(anchor.y);
-    const w = Math.max(...b.lines.map((l) => textWidth(l))) + 8;
-    const h = b.lines.length * LINE_H + 5;
-    // Up and to the left of the mouth (towards the player), kept on screen.
-    let bx = Math.round(Math.min(Math.max(ax - w - 6, 2), VIEW_W - w - 2));
-    let by = Math.round(Math.min(Math.max(ay - h - 10, HUD_H + 4), VIEW_H - h - 2));
-    // If the mouth is right under the bubble, put the bubble below instead.
-    if (ay < by + h + 3 && ay > by - 3) by = Math.min(VIEW_H - h - 2, ay + 10);
+    const { w, h } = b;
+    // Bubbles are drawn under the speaker, so pick the first spot that keeps
+    // clear of their body: up-left of the mouth (towards the player), then
+    // above them, then below them. Always kept on screen.
+    const fit = (x, y) => ({
+      x: Math.round(Math.min(Math.max(x, 2), VIEW_W - w - 2)),
+      y: Math.round(Math.min(Math.max(y, HUD_H + 4), VIEW_H - h - 2)),
+    });
+    const clearOf = (p) =>
+      p.x + w < e.x - 1 || p.x > e.x + e.w + 1 || p.y + h < e.y - 1 || p.y > e.y + e.h + 1;
+    const spots = [fit(ax - w - 6, ay - h - 10), fit(ax - w / 2, e.y - h - 8), fit(ax - w / 2, e.y + e.h + 8)];
+    const { x: bx, y: by } = spots.find(clearOf) || spots[0];
 
     const roar = b.style === 'roar';
     const fill = roar ? PAL.amberSoft : PAL.cream;
