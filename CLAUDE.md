@@ -286,6 +286,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 
 ## Code map
 
+- `LESSONS.md` — the owner's preferences, lessons learned, stage
+  retrospectives and a reusable recipe for future games.
 - `index.html` — the page: canvas, start / pause / "turn sideways" screens, CSS.
 - `js/main.js` — start-up, screen sizing, game loop, pause, full screen.
 - `js/config.js` — version, game-pixel size (208×144), palette, player tuning.
@@ -347,7 +349,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - If you're unsure what I meant, ask instead of guessing.
 
 ## Working process (every session)
-1. Read this file.
+1. Read this file **and `LESSONS.md`** (the owner's preferences and what
+   we've learned — read it before planning anything).
 2. After each stage: stop, describe what was built in one short paragraph, and
    give exact phone test steps (what to tap, what success looks like, what
    failure looks like). Wait for the owner to test before moving on.
@@ -355,3 +358,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
    If going round in circles, say so and offer options, including going back
    to the last version that worked.
 4. The owner also prefers: always ask before starting anything big.
+5. Review every release yourself before handing it over (code review,
+   verify findings, fix the real ones) — the owner shouldn't have to ask.
+6. **At the end of every stage:** full code review + clean-up release, mark
+   the stage done, and **update `LESSONS.md`** (retrospective, new
+   preferences, new lessons, anything reusable for future games).
