@@ -421,7 +421,7 @@ for (const phone of PHONES) {
     e.x = 130;
     e.y = 50 - e.h / 2;
     g.say(e, 'PICKING YOU OUT OF MY TEETH');
-    g.speech.draw(document.createElement('canvas').getContext('2d'), (v) => v, g.aimPointOf);
+    g.speech.draw(document.createElement('canvas').getContext('2d'), (v) => v, g.voicePointOf);
     const spot = g.speech.bubble.spot;
     let attackedWhileTalking = false;
     for (let i = 0; i < 400 && g.isSpeaking(e); i++) {
@@ -457,9 +457,10 @@ for (const phone of PHONES) {
 }
 
 // Stage 3A: level flow. "?level=2" starts on level 2; clearing level 1
-// carries score, lives and the special into level 2 with full health; the
-// level 2 (no boss yet) clears itself; after the last level you're back on
-// level 1 with a fresh run.
+// carries score, lives and the special into level 2 with full health;
+// beating the Siege Crawler clears level 2; after the last level you're back
+// on level 1 with a fresh run. A level that ends without a boss clears
+// itself.
 {
   const context = await browser.newContext({ viewport: { width: 915, height: 412 }, isMobile: true, hasTouch: true });
   const page = await context.newPage();
@@ -475,14 +476,24 @@ for (const phone of PHONES) {
     const startedOn = g.level.number;
     const idle = { dx: 0, dy: 0, fire: true, special: false, tap: false };
     const tap = { ...idle, tap: true };
-    // Play level 2 (invincible) until it clears itself.
+    // Jump to level 2's boss (invincible); once the fight is on, finish the
+    // Siege Crawler off and the level should clear.
+    g.runner.skipTo(g.runner.endsAt - 0.5);
     let t = 0;
-    while (g.state !== 'clear' && t < 220) {
+    let killed = false;
+    while (g.state !== 'clear' && t < 60) {
       g.player.invuln = 1;
+      const b = g.boss;
+      if (b && b.mode === 'fight' && !killed) {
+        killed = true;
+        b.hatch = 1;
+        b.hp = 1;
+        g.damage(b, 5);
+      }
       g.update(1 / 120, idle);
       t += 1 / 120;
     }
-    const level2Cleared = g.state === 'clear';
+    const level2Cleared = killed && g.state === 'clear';
     // Tap on: no level 3 yet, so back to level 1, fresh.
     g.stateTimer = 4;
     g.update(1 / 120, tap);
@@ -510,9 +521,13 @@ for (const phone of PHONES) {
       t2 += 1 / 120;
     }
     const clearAfterRespawn = g.state === 'clear';
-    // Starting past a boss-less level's end (?level=2&start=190) still ends it.
+    // A level that ends without a boss (an 'end' event) still ends when you
+    // start past it. (No real level does this right now, so a stand-in
+    // timeline is swapped into level 2 for a moment.)
     g.levelIndex = 1;
-    g.startAt = 190;
+    const realEvents = g.level.events;
+    g.level.events = [[2, 'row', { n: 3 }], [6, 'end']];
+    g.startAt = 10;
     g.reset();
     let t3 = 0;
     while (g.state !== 'clear' && t3 < 15) {
@@ -521,6 +536,7 @@ for (const phone of PHONES) {
       t3 += 1 / 120;
     }
     const skippedEndStillEnds = g.state === 'clear';
+    g.level.events = realEvents;
     g.startAt = 0;
     return {
       clearAfterRespawn, skippedEndStillEnds,
@@ -763,6 +779,140 @@ for (const phone of PHONES) {
   await context.close();
 }
 
+
+// Stage 3B-2: the Siege Crawler plays by the rules.
+{
+  const context = await browser.newContext({ viewport: { width: 915, height: 412 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  const errs = [];
+  page.on('pageerror', (e) => errs.push(String(e)));
+  await page.goto(base + '?level=2');
+  await page.waitForTimeout(300);
+  await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  await page.waitForTimeout(300);
+  const r = await page.evaluate(() => {
+    window.__ember.frozen = true;
+    const g = window.__ember.game;
+    const idle = { dx: 0, dy: 0, fire: false, special: false, tap: false };
+    // A Siege Crawler already in the fight, nothing else around.
+    const fresh = (phase = 1) => {
+      g.reset();
+      g.runner.next = g.level.events.length;
+      g.banner = null;
+      g.player.entering = 0;
+      const b = g.spawnEnemy('siegeCrawler', 0, 0);
+      Object.assign(b, { mode: 'fight', entered: true, taunted: true, x: 120, phase, idle: 99, attack: null });
+      return b;
+    };
+    const res = {};
+
+    // Its core is armoured unless the hatch is open; shots at the core's
+    // height from the ship really reach it when it is open.
+    let b = fresh();
+    const c = g.aimPoint(b);
+    g.strike(b, c.x - 8, c.y - 1, 7, 2, 1);
+    res.shutHp = b.maxHp - b.hp;
+    b.hatch = 1;
+    b.hatchTarget = 1;
+    g.player.x = 20;
+    g.player.y = c.y - g.player.h / 2;
+    for (let i = 0; i < 120; i++) {
+      g.player.invuln = 1;
+      b.hatch = 1; // held open for the test
+      b.hatchTarget = 1;
+      g.update(1 / 120, { ...idle, fire: true });
+    }
+    res.openHits = b.maxHp - b.hp;
+
+    // Every attack warns (aim line, flak line, blinking hatch, rings, wind-up
+    // or revving) at least 0.3 s before anything can hurt you.
+    res.warnings = {};
+    for (const name of ['cannon', 'mortars', 'flak', 'mines', 'drones', 'stomp', 'charge']) {
+      b = fresh(3);
+      g.player.x = 30;
+      g.player.y = 60;
+      b.attack = { name, t: 0 };
+      let warnAt = null;
+      let dangerAt = null;
+      let shots = 0;
+      for (let i = 0; i < 6 * 120 && dangerAt === null; i++) {
+        g.player.invuln = 1;
+        g.update(1 / 120, idle);
+        const t = i / 120;
+        const warned = b.aimLine || b.flak || b.lightT > 0 || b.lift > 0 || b.slit || g.markers.length > 0 ||
+          g.enemies.some((e) => e.type === 'mortarShell' || e.charge);
+        if (warned && warnAt === null) warnAt = t;
+        const danger = g.enemyShots.length > shots || b.waves.length > 0 || b.flakFiring ||
+          (b.attack && b.attack.running);
+        shots = g.enemyShots.length;
+        if (danger) dangerAt = t;
+      }
+      res.warnings[name] = warnAt === null || dangerAt === null ? -1 : +(dangerAt - warnAt).toFixed(2);
+    }
+
+    // The flak wall's gap is safe right up to its posts (where = 'mid',
+    // 'left' or 'right' of the gap); anywhere else on the line is not.
+    const flakAt = (where) => {
+      b = fresh(1);
+      g.player.x = 30;
+      g.player.y = 50;
+      b.attack = { name: 'flak', t: 0 };
+      g.update(1 / 120, idle);
+      const L = b.flak[0];
+      // A gap whose left post sits exactly on a burst (bursts fall every
+      // 12 px from x = 202), the worst case for the edge of the gap.
+      L.gap0 = 94;
+      L.gap1 = 124;
+      // Where the ship's hitbox goes (see Game.playerHitbox: it starts 5 px
+      // in from the ship's left and is 9 px wide).
+      const spot = {
+        mid: (L.gap0 + L.gap1) / 2 - g.player.w / 2,
+        left: L.gap0 + 1 - 5,
+        right: L.gap1 - 1 - 9 - 5,
+        out: L.gap1 + 30 < 180 ? L.gap1 + 30 : L.gap0 - 50,
+      }[where];
+      g.player.invuln = 0;
+      g.health = 5;
+      for (let i = 0; i < 2 * 120 && b.attack; i++) {
+        g.player.x = spot;
+        g.player.y = L.y - g.player.h / 2;
+        g.update(1 / 120, idle);
+      }
+      return 5 - g.health;
+    };
+    res.flakGap = ['mid', 'left', 'right'].map(flakAt);
+    res.flakLine = flakAt('out');
+
+    // Running you down throws you up over it, not into the screen edge.
+    b = fresh(3);
+    b.attack = { name: 'charge', t: 0, stage: 'run', running: true };
+    b.x = 90;
+    g.player.x = 90; // right in its path
+    g.player.y = b.y + 30;
+    g.player.invuln = 0;
+    g.health = 5;
+    g.update(1 / 120, idle);
+    res.runDown = { hurt: 5 - g.health, thrownUp: g.player.y + g.player.h <= b.y + 20 };
+    // Bumping into it from behind pushes you back out behind it.
+    b = fresh(1);
+    b.x = 60;
+    g.player.x = b.x + 52;
+    g.player.y = b.y + 30;
+    g.player.invuln = 0;
+    const beforeX = g.player.x;
+    g.update(1 / 120, idle);
+    res.behindPushedOut = g.player.x > beforeX;
+    g.reset();
+    return res;
+  });
+  const w = r.warnings;
+  const ok = r.shutHp === 0 && r.openHits >= 5 &&
+    Object.values(w).every((v) => v >= 0.3) &&
+    r.flakGap.every((n) => n === 0) && r.flakLine === 1 && r.runDown.hurt === 3 && r.runDown.thrownUp && r.behindPushedOut && errs.length === 0;
+  console.log(`${ok ? 'PASS' : 'FAIL'}  Siege Crawler rules ${JSON.stringify(r)} ${errs.join(' ')}`);
+  if (!ok) failures++;
+  await context.close();
+}
 
 // The test web server must refuse paths outside the game folder.
 const escape = await fetch(base + '..%2f..%2f..%2fetc%2fpasswd');

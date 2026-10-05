@@ -1,4 +1,4 @@
-import { PATTERNS } from './waves.js?v=0.12.1';
+import { PATTERNS } from './waves.js?v=0.13.0';
 
 // Level scripts. Each event is [seconds from the start, pattern, options].
 // The final 'boss' event waits for the screen to clear, flashes a warning
@@ -114,11 +114,10 @@ export const LEVELS = [
   {
     // Rust Moon: low over red canyons. The ground is solid, rock spires
     // (some with turrets) stand in the way, and enemy shots fly 10% faster.
-    // The boss (the Siege Crawler) arrives in step 3B-2; until then the
-    // level ends once the last wave has gone.
+    // Boss: the Siege Crawler.
     number: 2,
     name: 'RUST MOON',
-    boss: null,
+    boss: 'siegeCrawler',
     floor: 14,
     shotSpeed: 1.1,
     background: { canyon: true, space: '#24161a', sun: true, dust: true, dustColor: '#33201f', farRocks: false },
@@ -219,7 +218,7 @@ export const LEVELS = [
       [172, 'boulders', { big: 3, small: 3, spread: 4 }],
       [174, 'wall', { shooter: true }],
       [176, 'seekers', { n: 3 }],
-      [185, 'end'],
+      [184, 'boss'],
     ],
   },
 ];

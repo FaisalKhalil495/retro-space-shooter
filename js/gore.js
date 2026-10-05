@@ -1,5 +1,5 @@
-import { VIEW_H, BLOOD } from './config.js?v=0.12.1';
-import { fillDisc } from './util.js?v=0.12.1';
+import { VIEW_H, BLOOD } from './config.js?v=0.13.0';
+import { fillDisc } from './util.js?v=0.13.0';
 
 // Blood, gore and debris. Only living creatures bleed: weavers lightly,
 // Rockjaw fully. Machines and the player explode instead (see blasts.js).
@@ -108,8 +108,9 @@ export class Gore {
   }
 
   // A boss corpse half: part of an image that flies off spinning.
-  corpse(img, sx, sy, sw, sh, x, y, vx, vy, spin) {
-    this.corpses.push({ img, sx, sy, sw, sh, x, y, vx, vy, spin, angle: 0, life: 3, max: 3, t: 0 });
+  // (bleeds: false for machines; floor: a ground line it comes to rest on.)
+  corpse(img, sx, sy, sw, sh, x, y, vx, vy, spin, bleeds = true, floor = Infinity) {
+    this.corpses.push({ img, sx, sy, sw, sh, x, y, vx, vy, spin, bleeds, floor, angle: 0, life: 3, max: 3, t: 0 });
   }
 
   update(dt) {
@@ -159,7 +160,12 @@ export class Gore {
       c.y += c.vy * dt;
       c.vy += 20 * dt;
       c.angle += c.spin * dt;
-      if (BLOOD && Math.floor(c.t * 30) % 2 === 0) {
+      if (c.y + c.sh / 2 > c.floor) {
+        c.y = c.floor - c.sh / 2;
+        c.vy = 0;
+        c.spin = 0;
+      }
+      if (BLOOD && c.bleeds && Math.floor(c.t * 30) % 2 === 0) {
         this.blood(c.x, c.y, 2, 30);
       }
     }

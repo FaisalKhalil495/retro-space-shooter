@@ -1,10 +1,11 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.12.1';
-import { ROCKS } from './rockart.js?v=0.12.1';
-import { SPRITES } from './sprites.js?v=0.12.1';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.12.1';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.12.1';
-import { GROUND_SPEED } from './terrain.js?v=0.12.1';
-import { sfx } from './audio.js?v=0.12.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.13.0';
+import { ROCKS } from './rockart.js?v=0.13.0';
+import { SPRITES } from './sprites.js?v=0.13.0';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.13.0';
+import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.13.0';
+import { clamp, rectHitsCircle } from './util.js?v=0.13.0';
+import { GROUND_SPEED } from './terrain.js?v=0.13.0';
+import { sfx } from './audio.js?v=0.13.0';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -323,7 +324,7 @@ export const ENEMY_TYPES = {
     const cy = e.y + e.h / 2 - 5;
     if (e.byBoss) {
       for (const side of [-1, 1]) {
-        game.spawnEnemy('rockShard', cx, cy, { vx: e.vx * 0.45, vy: side * (40 + game.rand() * 12), byBoss: true });
+        game.spawnEnemy('rockShard', cx, cy, { vx: e.vx * 0.45, vy: side * (40 + game.rand() * 12), byBoss: true, rust: e.rust });
       }
       return;
     }
@@ -580,8 +581,8 @@ export const ENEMY_TYPES = {
       e.x = e.x0 + e.vx * t - e.w / 2;
       e.y = e.y0 + e.vy * t + 0.5 * SHELL_G * t * t - e.h / 2;
       const p = game.player;
-      const live = game.state === 'playing' && !(p.entering > 0) && !(p.invuln > 0);
-      const touching = live && rectsOverlap(p.x + 5, p.y + 3, p.w - 9, p.h - 6, e.x, e.y, e.w, e.h);
+      const live = game.playerVulnerable();
+      const touching = live && game.touchesPlayer(e.x, e.y, e.w, e.h);
       if (e.t < SHELL_TIME && !touching) return;
       // Burst: on the ring, or wherever it touched you.
       const bx = touching ? e.x + e.w / 2 : e.tx;
@@ -591,7 +592,7 @@ export const ENEMY_TYPES = {
       game.burst(bx, by, 8, 60);
       sfx.explode(0.35);
       if (touching || (live && Math.hypot(p.x + p.w / 2 - bx, p.y + p.h / 2 - by) < 7)) game.hurtPlayer(1, e);
-      for (let k = 0; k < 4; k++) game.fireShot(bx, by, Math.PI / 4 + (k * Math.PI) / 2, 50, 'gravel');
+      for (let k = 0; k < 4; k++) game.fireShot(bx, by, Math.PI / 4 + (k * Math.PI) / 2, 50, 'gravel', !!e.byBoss);
     },
     draw(e, ctx, snap, game) {
       // The target ring: always shown, flickering, and closing in as the
@@ -621,6 +622,8 @@ export const ENEMY_TYPES = {
   },
 
   rockjaw: ROCKJAW_TYPE,
+  siegeCrawler: SIEGE_CRAWLER_TYPE,
+  ...CRAWLER_MINIONS,
 };
 
 const SHELL_TIME = 0.9; // seconds from launch to burst
