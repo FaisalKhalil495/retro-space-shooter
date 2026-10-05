@@ -349,6 +349,38 @@ for (const phone of PHONES) {
   console.log(`  ${v7ok ? 'PASS' : 'FAIL'}  pods face you, blasts not blood, rock loot ${JSON.stringify(v7)}`);
   if (!v7ok) failures++;
 
+  // Stage bonus: both items reach the ship even if the boss's mouth is off
+  // the left edge of the screen (right after a charge).
+  const bonus = await page.evaluate(() => {
+    const g = window.__ember.game;
+    g.enemies = [];
+    g.pickups = [];
+    g.health = 3;
+    g.weapons.kind = 'laser';
+    g.weapons.ammo = 1;
+    g.player.x = 60;
+    g.player.y = 60;
+    g.player.invuln = 99;
+    const got = [];
+    const collect = g.collectPickup.bind(g);
+    g.collectPickup = (k) => { got.push(k); collect(k); };
+    const fake = { x: -40, y: 50, w: 40, h: 40, T: { aimPoint: () => ({ x: -2, y: 70 }) } };
+    g.stageBonus(fake, 2);
+    for (let i = 0; i < 360 && got.length < 2; i++) {
+      g.moveWorld(1 / 120);
+      g.collide();
+    }
+    g.collectPickup = collect;
+    const left = g.pickups.filter((pk) => !pk.taken).length;
+    g.pickups = [];
+    g.weapons.reset();
+    g.health = 5;
+    return { got, left };
+  });
+  const bonusOk = bonus.got.length === 2 && bonus.got.includes('repair') && bonus.got.includes('ammo') && bonus.left === 0;
+  console.log(`  ${bonusOk ? 'PASS' : 'FAIL'}  stage bonus reaches the ship from off-screen ${JSON.stringify(bonus)}`);
+  if (!bonusOk) failures++;
+
   // Portrait: should ask to rotate.
   await page.setViewportSize({ width: phone.height, height: phone.width });
   await page.waitForTimeout(400);

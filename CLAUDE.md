@@ -140,10 +140,17 @@ a real console controller, so you can play by feel while watching the game.
 - **Stage bonus** (owner request, v0.10.0): breaking a boss into its next
   stage gives a score bonus (+1000, then +2000, shown as a small floating
   number — **no "STAGE BROKEN" banner**, owner's call) and two bonus items
-  that burst from the wound and float to the ship: Repair if hurt (else
-  Shield), plus a weapon item (Laser if no special, else ammo, or Rapid Fire
-  if the special is full). They arrive during the boss's roar, when he
-  doesn't attack.
+  that burst from the wound and float to the ship (only while you're
+  playing): a survival item (Repair if hurt, else Shield, or Rapid/Spread
+  if a Shield is up) and a weapon item (Laser if no special, else ammo, or
+  Rapid Fire / Spread Shot if the special is full). What they give is
+  decided when grabbed, and they always show what they'd give right now,
+  so they never swap your weapon or give a wasted Repair. They always
+  appear on screen (even if his mouth is off the edge) and never scroll
+  away. They arrive
+  during the boss's roar, when he doesn't attack. Bubbles never hide behind
+  the boss (placement keeps clear of his body); a boss only gloats once
+  he's on screen; the opening taunt is skipped if you've just died.
 - Level 1 enemies (Hard): some pods shoot, weavers spit acid, gunners fire 4
   faster shots, seekers steer harder; ambushes from behind, dive-bombers from
   top/bottom and pincers, each flagged by a red "!" warning marker first.
