@@ -913,7 +913,67 @@ for (const phone of PHONES) {
       const vy = pc.y - pv.y;
       return +Math.abs(vx * Math.sin(ang) - vy * Math.cos(ang)).toFixed(1);
     };
-    res.aimMiss = [aimMiss(-40, 20), aimMiss(-30, 16), aimMiss(40, 4)];
+    // (The last one is as low as you can fly, right in front of its feet.)
+    res.aimMiss = [aimMiss(-40, 20), aimMiss(-30, 16), aimMiss(40, 4), aimMiss(-34, 33.5)];
+
+    // Hiding low at its feet gets you walked over.
+    b = fresh(1);
+    b.x = 130;
+    g.player.x = 112;
+    g.player.y = 118;
+    g.health = 5;
+    g.update(1 / 120, idle);
+    // It sets off straight for you (not just wandering)...
+    const headsForYou = Math.abs(b.targetX - (g.playerCenter().x - 4)) < 1;
+    for (let i = 0; i < 4 * 120; i++) g.update(1 / 120, idle);
+    // ...and gets you.
+    res.trampled = headsForYou && g.health < 5;
+
+    // The empty air in front of its sloped nose isn't part of it.
+    b = fresh(1);
+    const by0 = b.y;
+    res.airTouch = b.T.hitTest(b, b.x + 3, by0 + 15, 9, 5);
+
+    // Level things that came up in the whole-level review:
+    g.reset();
+    g.runner.next = g.level.events.length;
+    g.player.entering = 0;
+    // Mortar crawlers climb over spires instead of hiding inside them.
+    const sp = g.terrain.addSpire(30, 14, 4);
+    sp.x = 80;
+    const mc = g.spawnEnemy('mortarCrawler', 100, 0);
+    let worst = 0;
+    for (let i = 0; i < 3 * 120; i++) {
+      g.player.invuln = 1;
+      g.player.y = 20;
+      g.update(1 / 120, idle);
+      if (!mc.dead && mc.x + 2 < sp.x + sp.w - 2 && mc.x + mc.w - 2 > sp.x + 2) worst = Math.max(worst, mc.y + mc.h - sp.top);
+    }
+    res.crawlerInRock = +worst.toFixed(1);
+    // Items dropped over a spire float above it, not inside it.
+    g.pickups = [];
+    g.spawnPickup('shield', sp.x + 2, g.terrain.floorY - 6);
+    res.pickupClear = g.pickups[0].y + 11 <= sp.top;
+    // Ramming a shut turret hurts you but doesn't break its armour.
+    g.enemies = [];
+    const tur = g.spawnEnemy('cliffTurret', 100, 0);
+    g.update(1 / 120, idle);
+    g.player.x = tur.x - 6;
+    g.player.y = tur.y - 3;
+    g.player.invuln = 0;
+    g.health = 5;
+    g.update(1 / 120, idle);
+    res.ramShut = { turretAlive: !tur.dead && tur.hp === 4, hurt: 5 - g.health };
+    // Rockets skip shells, mines and cargo pods; an open boss core comes first.
+    g.enemies = [];
+    g.spawnEnemy('mortarShell', 40, 60, { tx: 100, ty: 60 });
+    g.spawnEnemy('carrier', 45, 60, { drop: 'shield' });
+    const far = g.spawnEnemy('dustSkimmer', 150, 0);
+    res.rocketSkipsJunk = g.nearestEnemy(30, 60) === far;
+    b = fresh(1);
+    b.hatch = 1;
+    g.spawnEnemy('drone', 40, 60, {});
+    res.rocketPrefersCore = g.nearestEnemy(30, 60) === b;
 
     // Two flak lines: a ship parked in the lower line's gap stays safe (no
     // fragment from the upper line falls through it).
@@ -1002,7 +1062,9 @@ for (const phone of PHONES) {
     Object.values(w).every((v) => v >= 0.3) &&
     r.flakGap.every((n) => n === 0) && r.flakLine === 1 && r.runDown.hurt === 3 && r.runDown.thrownUp && r.behindPushedOut &&
     r.aimMiss.every((d) => d < 3) && r.lowGapSafe && r.rockDrift >= 0 && r.rockDrift < 3 &&
-    r.pods === 'smart,weapon,smart' && r.offTop && errs.length === 0;
+    r.pods === 'smart,weapon,smart' && r.offTop &&
+    r.trampled && r.airTouch === null && r.crawlerInRock <= 1 && r.pickupClear &&
+    r.ramShut.turretAlive && r.ramShut.hurt === 2 && r.rocketSkipsJunk && r.rocketPrefersCore && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  Siege Crawler rules ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;
   await context.close();
