@@ -1,4 +1,4 @@
-import { PAL } from './config.js?v=0.7.1';
+import { PAL } from './config.js?v=0.8.0';
 
 // Asteroids and Rockjaw are drawn by code rather than by hand: a lumpy
 // circle, shaded from the top-left with a pixel-art checkerboard "dither"

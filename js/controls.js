@@ -1,7 +1,7 @@
-import { PAL } from './config.js?v=0.7.1';
-import { drawTextCentered } from './font.js?v=0.7.1';
-import { buzz, canVibrate, HAPTIC } from './feedback.js?v=0.7.1';
-import { sfx } from './audio.js?v=0.7.1';
+import { PAL } from './config.js?v=0.8.0';
+import { drawTextCentered } from './font.js?v=0.8.0';
+import { buzz, canVibrate, HAPTIC } from './feedback.js?v=0.8.0';
+import { sfx } from './audio.js?v=0.8.0';
 
 // Console-style touch controls.
 //

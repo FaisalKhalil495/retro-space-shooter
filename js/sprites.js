@@ -1,4 +1,4 @@
-import { PAL } from './config.js?v=0.7.1';
+import { PAL } from './config.js?v=0.8.0';
 
 // Pixel art is written as text grids: each character is one pixel and maps
 // to a palette colour ('.' is transparent). Each sprite is drawn once onto
