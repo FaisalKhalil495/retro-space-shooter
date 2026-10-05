@@ -1,8 +1,8 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.10.2';
-import { ROCKJAW } from './rockart.js?v=0.10.2';
-import { sfx } from './audio.js?v=0.10.2';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.10.2';
-import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.10.2';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.10.3';
+import { ROCKJAW } from './rockart.js?v=0.10.3';
+import { sfx } from './audio.js?v=0.10.3';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.10.3';
+import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.10.3';
 
 // ROCKJAW · THE LIVING ASTEROID — boss of The Outer Belt.
 //
@@ -248,6 +248,7 @@ const ATTACKS = {
       return false;
     }
     if (a.t < 0.45 + dur) {
+      a.pulling = true;
       e.jaw = 1;
       e.wobble = 0.5;
       const m = mouth(e);
@@ -273,6 +274,7 @@ const ATTACKS = {
       }
       return false;
     }
+    a.pulling = false;
     if (!a.snapped) {
       a.snapped = true;
       e.jaw = 0;
@@ -429,7 +431,7 @@ export const ROCKJAW_TYPE = {
           g.shake = 7;
           // Once his name card has gone, he taunts you in a speech bubble.
           g.showTitle(ROCKJAW_TYPE, () => {
-            if (g.boss === e && e.mode !== 'dying') g.say(e, ROCKJAW_TYPE.taunt);
+            if (g.boss === e && e.mode !== 'dying' && g.state === 'playing') g.say(e, ROCKJAW_TYPE.taunt);
           });
         }
         break;
@@ -484,11 +486,17 @@ export const ROCKJAW_TYPE = {
     return mouth(e);
   },
 
+  // Is he on screen yet? (Not during his entrance.) Used for his health bar
+  // and whether he can gloat.
+  onScreen(e) {
+    return e.mode !== 'enter';
+  },
+
   // Health blocks lost by touching him: getting sucked into his mouth is
   // death, his bite charge takes 3, scraping his hide takes 2.
   contactDamage(e) {
     const a = e.attack;
-    if (a && a.name === 'inhale') return 5;
+    if (a && a.name === 'inhale' && a.pulling) return 5;
     if (a && a.name.startsWith('charge') && (a.stage === 'dash' || a.stage === 'bite')) return 3;
     return 2;
   },

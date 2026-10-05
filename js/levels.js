@@ -1,4 +1,4 @@
-import { PATTERNS } from './waves.js?v=0.10.2';
+import { PATTERNS } from './waves.js?v=0.10.3';
 
 // Level scripts. Each event is [seconds from the start, pattern, options].
 // The final 'boss' event waits for the screen to clear, flashes a warning

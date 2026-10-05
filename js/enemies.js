@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.10.2';
-import { ROCKS } from './rockart.js?v=0.10.2';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.10.2';
-import { clamp, rectHitsCircle } from './util.js?v=0.10.2';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.10.3';
+import { ROCKS } from './rockart.js?v=0.10.3';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.10.3';
+import { clamp, rectHitsCircle } from './util.js?v=0.10.3';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -68,9 +68,18 @@ export const ENEMY_TYPES = {
     update(e, dt, game) {
       e.x -= 44 * dt;
       e.y = e.baseY + Math.sin(e.t * 2.8 + e.phase) * e.amp;
+      // Spitting: its mouth blinks for a moment first (fair warning).
       if (e.spitAt && e.t > e.spitAt && e.x < VIEW_W - 20 && e.x > game.player.x + 20) {
-        e.spitAt = 0;
-        game.fireAtPlayer(e.x, e.y + e.h / 2, 58);
+        e.windup = (e.windup || 0) + dt;
+        e.charge = 1;
+        if (e.windup > 0.35) {
+          e.spitAt = 0;
+          e.charge = 0;
+          game.fireAtPlayer(e.x, e.y + e.h / 2, 58);
+        }
+      } else if (e.charge) {
+        e.charge = 0; // lost its chance (passed you); the blink stops
+        e.windup = 0;
       }
     },
   },
@@ -145,6 +154,11 @@ export const ENEMY_TYPES = {
           e.charge = 0;
           game.fireAtPlayer(e.x, e.y + e.h / 2, 80);
         }
+      } else if (!e.fired && e.charge) {
+        // Got too close (or too far) before it could fire: stop the warning
+        // blink rather than flash a shot that never comes.
+        e.charge = 0;
+        e.aim = 0;
       }
     },
   },

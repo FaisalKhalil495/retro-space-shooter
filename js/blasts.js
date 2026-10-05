@@ -1,5 +1,6 @@
-import { PAL } from './config.js?v=0.10.2';
-import { ROCK } from './gore.js?v=0.10.2';
+import { PAL } from './config.js?v=0.10.3';
+import { ROCK } from './gore.js?v=0.10.3';
+import { fillDisc } from './util.js?v=0.10.3';
 
 // Explosions, drawn as chunky pixel art in the warm palette (no neon, no
 // glow). A blast is a quick white-hot flash, a fireball that swells and cools
@@ -137,11 +138,7 @@ export class Blasts {
 // instead of one per pixel, which keeps big explosions cheap on phones.
 function disc(ctx, cx, cy, r, color, dither = 0) {
   ctx.fillStyle = dither ? ditherPattern(ctx, color, dither) : color;
-  const ri = Math.max(1, Math.round(r));
-  for (let y = -ri; y <= ri; y++) {
-    const half = Math.floor(Math.sqrt(ri * ri - y * y));
-    ctx.fillRect(cx - half, cy + y, half * 2 + 1, 1);
-  }
+  fillDisc(ctx, cx, cy, r);
 }
 
 const patterns = new Map();

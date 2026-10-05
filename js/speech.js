@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.10.2';
-import { drawText, textWidth } from './font.js?v=0.10.2';
-import { sfx } from './audio.js?v=0.10.2';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.10.3';
+import { drawText, textWidth } from './font.js?v=0.10.3';
+import { sfx } from './audio.js?v=0.10.3';
 
 // Comic-book speech bubbles for characters that talk (bosses so far).
 // A bubble sits beside the speaker, follows them around, points its tail at
@@ -24,11 +24,12 @@ export class Speech {
 
   say(speaker, text, style = 'talk', dur = 2.6) {
     const lines = wrap(text);
+    const lineW = lines.map((l) => textWidth(l));
     this.bubble = {
       speaker, lines, style, t: 0, dur, typed: 0,
       total: lines.join('').length,
-      lineW: lines.map((l) => textWidth(l)),
-      w: Math.max(...lines.map((l) => textWidth(l))) + 8,
+      lineW,
+      w: Math.max(...lineW) + 8,
       spot: -1, // which placement it's using (kept while it still fits)
       h: lines.length * LINE_H + 5,
     };
@@ -64,7 +65,7 @@ export class Speech {
     // bubble keeps its placement while it still fits, so it doesn't jump
     // about as the speaker moves; otherwise it takes the clearest one.
     let spot = b.spot >= 0 ? placement(b.spot, e, ax, ay, w, h) : null;
-    if (!spot || overlap(spot, e, w, h) > w * 2) {
+    if (!spot || overlap(spot, e, w, h) > 0) {
       let best = Infinity;
       for (let i = 0; i < 4; i++) {
         const s = placement(i, e, ax, ay, w, h);
@@ -137,7 +138,8 @@ export class Speech {
       ctx.fillRect(x0, y0 + 1, W, H - 2);
     }
     // Restore the tail joint so it looks attached.
-    ctx.fillRect(tx - 1, ty - 1, 3, 2);
+    if (level) ctx.fillRect(ax > bx ? tx - 1 : tx, ty - 1, 2, 3);
+    else ctx.fillRect(tx - 1, ty - 1, 3, 2);
 
     // Words, typed out.
     let left = b.typed;

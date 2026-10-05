@@ -65,7 +65,8 @@ a real console controller, so you can play by feel while watching the game.
 - **Health bar** (owner request, v0.4.0): 3 lives, each with **5 health
   blocks**. Bullets/acid/gravel cost 1, small rocks and ramming small enemies
   2, big rocks 3, Rockjaw's bite charge 3, being sucked into his mouth 5
-  (instant death). 1 second of safety after a hit; red edge flash; warning
+  (instant death — only while he's actually pulling you in; touching him
+  before/after the pull is 2 like any scrape). 1 second of safety after a hit; red edge flash; warning
   beeps and smoke at 1 block.
 - **Automatic power-ups** (round orbs, no button): Shield (absorbs 3 hits or
   10 s), Repair (+2 blocks), Spread Shot (3-way fire, 12 s), Rapid Fire
@@ -82,12 +83,13 @@ a real console controller, so you can play by feel while watching the game.
   otherwise an "A" ammo capsule (tops up whatever you carry when grabbed);
   if your special is already full, Rapid Fire (Spread Shot if Rapid is
   running); Repair instead when health <= 2. The pod's light always shows
-  what it would give right now (ammo shows your special's colour). Survival
-  pods have a white light. (Before v0.9.0 the Laser step sat
+  what it would give right now (ammo shows amber, like the "A" capsule).
+  Survival pods have a white light. (Before v0.9.0 the Laser step sat
   behind "no shield → Shield", and a shield never outlasts the 20 s gap, so
   bosses effectively never gave specials.)
   During levels, when health is 2 blocks or fewer, drop chances rise
-  (x2.5 + 6%) and 60% of drops are Repair. **At full health random drops
+  (x2.5 + 6%) and 60% of drops are Repair — only for enemies that carry
+  loot at all (plain pods and cargo pods never drop extra items). **At full health random drops
   never give Repair** (v0.8.0): its share goes to Spread and Rapid
   (Shield 20%, Spread 35%, Rapid 35%, Wingman 10%).
 - **Rock fragments toned down** (owner request, v0.4.2): shooting a big rock
@@ -111,7 +113,9 @@ a real console controller, so you can play by feel while watching the game.
   then a fast shot along it; 3 shots, then leaves) and **Spinner** (rotating
   disc, 8-way star bursts about every 2 s, 3 bursts, then leaves); rows fire
   from the first and last pod; weavers spit 2 times in 3; seekers fire once
-  as they pass; dive-bombers fire. Every shot is preceded by a blink warning.
+  as they pass; dive-bombers fire. Every shot is preceded by a blink warning
+  (weavers too, since v0.10.3); a shooter that loses its chance stops
+  blinking.
 - **More gunships** (owner request, v0.6.1): gunships roughly doubled in
   level 1 (14 → 28), including groups of 3. Groups hover in separate lanes
   (above, level with and below the player) and fire in turn, not all at once.
@@ -154,6 +158,12 @@ a real console controller, so you can play by feel while watching the game.
 - Level 1 enemies (Hard): some pods shoot, weavers spit acid, gunners fire 4
   faster shots, seekers steer harder; ambushes from behind, dive-bombers from
   top/bottom and pincers, each flagged by a red "!" warning marker first.
+
+- **Boss code conventions** (for Stage 3+): a boss type can define
+  `aimPoint(e)` (its mouth/weak point — speech tails and bonus items use it)
+  and `onScreen(e)` (false during its entrance — hides the health bar and
+  stops it gloating). Supply pods and stage bonuses live in Game, so every
+  boss gets them by calling `g.nextSupplyKind()` / `g.stageBonus(e, stage)`.
 
 ### The 8 levels and bosses (in order)
 1. **The Outer Belt** — asteroid field in deep blue space, distant amber sun.
@@ -265,7 +275,7 @@ Approved by the owner. Keep the status column up to date.
 | # | Stage | What's in it | Status |
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
-| 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Built — owner testing |
+| 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
 | 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. | |
 | 4 | **Levels 5–8** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
@@ -302,13 +312,17 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   smears, boss corpses.
 - `js/blasts.js` — explosions: fireballs, shockwave rings, smoke, rock dust.
 - `js/speech.js` — comic-book speech bubbles for talking bosses.
-- `js/util.js` — small maths helpers.
+- `js/util.js` — small shared helpers (clamp, overlaps, pixel discs).
 - `tools/set-version.sh X.Y.Z` — bump the version everywhere (do this for every
   release so phones fetch fresh files).
 - `tools/smoke-test.mjs` — simulated-phone test (Android + iPhone sizes):
   `PLAYWRIGHT_PATH=/opt/node22/lib/node_modules/playwright node tools/smoke-test.mjs <screenshot-dir>`
 - `tools/level-test.mjs` — invincible autopilot plays a whole level at high
   speed; checks pickups, specials, boss and level clear (same command style).
+  It freezes the live game loop (`window.__ember.frozen = true`) and drives
+  the game itself, so results are repeatable.
+- `tools/serve.mjs` — the tests' tiny web server (this computer only; refuses
+  paths outside the repository).
 - Testing aids: add `?safe=62` to the URL to fake an iPhone camera cutout;
   `?start=boss` jumps straight to the boss with a laser loaded;
   `?start=60` starts 60 seconds into the level.
