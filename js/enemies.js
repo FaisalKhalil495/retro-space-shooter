@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.7.1';
-import { ROCKS } from './rockart.js?v=0.7.1';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.7.1';
-import { clamp, rectHitsCircle } from './util.js?v=0.7.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.8.0';
+import { ROCKS } from './rockart.js?v=0.8.0';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.8.0';
+import { clamp, rectHitsCircle } from './util.js?v=0.8.0';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -370,10 +370,11 @@ function rockType(size, hp, score, radius, ram, onDeath) {
     hp,
     score,
     ram,
-    // Rocks carry real loot: power-ups or special weapon ammo (see maybeDrop
-    // in game.js). Chances go up when you're badly hurt.
-    dropChance: size === 'big' ? 0.25 : 0.06,
-    hurtDropChance: size === 'big' ? 0.4 : 0.12,
+    // Only big rocks carry loot (power-ups or special weapon ammo, see
+    // maybeDrop in game.js), and they all look alike, so it's a gamble which
+    // ones are worth breaking. Chances go up when you're badly hurt.
+    dropChance: size === 'big' ? 0.35 : 0,
+    hurtDropChance: size === 'big' ? 0.5 : 0,
     rockLoot: true,
     explodeSize: size === 'big' ? 1 : 0.5,
     gore: { rock: size === 'big' ? 12 : 6 },

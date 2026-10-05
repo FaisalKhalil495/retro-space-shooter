@@ -290,6 +290,15 @@ for (const phone of PHONES) {
     }
     g.enemyShots = [];
     g.pickups = [];
+    // Small rocks never drop anything; at full health no Repair drops.
+    let small = 0;
+    for (let i = 0; i < 300; i++) {
+      g.killEnemy(g.spawnEnemy('rockSmall', 120, 60));
+      small += g.pickups.length;
+      g.pickups = [];
+      g.enemies = [];
+    }
+    g.enemyShots = [];
     // Rock ammo is decided when collected: it tops up what you carry then.
     g.weapons.kind = 'bomb';
     g.weapons.ammo = 1;
@@ -304,10 +313,10 @@ for (const phone of PHONES) {
     g.moveWorld(1 / 120);
     const aimReset = pod.aim === 0 && !pod.fired;
     g.enemies = [];
-    return { behind, passed, dive, gunner, weaver, rockRate: +(drops / 600).toFixed(2), kinds: [...kinds], ammo, aimReset };
+    return { behind, passed, dive, gunner, weaver, rockRate: +(drops / 600).toFixed(2), kinds: [...kinds], ammo, aimReset, small };
   });
   const v7ok = v7.behind === 0 && v7.passed === 0 && v7.dive === 1 && v7.gunner.blood === 0 && v7.gunner.fire > 0 &&
-    v7.weaver.blood > 0 && v7.weaver.blood <= 9 && v7.weaver.stains === 0 && v7.rockRate > 0.18 && v7.rockRate < 0.32 &&
+    v7.weaver.blood > 0 && v7.weaver.blood <= 9 && v7.weaver.stains === 0 && v7.rockRate > 0.28 && v7.rockRate < 0.42 && v7.small === 0 && !v7.kinds.includes('repair') &&
     v7.kinds.includes('ammo') && !v7.kinds.some((k) => ['bomb', 'rockets', 'laser'].includes(k)) &&
     v7.ammo.kind === 'bomb' && v7.ammo.n === 4 && v7.aimReset;
   console.log(`  ${v7ok ? 'PASS' : 'FAIL'}  pods face you, blasts not blood, rock loot ${JSON.stringify(v7)}`);

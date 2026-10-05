@@ -78,7 +78,9 @@ a real console controller, so you can play by feel while watching the game.
   it's shot open: health <= 2 → Repair; no shield → Shield; not full health
   → Repair; no laser → Laser special; otherwise Rapid Fire or Spread Shot.
   During levels, when health is 2 blocks or fewer, drop chances rise
-  (x2.5 + 6%) and 60% of drops are Repair; at full health drops are unchanged.
+  (x2.5 + 6%) and 60% of drops are Repair. **At full health random drops
+  never give Repair** (v0.8.0): its share goes to Spread and Rapid
+  (Shield 20%, Spread 35%, Rapid 35%, Wingman 10%).
 - **Rock fragments toned down** (owner request, v0.4.2): shooting a big rock
   breaks it into 2 blinking fragments that fly up/down away from the ship,
   slower, costing 1 block (a whole small rock still costs 2). Rockjaw's
@@ -108,13 +110,16 @@ a real console controller, so you can play by feel while watching the game.
   - **Pods only shoot out of their noses.** Pods ambushing from behind never
     fire (they only ram); pods from the front fire only while the player is
     still ahead of their gun; dive-bombers from above/below can fire.
-  - **Rocks carry real loot** (no glints, nothing from v0.5.0): big rocks
-    25% (40% when health <= 2), small rocks 6% (12% when hurt). About 30% of
+  - **Rocks carry real loot** (no glints, nothing from v0.5.0). v0.8.0: loot
+    is **only in big rocks, 35%** (50% when health <= 2); small rocks never
+    drop. All rocks look alike — the owner wants to guess which one is
+    loaded. Spread and Rapid should each run about 25% of the level (owner's
+    target; 12 s each, timer resets on re-pickup). About 30% of
     rock drops are an amber **"A" ammo capsule**: when collected it tops up
     the special you carry at that moment (a random one if you carry none),
     so it never swaps your weapon away; the rest are power-ups. When hurt, 60%
     of drops are Repair. Fragments, pebbles and Rockjaw's rocks never drop.
-    About 15 items per level if every rock is shot (was about 2).
+    About 14 items per level if every big rock is broken (was about 2).
 - Level 1 enemies (Hard): some pods shoot, weavers spit acid, gunners fire 4
   faster shots, seekers steer harder; ambushes from behind, dive-bombers from
   top/bottom and pincers, each flagged by a red "!" warning marker first.
