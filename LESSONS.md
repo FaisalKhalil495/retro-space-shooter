@@ -139,6 +139,8 @@ Last updated: end of Stage 2 (v0.10.3).
 | A new check couldn't fail (the test player never dies, so no kill line) | When adding a check, also break the code on purpose and confirm the check fails. |
 | Turrets got stuck at the left edge once their spire scrolled away (3B-1) | Don't make one object follow another that can be removed; give each its own movement and only *read* shared facts (like the spire's height). |
 | Adding a floor nearly changed level 1 (dust puffs and bouncing shards at the screen's bottom edge) | When a new level adds a shared rule, check what it does on the old levels too; guard it so levels without that feature behave exactly as before. |
+| Floor turrets sat 1 pixel too low for the ship's gun to ever hit them (v0.12.0 review) | For every enemy that can't move, check the ship can actually line up a shot on it from somewhere it's allowed to fly. Now an automatic check. |
+| A test kept a reference to the ship from before a level reset, so it could never fail | Tests must re-read game objects after anything that rebuilds them (reset, respawn, next level). Breaking the code on purpose caught it. |
 
 ## 5. Our working process (what works)
 

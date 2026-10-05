@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.12.0';
-import { drawText, textWidth } from './font.js?v=0.12.0';
-import { sfx } from './audio.js?v=0.12.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.12.1';
+import { drawText, textWidth } from './font.js?v=0.12.1';
+import { sfx } from './audio.js?v=0.12.1';
 
 // Comic-book speech bubbles for characters that talk (bosses so far).
 // A bubble sits beside the speaker, follows them around, points its tail at

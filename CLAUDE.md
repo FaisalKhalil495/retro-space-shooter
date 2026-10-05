@@ -69,10 +69,14 @@ a real console controller, so you can play by feel while watching the game.
   Enemy shots 10% faster (`shotSpeed: 1.1`).
   - **Ground**: the bottom 14 px is a canyon floor you can't fly into (it
     doesn't hurt). **Rock spires** stand on it: crashing costs 2 blocks and
-    knocks you clear; shots stop on them with a dust puff; indestructible.
+    knocks you back the way you came (or up and over); shots stop on them
+    with a dust puff; indestructible. Spires stay solid while you're
+    flashing after a hit or respawn (they just don't hurt then; v0.12.1).
     Pods diving from above crash into the ground; snipers leave upwards.
-  - **Cliff turret** (on spires or the floor): shut and armoured 1.6 s,
-    hatch blinks 0.4 s, opens and fires 2 aimed shots, shuts. Only hurt
+  - **Cliff turret** (on spires, or on a low rock mound on the floor, so
+    the ordinary gun can always reach it): shut and armoured 1.6 s, hatch
+    blinks 0.4 s, opens and fires 2 aimed shots at least 0.35 s apart,
+    shuts. Only hurt
     while open (specials too). 4 HP, 50 pts, 15% drop. Never fires at a
     ship that's behind it.
   - **Dust skimmer**: races in along the floor (hopping spires), swoops to
@@ -81,7 +85,8 @@ a real console controller, so you can play by feel while watching the game.
   - **Mortar crawler**: walks the floor, lobs a shell every 2.5 s. A red
     ring with a cross marks where it bursts (where you were at launch)
     0.9 s ahead; the burst costs 1 if you're on it and throws 4 fragments
-    (1 each). Shells can be shot down. 3 HP, 50 pts, 15% drop.
+    (1 each). A shell that touches you on the way bursts right there.
+    Shells can be shot down. 3 HP, 50 pts, 15% drop.
   - **Rust boulders**: bounce and roll along the floor (some tumble down
     from high up) and bound over spires. Same rules as level-1 rocks: big
     ones 35% loot (no tell), burst into 3 shards; small ones none.
@@ -318,7 +323,7 @@ Approved by the owner. Keep the status column up to date.
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
-| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B-1 done (v0.12.0) |
+| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B-1 done (v0.12.1, after review) |
 | 4 | **Levels 5–8** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |

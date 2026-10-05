@@ -1,4 +1,4 @@
-import { PATTERNS } from './waves.js?v=0.12.0';
+import { PATTERNS } from './waves.js?v=0.12.1';
 
 // Level scripts. Each event is [seconds from the start, pattern, options].
 // The final 'boss' event waits for the screen to clear, flashes a warning
@@ -121,7 +121,7 @@ export const LEVELS = [
     boss: null,
     floor: 14,
     shotSpeed: 1.1,
-    background: { canyon: true, space: '#24161a', sun: true, dust: true, dustColor: '#33201f', farRocks: false, floorH: 14 },
+    background: { canyon: true, space: '#24161a', sun: true, dust: true, dustColor: '#33201f', farRocks: false },
     events: [
       // Part 1 (0:00-1:00): each new enemy shows up alone first.
       [2, 'row', { n: 5, shooter: true }],

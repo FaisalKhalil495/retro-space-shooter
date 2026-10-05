@@ -1,4 +1,5 @@
-import { PAL } from './config.js?v=0.12.0';
+import { PAL } from './config.js?v=0.12.1';
+import { seeded } from './util.js?v=0.12.1';
 
 // Asteroids and Rockjaw are drawn by code rather than by hand: a lumpy
 // circle, shaded from the top-left with a pixel-art checkerboard "dither"
@@ -10,14 +11,6 @@ const ROCK_SHADES = ['#2b2530', '#4d3f45', '#75605f', '#9c8478'];
 // clearly from the harmless background rocks.
 const NEAR_SHADES = ['#4d3f45', '#75605f', '#9c8478', '#c4a68e'];
 const LIGHT = [-0.62, -0.78];
-
-function seeded(seed) {
-  let s = seed >>> 0;
-  return () => {
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return s / 4294967296;
-  };
-}
 
 // Radius at a given angle: a circle with smooth bumps.
 function lumpy(rand, r, bumps = 5, amount = 0.16) {

@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.12.0';
-import { FAR_ROCKS } from './rockart.js?v=0.12.0';
-import { fillDisc } from './util.js?v=0.12.0';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.12.1';
+import { FAR_ROCKS } from './rockart.js?v=0.12.1';
+import { fillDisc, seeded } from './util.js?v=0.12.1';
 
 // Deep-space backdrop: a slow distant amber sun, a band of dust, distant
 // asteroids and three layers of stars moving at different speeds, which
@@ -38,14 +38,31 @@ function makeDust(color = '#19203a') {
 }
 
 // ---- Rust Moon canyon scenery ----
-function seeded(seed) {
-  let s = seed >>> 0;
-  return () => {
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return s / 4294967296;
-  };
-}
 
+// A dusty sky that lightens towards the horizon, in dithered bands. It never
+// changes, so it's painted once and reused.
+let canyonSky = null;
+function makeCanyonSky() {
+  if (canyonSky) return canyonSky;
+  const cv = document.createElement('canvas');
+  cv.width = VIEW_W;
+  cv.height = VIEW_H;
+  const c = cv.getContext('2d');
+  const bands = ['#24161a', '#2c1a1c', '#35201f', '#3e2622'];
+  c.fillStyle = bands[0];
+  c.fillRect(0, 0, VIEW_W, VIEW_H);
+  for (let i = 1; i < bands.length; i++) {
+    const y0 = 24 + i * 16;
+    c.fillStyle = bands[i];
+    c.fillRect(0, y0 + 3, VIEW_W, VIEW_H - y0 - 3);
+    for (let x = 0; x < VIEW_W; x += 2) {
+      c.fillRect(x + (i % 2), y0, 1, 1);
+      c.fillRect(x + ((i + 1) % 2), y0 + 2, 1, 1);
+    }
+  }
+  canyonSky = cv;
+  return cv;
+}
 // A long strip of skyline (mesas or canyon walls) that repeats seamlessly
 // every `w` pixels. `flat` makes flat-topped mesas; strata adds rock layers.
 const ridgeCache = new Map();
@@ -159,16 +176,7 @@ export class Background {
     ctx.fillStyle = this.theme.space;
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
 
-    if (this.theme.canyon) {
-      // A dusty sky that lightens towards the horizon, in dithered bands.
-      const bands = ['#24161a', '#2c1a1c', '#35201f', '#3e2622'];
-      for (let i = 1; i < bands.length; i++) {
-        const y0 = 24 + i * 16;
-        ctx.fillStyle = bands[i];
-        ctx.fillRect(0, y0 + 3, VIEW_W, VIEW_H - y0 - 3);
-        for (let x = 0; x < VIEW_W; x += 2) ctx.fillRect(x + (i % 2), y0, 1, 1), ctx.fillRect(x + ((i + 1) % 2), y0 + 2, 1, 1);
-      }
-    }
+    if (this.theme.canyon) ctx.drawImage(makeCanyonSky(), 0, 0);
 
     if (this.dust) ctx.drawImage(this.dust, -snap(this.dustX), Math.round(VIEW_H * 0.6));
 
@@ -197,7 +205,7 @@ export class Background {
     for (const r of this.farRocks) ctx.drawImage(r.img, snap(r.x), snap(r.y));
 
     if (this.theme.canyon) {
-      const ground = VIEW_H - (this.theme.floorH || 0);
+      const ground = VIEW_H - (this.theme.floor || 0);
       ctx.drawImage(this.mesas, -snap(this.mesaX), ground - 34 - 18);
       ctx.drawImage(this.walls, -snap(this.wallX), ground - 44 + 2);
       ctx.fillStyle = '#6b4a3a';

@@ -549,9 +549,12 @@ for (const phone of PHONES) {
   await page.waitForTimeout(300);
   await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
   await page.waitForTimeout(300);
-  const r = await page.evaluate(() => {
+  const r = await page.evaluate(async () => {
     window.__ember.frozen = true;
     const g = window.__ember.game;
+    // The same copy of the wave patterns the game uses.
+    const v = new URL(document.querySelector('script[type=module]').src).search;
+    const { PATTERNS } = await import('/js/waves.js' + v);
     const idle = { dx: 0, dy: 0, fire: false, special: false, tap: false };
     const step = (sec, keepSafe = true) => {
       for (let i = 0; i < sec * 120; i++) {
@@ -591,6 +594,64 @@ for (const phone of PHONES) {
     res.turretShotsWhenBehind = g.enemyShots.length;
     res.turretOpenedWhenBehind = tur2.open || tur2.mode !== 'shut';
 
+    // Every turret can be hit by the ship's ordinary straight gun from some
+    // height: on a low floor mound, on a short spire and on a tall one.
+    const reachable = (makeTurret) => {
+      let heights = 0;
+      for (let y = 12; y < g.terrain.floorY; y += 2) {
+        quiet();
+        const t = makeTurret();
+        t.mode = 'open';
+        t.open = true;
+        t.timer = 99;
+        t.shotCd = 99;
+        g.update(1 / 120, idle);
+        for (let i = 0; i < 90; i++) {
+          g.player.invuln = 1;
+          g.player.x = 20;
+          g.player.y = y;
+          g.update(1 / 120, { ...idle, fire: true });
+        }
+        if (t.hp < 4) heights++;
+      }
+      return heights;
+    };
+    const onSpire = (h) => () => {
+      const s = g.terrain.addSpire(h, 12, 3);
+      s.x = 140;
+      return g.spawnEnemy('cliffTurret', s.x, 0, { spire: s });
+    };
+    res.turretReach = [
+      reachable(() => {
+        PATTERNS.turret(g, g.rand);
+        const t = g.enemies.find((e) => e.type === 'cliffTurret');
+        if (t.spire) t.spire.x = 140;
+        else t.x = 140;
+        return t;
+      }),
+      reachable(onSpire(22)),
+      reachable(onSpire(74)),
+    ];
+
+    // A turret whose first shot was held back still spaces its two shots.
+    quiet();
+    const tur3 = g.spawnEnemy('cliffTurret', 100, 0);
+    tur3.mode = 'open';
+    tur3.open = true;
+    tur3.timer = 0.9;
+    tur3.shotCd = 0;
+    tur3.shots = 0;
+    g.player.x = 150; // behind it
+    step(0.4);
+    g.player.x = 20;
+    const shotTimes = [];
+    for (let i = 0; i < 70; i++) {
+      const before = g.enemyShots.length;
+      step(1 / 120);
+      if (g.enemyShots.length > before) shotTimes.push(g.time);
+    }
+    res.turretShotGap = shotTimes.length === 2 ? +(shotTimes[1] - shotTimes[0]).toFixed(2) : -1;
+
     // Mortar: the red ring (the shell's target) is up for ~0.9 s before the
     // burst, sits where you were at launch, and the burst throws 4 fragments.
     quiet();
@@ -625,6 +686,39 @@ for (const phone of PHONES) {
     res.spireDamage = 5 - g.health;
     const q = g.player;
     res.knockedClear = !g.terrain.hits(q.x + 5, q.y + 3, q.w - 9, q.h - 6);
+    // Hitting a spire's right side pushes you back to the right, not through.
+    quiet();
+    const sp2 = g.terrain.addSpire(60, 14, 5);
+    sp2.x = 60;
+    g.player.x = sp2.x + sp2.w - 10; // just touching its right side
+    g.player.y = g.terrain.floorY - 30;
+    g.player.invuln = 0;
+    g.update(1 / 120, idle);
+    res.pushedRight = g.player.x > sp2.x + sp2.w;
+    // Spires stay solid while you're flashing after a hit (no damage then).
+    quiet();
+    const sp3 = g.terrain.addSpire(60, 14, 5);
+    sp3.x = 60;
+    g.player.x = 52;
+    g.player.y = g.terrain.floorY - 30;
+    g.player.invuln = 0.8;
+    g.health = 5;
+    g.update(1 / 120, idle);
+    const f = g.player;
+    res.solidWhileFlashing = !g.terrain.hits(f.x + 5, f.y + 3, f.w - 9, f.h - 6) && g.health === 5;
+
+    // A mortar shell that touches you on the way bursts right there (1 block,
+    // 4 fragments, no points for ramming it).
+    quiet();
+    g.health = 5;
+    g.enemyShots = [];
+    const sc = g.score;
+    const touch = g.spawnEnemy('mortarShell', 150, 100, { tx: 20, ty: 40 });
+    g.player.invuln = 0;
+    g.player.x = touch.x - 14;
+    g.player.y = touch.y - 4;
+    g.update(1 / 120, idle);
+    res.shellTouch = { dead: touch.dead, hurt: 5 - g.health, fragments: g.enemyShots.length, points: g.score - sc };
 
     // Enemy shots fly 10% faster on Rust Moon.
     quiet();
@@ -661,6 +755,8 @@ for (const phone of PHONES) {
   const ok = r.turretShutHp === 4 && r.turretOpenHp === 3 && r.turretShotsWhenBehind === 0 && !r.turretOpenedWhenBehind &&
     r.ringOnYou && r.ringWarning >= 0.85 && r.ringWarning <= 0.95 && r.fragments === 4 &&
     r.spireDamage === 2 && r.knockedClear && r.shotSpeed === 110 && r.diverCrashed &&
+    r.turretReach.every((n) => n > 0) && r.turretShotGap >= 0.34 && r.pushedRight && r.solidWhileFlashing &&
+    r.shellTouch.dead && r.shellTouch.hurt === 1 && r.shellTouch.fragments === 4 && r.shellTouch.points === 0 &&
     r.bigLoot > 0.31 && r.bigLoot < 0.39 && r.smallLoot === 0 && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  Rust Moon rules ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;
