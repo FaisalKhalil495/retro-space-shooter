@@ -20,6 +20,16 @@ export function fillDisc(ctx, cx, cy, r) {
   }
 }
 
+// A repeatable random-number generator: the same seed always gives the same
+// sequence, so art painted by code looks identical every time.
+export function seeded(seed) {
+  let s = seed >>> 0;
+  return () => {
+    s = (s * 1664525 + 1013904223) >>> 0;
+    return s / 4294967296;
+  };
+}
+
 // Do two rectangles overlap?
 export function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
   return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;

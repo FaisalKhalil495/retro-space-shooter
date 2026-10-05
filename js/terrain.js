@@ -1,4 +1,5 @@
-import { VIEW_W, VIEW_H } from './config.js?v=0.12.0';
+import { VIEW_W, VIEW_H } from './config.js?v=0.12.1';
+import { seeded } from './util.js?v=0.12.1';
 
 // Solid ground for levels that have it (Rust Moon first; the Ember Mines'
 // tunnels will build on this). Two parts:
@@ -12,14 +13,6 @@ export const GROUND_SPEED = 20;
 
 const FLOOR_COLORS = ['#3a2224', '#57302a', '#7a4632', '#9a6a4a'];
 const SPIRE_COLORS = ['#2e1c1f', '#4a2a27', '#6b3d2e', '#8c5a3e', '#a8785a'];
-
-function seeded(seed) {
-  let s = seed >>> 0;
-  return () => {
-    s = (s * 1664525 + 1013904223) >>> 0;
-    return s / 4294967296;
-  };
-}
 
 // A spire is a tapering column of layered rock, painted once and reused.
 const spireCache = new Map();

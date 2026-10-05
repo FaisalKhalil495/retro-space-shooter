@@ -1,19 +1,19 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.12.0';
-import { SPRITES } from './sprites.js?v=0.12.0';
-import { ENEMY_TYPES } from './enemies.js?v=0.12.0';
-import { LEVELS, LevelRunner } from './levels.js?v=0.12.0';
-import { Background } from './background.js?v=0.12.0';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.12.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.12.0';
-import { buzz, HAPTIC } from './feedback.js?v=0.12.0';
-import { sfx } from './audio.js?v=0.12.0';
-import { clamp, rectsOverlap } from './util.js?v=0.12.0';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.12.0';
-import { Blasts } from './blasts.js?v=0.12.0';
-import { Speech } from './speech.js?v=0.12.0';
-import { Terrain } from './terrain.js?v=0.12.0';
-import { startBossMusic, stopMusic } from './music.js?v=0.12.0';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.12.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.12.1';
+import { SPRITES } from './sprites.js?v=0.12.1';
+import { ENEMY_TYPES } from './enemies.js?v=0.12.1';
+import { LEVELS, LevelRunner } from './levels.js?v=0.12.1';
+import { Background } from './background.js?v=0.12.1';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.12.1';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.12.1';
+import { buzz, HAPTIC } from './feedback.js?v=0.12.1';
+import { sfx } from './audio.js?v=0.12.1';
+import { clamp, rectsOverlap } from './util.js?v=0.12.1';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.12.1';
+import { Blasts } from './blasts.js?v=0.12.1';
+import { Speech } from './speech.js?v=0.12.1';
+import { Terrain } from './terrain.js?v=0.12.1';
+import { startBossMusic, stopMusic } from './music.js?v=0.12.1';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.12.1';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -107,7 +107,8 @@ export class Game {
     this.blasts.reset();
     this.speech.reset();
     stopMusic(0.3);
-    this.bg = new Background(this.rand, this.level.background);
+    // The scenery stands on the same ground line as the solid terrain.
+    this.bg = new Background(this.rand, { ...this.level.background, floor: this.level.floor || 0 });
     this.terrain = new Terrain(this.level.floor || 0);
     this.weapons.reset();
     this.powerups.reset();
@@ -610,23 +611,29 @@ export class Game {
 
     // Anything hitting the player. The player's hitbox is smaller than the
     // drawing so scrapes that look like near-misses really are misses.
-    if (p.invuln > 0) return;
     const hx = p.x + 5;
     const hy = p.y + 3;
     const hw = p.w - 9;
     const hh = p.h - 6;
-    // Crashing into a rock spire: 2 blocks, and you're knocked clear of it
-    // (back and up, so a spire can never pin you against the left edge).
+    // Crashing into a rock spire: 2 blocks, and you're knocked clear of it,
+    // back the way you came (or up and over if that's blocked, so a spire
+    // can never pin you against the screen edge). Spires stay solid while
+    // you're flashing after a hit or a respawn; they just don't hurt then.
     const spire = this.terrain.hits(hx, hy, hw, hh);
     if (spire) {
       const onTop = p.y + p.h / 2 < spire.top + 4;
-      if (!onTop) p.x = Math.max(2, spire.x - p.w - 4); // hit its side: bounce back
-      if (onTop || this.terrain.hits(p.x + 5, hy, hw, hh)) {
-        p.y = Math.max(HUD_H + 1, spire.top - p.h - 2); // hit its top, or pinned: up and over
+      const fromRight = p.x + p.w / 2 > spire.x + spire.w / 2;
+      if (!onTop) {
+        p.x = fromRight ? Math.min(VIEW_W - p.w - 2, spire.x + spire.w + 2) : Math.max(2, spire.x - p.w - 4);
       }
+      if (onTop || this.terrain.hits(p.x + 5, hy, hw, hh)) {
+        p.y = Math.max(HUD_H + 1, spire.top - p.h - 2); // up and over
+      }
+      if (p.invuln > 0) return;
       this.hurtPlayer(2, spire);
       return;
     }
+    if (p.invuln > 0) return;
     for (const s of this.enemyShots) {
       if (rectsOverlap(hx, hy, hw, hh, s.x - 1.5, s.y - 1.5, 3, 3)) {
         s.dead = true;

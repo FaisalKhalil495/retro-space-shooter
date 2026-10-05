@@ -1,10 +1,10 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.12.0';
-import { ROCKS } from './rockart.js?v=0.12.0';
-import { SPRITES } from './sprites.js?v=0.12.0';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.12.0';
-import { clamp, rectHitsCircle } from './util.js?v=0.12.0';
-import { GROUND_SPEED } from './terrain.js?v=0.12.0';
-import { sfx } from './audio.js?v=0.12.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.12.1';
+import { ROCKS } from './rockart.js?v=0.12.1';
+import { SPRITES } from './sprites.js?v=0.12.1';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.12.1';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.12.1';
+import { GROUND_SPEED } from './terrain.js?v=0.12.1';
+import { sfx } from './audio.js?v=0.12.1';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -390,7 +390,7 @@ export const ENEMY_TYPES = {
 
   // ---- Rust Moon ----
 
-  // Cliff turret: sits on a rock spire (or the canyon floor), armoured shut.
+  // Cliff turret: sits on a rock spire (or a low mound), armoured shut.
   // Its hatch blinks, it opens, fires two aimed shots, then shuts again. It
   // can only be hurt while it's open (shots spark off the shut armour).
   cliffTurret: {
@@ -412,9 +412,15 @@ export const ENEMY_TYPES = {
       return { x: e.x - 2, y: e.y + 2 };
     },
     update(e, dt, game) {
-      // It scrolls with the ground, on top of its spire (or on the floor).
-      e.x -= GROUND_SPEED * dt;
-      e.y = e.spire ? e.spire.top - e.h + 2 : game.terrain.floorY - e.h + 1;
+      // It sits on top of its spire. Once the spire has scrolled away it
+      // keeps going on its own, so it can never get left behind.
+      if (e.spire && game.terrain.spires.includes(e.spire)) {
+        e.x = e.spire.x + e.spire.w / 2 - e.w / 2;
+        e.y = e.spire.top - e.h + 2;
+      } else {
+        e.x -= GROUND_SPEED * dt;
+        if (!e.spire) e.y = game.terrain.floorY - e.h + 1;
+      }
       const p = game.player;
       // It only ever fires forwards (to the left), at a ship it can see.
       const ahead = p.x + p.w / 2 < e.x - 6 && e.x < VIEW_W - 10;
@@ -432,12 +438,15 @@ export const ENEMY_TYPES = {
           e.open = true;
           e.timer = 0.9;
           e.shots = 0;
+          e.shotCd = 0;
         }
       } else if (e.mode === 'open') {
-        const due = e.shots === 0 ? 0.9 : 0.55; // two shots, 0.35 s apart
-        if (e.shots < 2 && e.timer <= due && ahead) {
+        // Two shots, always at least 0.35 s apart.
+        e.shotCd -= dt;
+        if (e.shots < 2 && e.shotCd <= 0 && ahead) {
           game.fireAtPlayer(e.x - 2, e.y + 3, 70);
           e.shots++;
+          e.shotCd = 0.35;
         }
         if (e.timer <= 0) {
           e.mode = 'shut';
@@ -548,12 +557,12 @@ export const ENEMY_TYPES = {
   },
 
   // A mortar shell in flight. It bursts exactly on its red ring after 0.9 s
-  // (1 block if you're on the ring) into 4 fragments (1 block each). You can
-  // shoot it down on the way.
+  // (1 block if you're on the ring) into 4 fragments (1 block each), or
+  // early if it touches you on the way. You can shoot it down first.
   mortarShell: {
     hp: 1,
     score: 10,
-    ram: 1,
+    harmless: true, // it hurts by bursting, not by ramming
     noDrop: true,
     explodeSize: 0.3,
     inset: 0,
@@ -570,17 +579,19 @@ export const ENEMY_TYPES = {
       const t = Math.min(e.t, SHELL_TIME);
       e.x = e.x0 + e.vx * t - e.w / 2;
       e.y = e.y0 + e.vy * t + 0.5 * SHELL_G * t * t - e.h / 2;
-      if (e.t < SHELL_TIME) return;
-      e.dead = true;
-      game.blasts.blast(e.tx, e.ty, 0.45);
-      game.burst(e.tx, e.ty, 8, 60);
-      sfx.explode(0.35);
       const p = game.player;
-      if (game.state === 'playing' && !(p.entering > 0) && !(p.invuln > 0) &&
-          Math.hypot(p.x + p.w / 2 - e.tx, p.y + p.h / 2 - e.ty) < 7) {
-        game.hurtPlayer(1, e);
-      }
-      for (let k = 0; k < 4; k++) game.fireShot(e.tx, e.ty, Math.PI / 4 + (k * Math.PI) / 2, 50, 'gravel');
+      const live = game.state === 'playing' && !(p.entering > 0) && !(p.invuln > 0);
+      const touching = live && rectsOverlap(p.x + 5, p.y + 3, p.w - 9, p.h - 6, e.x, e.y, e.w, e.h);
+      if (e.t < SHELL_TIME && !touching) return;
+      // Burst: on the ring, or wherever it touched you.
+      const bx = touching ? e.x + e.w / 2 : e.tx;
+      const by = touching ? e.y + e.h / 2 : e.ty;
+      e.dead = true;
+      game.blasts.blast(bx, by, 0.45);
+      game.burst(bx, by, 8, 60);
+      sfx.explode(0.35);
+      if (touching || (live && Math.hypot(p.x + p.w / 2 - bx, p.y + p.h / 2 - by) < 7)) game.hurtPlayer(1, e);
+      for (let k = 0; k < 4; k++) game.fireShot(bx, by, Math.PI / 4 + (k * Math.PI) / 2, 50, 'gravel');
     },
     draw(e, ctx, snap, game) {
       // The target ring: always shown, flickering, and closing in as the

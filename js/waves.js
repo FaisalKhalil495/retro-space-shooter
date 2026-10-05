@@ -1,12 +1,13 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.12.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.12.1';
 
 // Enemy formations. Levels are built by placing these on a timeline
 // (see levels.js). Every pattern takes the game, a random-number function
 // and an options object.
 const TOP = HUD_H + 10;
 // The lowest row formations use: just above the ground on levels that have
-// one, otherwise near the bottom of the screen.
-const bottom = (game) => Math.min(VIEW_H - 16, game.terrain.floorY - 16);
+// one, otherwise near the bottom of the screen (floorY is the screen's
+// bottom edge when there's no ground).
+const bottom = (game) => game.terrain.floorY - 16;
 
 export const PATTERNS = {
   // Rock spires standing on the canyon floor (levels with ground), one every
@@ -180,8 +181,10 @@ export const PATTERNS = {
     for (let i = 0; i < n; i++) game.later(i * gap, () => game.spawnEnemy('mortarCrawler', VIEW_W + 4, 0));
   },
 
-  // A cliff turret standing on the canyon floor (no spire under it).
-  turret(game) {
-    game.spawnEnemy('cliffTurret', VIEW_W + 4, 0);
+  // A cliff turret on a low rock mound on the canyon floor. (The mound
+  // lifts it into the line of fire of a ship flying low over the ground.)
+  turret(game, rand) {
+    const mound = game.terrain.addSpire(8, 14, 1 + Math.floor(rand() * 999));
+    game.spawnEnemy('cliffTurret', mound.x, 0, { spire: mound });
   },
 };
