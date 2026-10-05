@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.8.0';
-import { ROCKS } from './rockart.js?v=0.8.0';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.8.0';
-import { clamp, rectHitsCircle } from './util.js?v=0.8.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.8.1';
+import { ROCKS } from './rockart.js?v=0.8.1';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.8.1';
+import { clamp, rectHitsCircle } from './util.js?v=0.8.1';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -375,7 +375,7 @@ function rockType(size, hp, score, radius, ram, onDeath) {
     // ones are worth breaking. Chances go up when you're badly hurt.
     dropChance: size === 'big' ? 0.35 : 0,
     hurtDropChance: size === 'big' ? 0.5 : 0,
-    rockLoot: true,
+    rockLoot: size === 'big',
     explodeSize: size === 'big' ? 1 : 0.5,
     gore: { rock: size === 'big' ? 12 : 6 },
     // Rocks are round, so hits are checked against a circle, not a box.

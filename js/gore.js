@@ -1,4 +1,4 @@
-import { VIEW_H, BLOOD } from './config.js?v=0.8.0';
+import { VIEW_H, BLOOD } from './config.js?v=0.8.1';
 
 // Blood, gore and debris. Only living creatures bleed: weavers lightly,
 // Rockjaw fully. Machines and the player explode instead (see blasts.js).
