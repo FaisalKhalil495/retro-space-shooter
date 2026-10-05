@@ -1,8 +1,8 @@
-import { VERSION, STAGE_LABEL, VIEW_W, VIEW_H, PAL } from './config.js?v=0.10.3';
-import { readSafeArea, computeLayout } from './layout.js?v=0.10.3';
-import { Controls } from './controls.js?v=0.10.3';
-import { Game } from './game.js?v=0.10.3';
-import { unlockAudio, suspendAudio, resumeAudio } from './audio.js?v=0.10.3';
+import { VERSION, STAGE_LABEL, VIEW_W, VIEW_H, PAL } from './config.js?v=0.10.4';
+import { readSafeArea, computeLayout } from './layout.js?v=0.10.4';
+import { Controls } from './controls.js?v=0.10.4';
+import { Game } from './game.js?v=0.10.4';
+import { unlockAudio, suspendAudio, resumeAudio } from './audio.js?v=0.10.4';
 
 const canvas = document.getElementById('screen');
 const ctx = canvas.getContext('2d', { alpha: false });

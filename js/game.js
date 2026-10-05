@@ -1,18 +1,18 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.10.3';
-import { SPRITES } from './sprites.js?v=0.10.3';
-import { ENEMY_TYPES } from './enemies.js?v=0.10.3';
-import { LEVELS, LevelRunner } from './levels.js?v=0.10.3';
-import { Background } from './background.js?v=0.10.3';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.10.3';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.10.3';
-import { buzz, HAPTIC } from './feedback.js?v=0.10.3';
-import { sfx } from './audio.js?v=0.10.3';
-import { clamp, rectsOverlap } from './util.js?v=0.10.3';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.10.3';
-import { Blasts } from './blasts.js?v=0.10.3';
-import { Speech } from './speech.js?v=0.10.3';
-import { startBossMusic, stopMusic } from './music.js?v=0.10.3';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.10.3';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.10.4';
+import { SPRITES } from './sprites.js?v=0.10.4';
+import { ENEMY_TYPES } from './enemies.js?v=0.10.4';
+import { LEVELS, LevelRunner } from './levels.js?v=0.10.4';
+import { Background } from './background.js?v=0.10.4';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.10.4';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.10.4';
+import { buzz, HAPTIC } from './feedback.js?v=0.10.4';
+import { sfx } from './audio.js?v=0.10.4';
+import { clamp, rectsOverlap } from './util.js?v=0.10.4';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.10.4';
+import { Blasts } from './blasts.js?v=0.10.4';
+import { Speech } from './speech.js?v=0.10.4';
+import { startBossMusic, stopMusic } from './music.js?v=0.10.4';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.10.4';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -145,6 +145,13 @@ export class Game {
   // Something a character says, in a comic-book speech bubble beside them.
   say(speaker, text, style = 'talk', dur) {
     this.speech.say(speaker, text, style, dur);
+  }
+
+  // Is this character's speech bubble still up? (Bosses wait for it to
+  // finish before they attack, so talking never happens mid-fight.)
+  isSpeaking(e) {
+    const b = this.speech.bubble;
+    return !!b && b.speaker === e;
   }
 
   // Breaking a boss into its next stage: a score bonus, and two bonus items

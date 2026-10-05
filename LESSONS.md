@@ -71,8 +71,10 @@ Last updated: end of Stage 2 (v0.10.3).
   felt unfair at the boss).
 - **Longer levels** (~3 minutes before the boss) with **no calm breaks**.
 - **Bosses with personality**: talking, taunting, swearing, reacting to
-  pain — in **comic-book speech bubbles beside the boss**, not as screen
-  titles or narrator captions.
+  pain — in **comic-book speech bubbles**, not as screen titles or narrator
+  captions. But **never while you're dodging**: bubbles during attacks were
+  "distracting" (v0.10.4). Talk only in pauses (entrance, stage breaks,
+  after a kill) and keep bubbles out of the space between ship and boss.
 - **Rewards for progress**: e.g. a bonus every time a boss stage breaks.
 - **A gamble / mystery**: loot hidden in big rocks with **no visual tell** —
   "I need to guess which rock" makes it interesting.
@@ -132,6 +134,7 @@ Last updated: end of Stage 2 (v0.10.3).
 | The level test sometimes raced the live game | A test hook that "pauses" the game must actually stop the live loop (`window.__ember.frozen`). |
 | Owner played an old cached version | Version label on screen + reload instructions in every hand-over. |
 | Ambiguous request ("25%") | Ask with concrete options instead of guessing. |
+| Speech bubbles distracted mid-fight | Anything that asks to be read must happen when the player isn't busy dodging. Flavour goes in pauses, never on top of the action. |
 
 ## 5. Our working process (what works)
 

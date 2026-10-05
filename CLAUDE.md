@@ -135,7 +135,11 @@ a real console controller, so you can play by feel while watching the game.
     About 14 items per level if every big rock is broken (was about 2).
 - **Bosses talk in speech bubbles** (owner request, v0.10.0): comic-book
   bubbles beside the boss, tail pointing at its mouth, words typed out with a
-  low growl blip, about 2.5 s. Round cream bubble for taunts, jagged amber
+  low growl blip, about 2 s. **A boss only talks when it isn't attacking**
+  (owner, v0.10.4 — bubbles mid-fight were distracting): after its name card
+  it hangs back, says its taunt, then starts the fight; at a stage break it
+  doesn't attack again until it has finished shouting. Bubbles sit **above**
+  the boss (out of the space between you and it), two short lines at most. Round cream bubble for taunts, jagged amber
   bubble for roars. Drawn under pickups, enemies and bullets so they never
   hide anything. Name cards stay big titles; the boss's lines are spoken in
   first person (no narrator banners). Rockjaw: taunt "YOU ARE FUCKING

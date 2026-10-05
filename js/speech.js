@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.10.3';
-import { drawText, textWidth } from './font.js?v=0.10.3';
-import { sfx } from './audio.js?v=0.10.3';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.10.4';
+import { drawText, textWidth } from './font.js?v=0.10.4';
+import { sfx } from './audio.js?v=0.10.4';
 
 // Comic-book speech bubbles for characters that talk (bosses so far).
 // A bubble sits beside the speaker, follows them around, points its tail at
@@ -9,8 +9,8 @@ import { sfx } from './audio.js?v=0.10.3';
 //   'roar' - a jagged amber bubble (pain and fury)
 // Bubbles are drawn underneath enemy bullets so they never hide a shot.
 
-const MAX_LINE = 13; // letters per line, so a bubble never covers too much
-const TYPE_SPEED = 28; // letters per second
+const MAX_LINE = 18; // letters per line: most lines fit on two, so it's short
+const TYPE_SPEED = 40; // letters per second
 const LINE_H = 7;
 
 export class Speech {
@@ -22,7 +22,7 @@ export class Speech {
     this.bubble = null;
   }
 
-  say(speaker, text, style = 'talk', dur = 2.6) {
+  say(speaker, text, style = 'talk', dur = 2.0) {
     const lines = wrap(text);
     const lineW = lines.map((l) => textWidth(l));
     this.bubble = {
@@ -60,8 +60,8 @@ export class Speech {
     const ay = snap(anchor.y);
     const { w, h } = b;
     // Bubbles are drawn under the speaker, so they must keep clear of their
-    // body. Placements, in order of preference: beside them level with the
-    // mouth (towards the player), up-left of the mouth, above, below. The
+    // body. Placements, in order of preference: above them (out of the space
+    // between you and the boss), up-left of the mouth, beside, below. The
     // bubble keeps its placement while it still fits, so it doesn't jump
     // about as the speaker moves; otherwise it takes the clearest one.
     let spot = b.spot >= 0 ? placement(b.spot, e, ax, ay, w, h) : null;
@@ -154,8 +154,8 @@ export class Speech {
 
 // Where a bubble goes for placement i, kept on screen.
 function placement(i, e, ax, ay, w, h) {
-  const x = i === 0 ? e.x - w - 6 : i === 1 ? ax - w - 6 : ax - w / 2;
-  const y = i === 0 ? ay - h / 2 : i === 1 ? ay - h - 10 : i === 2 ? e.y - h - 8 : e.y + e.h + 8;
+  const x = i === 0 ? ax - w / 2 : i === 1 ? ax - w - 6 : i === 2 ? e.x - w - 6 : ax - w / 2;
+  const y = i === 0 ? e.y - h - 8 : i === 1 ? ay - h - 10 : i === 2 ? ay - h / 2 : e.y + e.h + 8;
   return {
     x: Math.round(Math.min(Math.max(x, 2), VIEW_W - w - 2)),
     y: Math.round(Math.min(Math.max(y, HUD_H + 4), VIEW_H - h - 2)),

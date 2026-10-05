@@ -1,8 +1,8 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.10.3';
-import { ROCKJAW } from './rockart.js?v=0.10.3';
-import { sfx } from './audio.js?v=0.10.3';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.10.3';
-import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.10.3';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.10.4';
+import { ROCKJAW } from './rockart.js?v=0.10.4';
+import { sfx } from './audio.js?v=0.10.4';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.10.4';
+import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.10.4';
 
 // ROCKJAW · THE LIVING ASTEROID — boss of The Outer Belt.
 //
@@ -429,10 +429,7 @@ export const ROCKJAW_TYPE = {
           set('intro');
           sfx.roar();
           g.shake = 7;
-          // Once his name card has gone, he taunts you in a speech bubble.
-          g.showTitle(ROCKJAW_TYPE, () => {
-            if (g.boss === e && e.mode !== 'dying' && g.state === 'playing') g.say(e, ROCKJAW_TYPE.taunt);
-          });
+          g.showTitle(ROCKJAW_TYPE);
         }
         break;
       }
@@ -441,6 +438,21 @@ export const ROCKJAW_TYPE = {
         e.jaw = e.timer < 0.15 ? e.timer / 0.15 : e.timer < 1.7 ? 1 : Math.max(0, 1 - (e.timer - 1.7) * 4);
         if (e.timer > 2.4) {
           g.darkenTo(0);
+          set('taunt');
+        }
+        break;
+      case 'taunt':
+        // He hangs back and taunts you once his name card has gone, and only
+        // starts attacking when he's finished talking. (Skipped if you've
+        // just died.)
+        e.wobble = 0.5;
+        moveToward(e, HOME_X, MID_Y, 40, dt);
+        shut(e, dt);
+        if (!g.title && !e.taunted) {
+          e.taunted = true;
+          if (g.state === 'playing') g.say(e, ROCKJAW_TYPE.taunt);
+        }
+        if (e.taunted && !g.isSpeaking(e)) {
           set('fight');
           e.idle = 0.6;
           e.supplyT = 3; // the first pod comes early
@@ -471,7 +483,8 @@ export const ROCKJAW_TYPE = {
         shut(e, dt, 8);
         e.angle = 0;
         moveToward(e, HOME_X, MID_Y, 40, dt);
-        if (e.timer > 1.9) {
+        // He doesn't attack again until he's finished shouting.
+        if (e.timer > 1.9 && !g.isSpeaking(e)) {
           set('fight');
           e.idle = 0.4;
         }
