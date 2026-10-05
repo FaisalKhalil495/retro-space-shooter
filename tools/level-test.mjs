@@ -1,6 +1,7 @@
-// Plays level 1 automatically at high speed (an invincible autopilot that
-// lines up with enemies and holds Fire) to check the level script, pickups,
-// special weapons and the boss all work and the level can be finished.
+// Plays level 1 and then level 2 automatically at high speed (an
+// invincible autopilot that lines up with enemies and holds Fire) to check
+// the level scripts, pickups, special weapons and the boss all work and each
+// level can be finished.
 // Run: node tools/level-test.mjs <screenshot-dir>
 import { createRequire } from 'node:module';
 import { serve } from './serve.mjs';
@@ -119,8 +120,26 @@ results.boss = await run(240, { invincible: true, useSpecials: true });
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/lvl-clear.png` });
 
+// On to level 2 (Rust Moon), carrying the run over.
+const level2 = await page.evaluate(() => {
+  const g = window.__ember.game;
+  g.stateTimer = 4;
+  g.update(1 / 120, { dx: 0, dy: 0, fire: false, special: false, tap: true });
+  const log = window.__log;
+  log.collected = [];
+  log.types = [];
+  log.maxEnemies = 0;
+  log.bossSeen = false;
+  return { level: g.level.number, state: g.state };
+});
+results.rust = await run(240, { invincible: true });
+await page.waitForTimeout(400);
+await page.screenshot({ path: `${out}/lvl2-clear.png` });
+
 console.log(JSON.stringify(results, null, 1));
 const r = results.boss;
+const r2 = results.rust;
+const pickups2 = ['rockets', 'shield', 'bomb', 'spread', 'life', 'rapid', 'laser', 'wingman'];
 const checks = {
   'enemies appeared': results.early.maxEnemies > 3,
   'snipers and spinners appeared': ['sniper', 'spinner'].every((t) => r.types && r.types.includes(t)),
@@ -139,6 +158,12 @@ const checks = {
   'boss sends a supply pod every ~20s': pods >= 3,
   'supply pods alternate survival / weapon': supply.kinds.slice(0, 3).join() === 'smart,weapon,smart',
   'level cleared': r.state === 'clear',
+  'level 2 follows level 1': level2.level === 2 && level2.state === 'playing',
+  'Rust Moon enemies appeared': ['cliffTurret', 'dustSkimmer', 'mortarCrawler', 'mortarShell', 'rockBig', 'sniper', 'spinner', 'gunner']
+    .every((t) => r2.types.includes(t)),
+  'Rust Moon cargo pods all collected': pickups2.every((k) => r2.collected.includes(k)),
+  'Rust Moon lasts about 3 minutes': r2.t >= 180 && r2.t <= 200,
+  'Rust Moon cleared': r2.state === 'clear',
   'no script errors': errors.length === 0,
 };
 let failures = 0;

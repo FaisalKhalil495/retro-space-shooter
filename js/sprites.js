@@ -1,4 +1,4 @@
-import { PAL } from './config.js?v=0.11.0';
+import { PAL } from './config.js?v=0.12.0';
 
 // Pixel art is written as text grids: each character is one pixel and maps
 // to a palette colour ('.' is transparent). Each sprite is drawn once onto
@@ -118,6 +118,47 @@ const ART = {
     '...kBBBk...',
     '....kgk....',
     '.....k.....',
+  ],
+  // Rust Moon: a cliff turret, armoured shut...
+  turretShut: [
+    '....kkkk...',
+    '..kkooook..',
+    '.koAAAAook.',
+    '.koAoooAok.',
+    'kkkkkkkkkkk',
+    'kgRgRgRgRgk',
+    'kkkkkkkkkkk',
+  ],
+  // ...and open, showing its soft red core and barrel (only now can it be hurt).
+  turretOpen: [
+    '.....kkkk..',
+    '....kooook.',
+    'kkkkkrssrok',
+    'cclckrlsrok',
+    'kkkkkrssrok',
+    'kgRgRgRgRgk',
+    'kkkkkkkkkkk',
+  ],
+  // Rust Moon: a low, fast skimmer that hugs the canyon floor.
+  skimmer: [
+    '......kkkk..',
+    '...kkkaAAak.',
+    '.kkoooaaaaak',
+    'klcoooooooRk',
+    '.kkRRRRRRkk.',
+    '...kkkkkk...',
+  ],
+  // Rust Moon: a six-legged mortar crawler; its stubby tube points up-left.
+  crawler: [
+    '..kk..........',
+    '.kok..........',
+    '..kok.........',
+    '...kokkkkkk...',
+    '...kRRRRRRRk..',
+    '..kRrsrrrsrRk.',
+    '..kRRRRRRRRRk.',
+    '..k.k.k.k.k.k.',
+    '.k.k.k...k.k.k',
   ],
   // Tiny ship used for the lives counter.
   lifeIcon: [

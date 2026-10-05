@@ -1,7 +1,10 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.11.0';
-import { ROCKS } from './rockart.js?v=0.11.0';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.11.0';
-import { clamp, rectHitsCircle } from './util.js?v=0.11.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.12.0';
+import { ROCKS } from './rockart.js?v=0.12.0';
+import { SPRITES } from './sprites.js?v=0.12.0';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.12.0';
+import { clamp, rectHitsCircle } from './util.js?v=0.12.0';
+import { GROUND_SPEED } from './terrain.js?v=0.12.0';
+import { sfx } from './audio.js?v=0.12.0';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -24,6 +27,13 @@ export const ENEMY_TYPES = {
     update(e, dt, game) {
       e.x += e.vx * dt;
       e.y += e.vy * dt;
+      // A dive-bomber that reaches solid ground crashes into it (no points).
+      if (game.terrain.floor && e.y + e.h > game.terrain.floorY + 2) {
+        e.dead = true;
+        game.blasts.blast(e.x + e.w / 2, game.terrain.floorY - 2, 0.4);
+        sfx.explode(0.3);
+        return;
+      }
       // Pods only shoot out of their noses. Ambushers coming from behind
       // have their backs to you, so they never fire; pods coming from the
       // front only fire while you're still ahead of their gun; dive-bombers
@@ -119,7 +129,7 @@ export const ENEMY_TYPES = {
         e.charge = 0;
         e.x -= 60 * dt;
       }
-      e.y = clamp(e.y, HUD_H + 2, VIEW_H - e.h - 2);
+      e.y = clamp(e.y, HUD_H + 2, game.terrain.floorY - e.h - 2);
     },
   },
 
@@ -204,8 +214,10 @@ export const ENEMY_TYPES = {
           e.mode = e.shots >= 3 ? 'leave' : 'wait';
         }
       } else {
+        // Leaves up or down, whichever edge is nearer (always up over solid
+        // ground).
         e.x -= 30 * dt;
-        e.y += (e.y < VIEW_H / 2 ? -40 : 40) * dt;
+        e.y += (e.y < VIEW_H / 2 || game.terrain.floor ? -40 : 40) * dt;
       }
     },
     draw(e, ctx, snap, game, spr) {
@@ -318,7 +330,7 @@ export const ENEMY_TYPES = {
     const a0 = game.rand() * Math.PI * 2;
     for (let k = 0; k < 3; k++) {
       const a = a0 + (k * Math.PI * 2) / 3;
-      game.spawnEnemy('rockShard', cx, cy, { vx: e.vx * 0.3 + Math.cos(a) * 70, vy: Math.sin(a) * 70 });
+      game.spawnEnemy('rockShard', cx, cy, { vx: e.vx * 0.3 + Math.cos(a) * 70, vy: Math.sin(a) * 70, rust: e.rust });
     }
   }),
   // Small rocks crack into 2 sharp pebbles in the level (1 block each).
@@ -336,10 +348,12 @@ export const ENEMY_TYPES = {
     ...rockType('small', 1, 3, 4, 1),
     noDrop: true,
     explodeSize: 0.3,
-    update(e, dt) {
+    update(e, dt, game) {
       e.x += e.vx * dt;
       e.y += e.vy * dt;
       e.vy *= 1 - 0.4 * dt;
+      // Glances off the ground rather than sinking into it.
+      if (game.terrain.floor && e.y + e.h > game.terrain.floorY && e.vy > 0) e.vy = -e.vy * 0.5;
       e.flash = e.t < 0.5 && Math.floor(e.t * 16) % 2 === 0 ? 0.02 : e.flash;
     },
   },
@@ -374,8 +388,232 @@ export const ENEMY_TYPES = {
     },
   },
 
+  // ---- Rust Moon ----
+
+  // Cliff turret: sits on a rock spire (or the canyon floor), armoured shut.
+  // Its hatch blinks, it opens, fires two aimed shots, then shuts again. It
+  // can only be hurt while it's open (shots spark off the shut armour).
+  cliffTurret: {
+    sprite: 'turretShut',
+    hp: 4,
+    score: 50,
+    dropChance: 0.15,
+    gore: { metal: 7 },
+    init(e) {
+      e.mode = 'shut';
+      e.timer = 1.0;
+      e.open = false;
+      if (e.spire) e.x = e.spire.x + e.spire.w / 2 - e.w / 2;
+    },
+    isVulnerable(e) {
+      return e.open;
+    },
+    muzzle(e) {
+      return { x: e.x - 2, y: e.y + 2 };
+    },
+    update(e, dt, game) {
+      // It scrolls with the ground, on top of its spire (or on the floor).
+      e.x -= GROUND_SPEED * dt;
+      e.y = e.spire ? e.spire.top - e.h + 2 : game.terrain.floorY - e.h + 1;
+      const p = game.player;
+      // It only ever fires forwards (to the left), at a ship it can see.
+      const ahead = p.x + p.w / 2 < e.x - 6 && e.x < VIEW_W - 10;
+      e.timer -= dt;
+      if (e.mode === 'shut') {
+        if (e.timer <= 0 && ahead) {
+          e.mode = 'charge';
+          e.timer = 0.4;
+          e.charge = 1; // the hatch blinks: it's about to open
+        }
+      } else if (e.mode === 'charge') {
+        if (e.timer <= 0) {
+          e.charge = 0;
+          e.mode = 'open';
+          e.open = true;
+          e.timer = 0.9;
+          e.shots = 0;
+        }
+      } else if (e.mode === 'open') {
+        const due = e.shots === 0 ? 0.9 : 0.55; // two shots, 0.35 s apart
+        if (e.shots < 2 && e.timer <= due && ahead) {
+          game.fireAtPlayer(e.x - 2, e.y + 3, 70);
+          e.shots++;
+        }
+        if (e.timer <= 0) {
+          e.mode = 'shut';
+          e.open = false;
+          e.timer = 1.6;
+        }
+      }
+    },
+    draw(e, ctx, snap) {
+      const name = e.open ? 'turretOpen' : 'turretShut';
+      const img = SPRITES[name + (e.flash > 0 ? 'Flash' : '')];
+      ctx.drawImage(img, snap(e.x), snap(e.y));
+    },
+  },
+
+  // Dust skimmer: races in low along the canyon floor (hopping spires), then
+  // swoops up to your height, blinks, fires a 3-shot spread and climbs away.
+  dustSkimmer: {
+    sprite: 'skimmer',
+    hp: 2,
+    score: 40,
+    dropChance: 0.1,
+    explodeSize: 0.5,
+    gore: { metal: 5 },
+    init(e, game) {
+      e.mode = 'run';
+      e.vx = -90;
+      e.y = game.terrain.floorY - e.h - 2;
+    },
+    update(e, dt, game) {
+      const p = game.player;
+      const floorY = game.terrain.floorY;
+      const inFront = p.x + p.w < e.x - 4;
+      e.x += e.vx * dt;
+      if (e.mode === 'run') {
+        // Skim the ground, lifting over any spire just ahead.
+        let want = floorY - e.h - 2;
+        for (const s of game.terrain.spires) {
+          if (s.x < e.x + e.w + 26 && s.x + s.w > e.x - 4) want = Math.min(want, s.top - e.h - 3);
+        }
+        e.y += (want - e.y) * Math.min(1, dt * 9);
+        if (inFront && e.x - p.x < 110 && e.x < VIEW_W - 12) {
+          e.mode = 'swoop';
+          e.timer = 0.6;
+          e.y0 = e.y;
+          e.ty = clamp(p.y + p.h / 2 - e.h / 2, HUD_H + 4, floorY - e.h - 2);
+        }
+      } else if (e.mode === 'swoop') {
+        e.timer -= dt;
+        const k = 1 - Math.max(0, e.timer) / 0.6;
+        e.y = e.y0 + (e.ty - e.y0) * (1 - (1 - k) * (1 - k));
+        e.vx += (-40 - e.vx) * Math.min(1, dt * 5);
+        if (e.timer <= 0) {
+          e.mode = 'aim';
+          e.timer = 0.3;
+        }
+      } else if (e.mode === 'aim') {
+        e.timer -= dt;
+        e.charge = inFront ? 1 : 0;
+        if (!inFront) e.mode = 'climb'; // you slipped past: no shot
+        else if (e.timer <= 0) {
+          e.charge = 0;
+          const a = Math.atan2(p.y + p.h / 2 - (e.y + e.h / 2), p.x + p.w / 2 - e.x);
+          for (const off of [-0.14, 0, 0.14]) game.fireShot(e.x - 1, e.y + e.h / 2, a + off, 100);
+          e.mode = 'climb';
+        }
+      } else {
+        e.vx += (-60 - e.vx) * Math.min(1, dt * 3);
+        e.y -= 70 * dt;
+      }
+    },
+  },
+
+  // Mortar crawler: a six-legged walker on the canyon floor that lobs a shell
+  // every 2.5 s. A red ring marks where the shell will burst (where you were
+  // when it fired), so keep moving.
+  mortarCrawler: {
+    sprite: 'crawler',
+    hp: 3,
+    score: 50,
+    dropChance: 0.15,
+    gore: { metal: 8 },
+    init(e, game) {
+      e.y = game.terrain.floorY - e.h;
+      e.timer = 0.6;
+    },
+    muzzle(e) {
+      return { x: e.x + 1, y: e.y - 1 };
+    },
+    update(e, dt, game) {
+      e.x -= (GROUND_SPEED + 8) * dt;
+      e.y = game.terrain.floorY - e.h + (Math.floor(e.t * 6) % 2); // little steps
+      const inRange = e.x > 40 && e.x < VIEW_W - 20;
+      if (!inRange) {
+        e.charge = 0;
+        return;
+      }
+      e.timer -= dt;
+      e.charge = e.timer < 0.4 ? 1 : 0;
+      if (e.timer <= 0) {
+        e.charge = 0;
+        e.timer = 2.5;
+        const p = game.player;
+        game.spawnEnemy('mortarShell', e.x + 1, e.y - 2, { tx: p.x + p.w / 2, ty: p.y + p.h / 2 });
+        sfx.mortar();
+      }
+    },
+  },
+
+  // A mortar shell in flight. It bursts exactly on its red ring after 0.9 s
+  // (1 block if you're on the ring) into 4 fragments (1 block each). You can
+  // shoot it down on the way.
+  mortarShell: {
+    hp: 1,
+    score: 10,
+    ram: 1,
+    noDrop: true,
+    explodeSize: 0.3,
+    inset: 0,
+    init(e, game) {
+      e.w = 4;
+      e.h = 4;
+      e.ty = clamp(e.ty, HUD_H + 6, game.terrain.floorY - 6);
+      e.x0 = e.x;
+      e.y0 = e.y;
+      e.vx = (e.tx - e.x) / SHELL_TIME;
+      e.vy = (e.ty - e.y - 0.5 * SHELL_G * SHELL_TIME * SHELL_TIME) / SHELL_TIME;
+    },
+    update(e, dt, game) {
+      const t = Math.min(e.t, SHELL_TIME);
+      e.x = e.x0 + e.vx * t - e.w / 2;
+      e.y = e.y0 + e.vy * t + 0.5 * SHELL_G * t * t - e.h / 2;
+      if (e.t < SHELL_TIME) return;
+      e.dead = true;
+      game.blasts.blast(e.tx, e.ty, 0.45);
+      game.burst(e.tx, e.ty, 8, 60);
+      sfx.explode(0.35);
+      const p = game.player;
+      if (game.state === 'playing' && !(p.entering > 0) && !(p.invuln > 0) &&
+          Math.hypot(p.x + p.w / 2 - e.tx, p.y + p.h / 2 - e.ty) < 7) {
+        game.hurtPlayer(1, e);
+      }
+      for (let k = 0; k < 4; k++) game.fireShot(e.tx, e.ty, Math.PI / 4 + (k * Math.PI) / 2, 50, 'gravel');
+    },
+    draw(e, ctx, snap, game) {
+      // The target ring: always shown, flickering, and closing in as the
+      // shell comes down, with a cross in the middle.
+      const left = Math.max(0, SHELL_TIME - e.t);
+      const r = 7 + 5 * (left / SHELL_TIME);
+      const tx = Math.round(e.tx);
+      const ty = Math.round(e.ty);
+      ctx.fillStyle = Math.floor(e.t * 12) % 2 === 0 ? PAL.red : PAL.redSoft;
+      for (let i = 0; i < 20; i++) {
+        const a = (i * Math.PI) / 10;
+        ctx.fillRect(Math.round(tx + Math.cos(a) * r), Math.round(ty + Math.sin(a) * r), 1, 1);
+      }
+      ctx.fillRect(tx - 2, ty, 5, 1);
+      ctx.fillRect(tx, ty - 2, 1, 5);
+      const x = snap(e.x);
+      const y = snap(e.y);
+      ctx.fillStyle = PAL.ink;
+      ctx.fillRect(x, y, 4, 4);
+      ctx.fillStyle = e.flash > 0 ? PAL.cream : PAL.amberDark;
+      ctx.fillRect(x + 1, y + 1, 2, 2);
+      if (Math.floor(game.time * 16) % 2 === 0) {
+        ctx.fillStyle = PAL.amberLight;
+        ctx.fillRect(x + 1, y + 1, 1, 1);
+      }
+    },
+  },
+
   rockjaw: ROCKJAW_TYPE,
 };
+
+const SHELL_TIME = 0.9; // seconds from launch to burst
+const SHELL_G = 120; // gravity on a mortar shell (pixels per second squared)
 
 const SPLIT_WARNING = 0.5; // seconds a spat rock cracks before it bursts
 
@@ -397,27 +635,50 @@ function rockType(size, hp, score, radius, ram, onDeath) {
       return rectHitsCircle(x, y, w, h, e.x + e.w / 2, e.y + e.h / 2, radius) ? 'hit' : null;
     },
     init(e, game) {
-      const set = ROCKS[size];
+      // Rust Moon's boulders are the same shapes painted in rusty reds.
+      e.key = size + (e.rust ? 'Rust' : '');
+      const set = ROCKS[e.key];
       e.variant = e.variant ?? Math.floor(game.rand() * set.length);
       e.w = set[e.variant].width;
       e.h = set[e.variant].height;
       e.vx = e.vx ?? -(36 + game.rand() * 20);
       e.vy = e.vy ?? (game.rand() - 0.5) * 14;
     },
-    update(e, dt) {
+    update(e, dt, game) {
       e.x += e.vx * dt;
       e.y += e.vy * dt;
+      const floorY = game.terrain.floorY;
+      if (e.ground) {
+        // Boulders: low-gravity tumbles that bounce along the canyon floor,
+        // rolling as they go, and bounding up over any spire in the way.
+        e.vy += 90 * dt;
+        e.spin = (e.spin || 0) + (e.vx / radius) * dt;
+        if (e.y + e.h > floorY) {
+          e.y = floorY - e.h;
+          e.vy = Math.abs(e.vy) < 18 ? 0 : -Math.abs(e.vy) * 0.55;
+        }
+        if (game.terrain.hits(e.x + 2, e.y + 2, e.w - 4, e.h - 4)) e.vy = Math.min(e.vy, -70);
+        return;
+      }
       // Drifting rocks bounce gently off the top and bottom so they stay in
-      // play; falling meteors just fall through.
+      // play; falling meteors (Rockjaw's) just fall through.
       if (!e.fall) {
         if (e.y < HUD_H - e.h / 3 && e.vy < 0) e.vy = -e.vy;
-        if (e.y > VIEW_H - (e.h * 2) / 3 && e.vy > 0) e.vy = -e.vy;
+        if (e.y > floorY - (e.h * 2) / 3 && e.vy > 0) e.vy = -e.vy;
       }
     },
     onDeath,
     draw(e, ctx, snap) {
-      const set = e.flash > 0 ? ROCKS[size + 'Flash'] : ROCKS[size];
-      ctx.drawImage(set[e.variant], snap(e.x), snap(e.y));
+      const img = ROCKS[e.key + (e.flash > 0 ? 'Flash' : '')][e.variant];
+      if (!e.spin) {
+        ctx.drawImage(img, snap(e.x), snap(e.y));
+        return;
+      }
+      ctx.save();
+      ctx.translate(snap(e.x + e.w / 2), snap(e.y + e.h / 2));
+      ctx.rotate(Math.round(e.spin * 4) / 4); // turns in small steps, like pixel art
+      ctx.drawImage(img, -Math.floor(e.w / 2), -Math.floor(e.h / 2));
+      ctx.restore();
     },
   };
 }
