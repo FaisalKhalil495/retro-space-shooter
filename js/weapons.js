@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.10.0';
-import { drawText } from './font.js?v=0.10.0';
-import { sfx } from './audio.js?v=0.10.0';
-import { buzz } from './feedback.js?v=0.10.0';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.10.1';
+import { drawText } from './font.js?v=0.10.1';
+import { sfx } from './audio.js?v=0.10.1';
+import { buzz } from './feedback.js?v=0.10.1';
 
 // Special weapons and pickups.
 // The player carries ONE special at a time. A pickup gives some shots;

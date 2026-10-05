@@ -1,8 +1,8 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.10.0';
-import { ROCKJAW } from './rockart.js?v=0.10.0';
-import { sfx } from './audio.js?v=0.10.0';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.10.0';
-import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.10.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.10.1';
+import { ROCKJAW } from './rockart.js?v=0.10.1';
+import { sfx } from './audio.js?v=0.10.1';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.10.1';
+import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.10.1';
 
 // ROCKJAW · THE LIVING ASTEROID — boss of The Outer Belt.
 //
@@ -427,9 +427,8 @@ export const ROCKJAW_TYPE = {
           set('intro');
           sfx.roar();
           g.shake = 7;
-          g.showTitle(ROCKJAW_TYPE);
-          // Once his name card has faded, he taunts you in a speech bubble.
-          g.later(3.3, () => {
+          // Once his name card has gone, he taunts you in a speech bubble.
+          g.showTitle(ROCKJAW_TYPE, () => {
             if (g.boss === e && e.mode !== 'dying') g.say(e, ROCKJAW_TYPE.taunt);
           });
         }

@@ -1,18 +1,18 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.10.0';
-import { SPRITES } from './sprites.js?v=0.10.0';
-import { ENEMY_TYPES } from './enemies.js?v=0.10.0';
-import { LEVELS, LevelRunner } from './levels.js?v=0.10.0';
-import { Background } from './background.js?v=0.10.0';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.10.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.10.0';
-import { buzz, HAPTIC } from './feedback.js?v=0.10.0';
-import { sfx } from './audio.js?v=0.10.0';
-import { clamp, rectsOverlap } from './util.js?v=0.10.0';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.10.0';
-import { Blasts } from './blasts.js?v=0.10.0';
-import { Speech } from './speech.js?v=0.10.0';
-import { startBossMusic, stopMusic } from './music.js?v=0.10.0';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.10.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.10.1';
+import { SPRITES } from './sprites.js?v=0.10.1';
+import { ENEMY_TYPES } from './enemies.js?v=0.10.1';
+import { LEVELS, LevelRunner } from './levels.js?v=0.10.1';
+import { Background } from './background.js?v=0.10.1';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.10.1';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.10.1';
+import { buzz, HAPTIC } from './feedback.js?v=0.10.1';
+import { sfx } from './audio.js?v=0.10.1';
+import { clamp, rectsOverlap } from './util.js?v=0.10.1';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.10.1';
+import { Blasts } from './blasts.js?v=0.10.1';
+import { Speech } from './speech.js?v=0.10.1';
+import { startBossMusic, stopMusic } from './music.js?v=0.10.1';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.10.1';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -20,6 +20,7 @@ const BLOCK_COLORS = [PAL.grey, PAL.cream, PAL.bluePale];
 // A broken-off piece of the player's wing, for the death explosion.
 const WING = { rows: ['aab', 'abbc', '.bcc'], colors: { a: PAL.bluePale, b: PAL.blue, c: PAL.amberSoft } };
 const LIFE_BONUS = 500;
+const TITLE_TIME = 3.3; // seconds a boss name card stays up
 const SMART_POD = { color: PAL.cream, light: '#ffffff' }; // white light on a survival supply pod
 
 // Things the game says when you die. Adults-only humour, as agreed.
@@ -151,12 +152,18 @@ export class Game {
   // Breaking a boss into its next stage: a score bonus, and two bonus items
   // burst out of the wound and float to the ship (one to keep you alive, one
   // for your special weapon).
+  // Survival item: Repair if you're hurt, else a Shield, or Rapid Fire /
+  // Spread Shot if a Shield is already up. Mid-death you'll respawn at full
+  // health, so it's a Shield.
   stageBonus(e, stage) {
-    const m = e.T.aimPoint ? e.T.aimPoint(e) : { x: e.x, y: e.y + e.h / 2 };
+    const m = this.aimPoint(e);
     const bonus = stage === 2 ? 1000 : 2000;
     this.score += bonus;
     this.popups.push({ x: m.x, y: m.y - 14, text: '+' + bonus, t: 1.5 });
-    const survival = this.health < PLAYER.health ? 'repair' : 'shield';
+    const survival = this.state !== 'playing' ? 'shield'
+      : this.health < PLAYER.health ? 'repair'
+        : !this.powerups.has('shield') ? 'shield'
+          : this.powerups.has('rapid') ? 'spread' : 'rapid';
     this.spawnPickup(survival, m.x - 6, m.y - 10, true);
     this.spawnPickup(this.weaponPick(), m.x - 6, m.y + 2, true);
     this.burst(m.x, m.y, 12, 70);
@@ -250,8 +257,9 @@ export class Game {
     this.darkenTarget = v;
   }
 
-  showTitle(T) {
-    this.title = { T, t: 0 };
+  // A boss's big name card. onEnd runs once the card has gone.
+  showTitle(T, onEnd = null) {
+    this.title = { T, t: 0, onEnd };
   }
 
   later(delay, fn) {
@@ -347,7 +355,11 @@ export class Game {
     for (const m of this.markers) m.t += dt;
     this.markers = this.markers.filter((m) => m.t < m.dur);
     this.darken += clamp(this.darkenTarget - this.darken, -dt * 0.8, dt * 0.8);
-    if (this.title && (this.title.t += dt) > 3.6) this.title = null;
+    if (this.title && (this.title.t += dt) > TITLE_TIME) {
+      const end = this.title.onEnd;
+      this.title = null;
+      if (end) end();
+    }
     this.gore.update(dt);
     this.blasts.update(dt);
     this.speech.update(dt);
@@ -379,6 +391,7 @@ export class Game {
         else {
           this.state = 'gameover';
           this.stateTimer = 0;
+          this.speech.reset(); // the Game Over card shows the line instead
         }
       }
     }
@@ -469,7 +482,7 @@ export class Game {
     for (const pk of this.pickups) {
       pk.t += dt;
       pk.x -= 20 * dt;
-      if (pk.magnet && pk.t > 0.35) {
+      if (pk.magnet && pk.t > 0.35 && this.state === 'playing') {
         const dx = p.x + p.w / 2 - (pk.x + 4);
         const dy = p.y + p.h / 2 - (pk.baseY + 4);
         const d = Math.hypot(dx, dy) || 1;
@@ -524,7 +537,10 @@ export class Game {
     for (const pk of this.pickups) {
       if (rectsOverlap(p.x, p.y, p.w, p.h, pk.x - 1, pk.y - 1, 11, 11)) {
         pk.taken = true;
-        this.collectPickup(pk.kind);
+        // Bonus items never swap your weapon: a different special becomes
+        // ammo for the one you carry.
+        const swap = pk.magnet && SPECIALS[pk.kind] && this.weapons.kind && this.weapons.kind !== pk.kind;
+        this.collectPickup(swap ? 'ammo' : pk.kind);
       }
     }
 
@@ -675,7 +691,8 @@ export class Game {
     this.gore.piece(cx, cy, WING.rows, WING.colors, -30 + this.rand() * 20, -40, 5);
     this.gore.piece(cx, cy, WING.rows, WING.colors, 10 + this.rand() * 20, 35, -4);
     const byBoss = source && (source.byBoss || (source.T && source.T.boss));
-    const lines = byBoss && this.boss ? this.boss.T.killLines : DEATH_LINES;
+    const bossTalks = byBoss && this.boss && this.boss.mode !== 'dying';
+    const lines = bossTalks ? this.boss.T.killLines : DEATH_LINES;
     this.quip = lines[Math.floor(this.rand() * lines.length)];
     this.shake = 5;
     buzz(HAPTIC.hurt);
@@ -686,7 +703,7 @@ export class Game {
     this.stateTimer = 0;
     // A boss says its kill line in a speech bubble; anything else gets a
     // caption at the top of the screen.
-    if (byBoss && this.boss && this.boss.mode !== 'dying') this.say(this.boss, this.quip);
+    if (bossTalks) this.say(this.boss, this.quip);
     else if (this.lives > 0) this.showToast(this.quip);
   }
 
@@ -738,10 +755,10 @@ export class Game {
 
     // Speech bubbles go under pickups, enemies, rocks and bullets, so a
     // bubble can never hide anything that matters.
-    this.speech.draw(ctx, snap);
+    this.speech.draw(ctx, snap, (e) => this.aimPoint(e));
 
     for (const pk of this.pickups) {
-      const blink = pk.x < 40 && Math.floor(pk.t * 8) % 2 === 0;
+      const blink = !pk.magnet && pk.x < 40 && Math.floor(pk.t * 8) % 2 === 0;
       const lit = Math.floor(pk.t * 4) % 2 === 0;
       if (POWERUPS[pk.kind]) drawOrb(ctx, pk.kind, snap(pk.x), snap(pk.y), lit);
       else drawCapsule(ctx, pk.kind, snap(pk.x), snap(pk.y), lit);
@@ -960,7 +977,7 @@ export class Game {
       const t = this.title.t;
       const T = this.title.T;
       const cx = Math.round(VIEW_W * 0.4);
-      if (t < 3.3 && (t > 0.3 || Math.floor(t * 20) % 2 === 0)) {
+      if (t < TITLE_TIME && (t > 0.3 || Math.floor(t * 20) % 2 === 0)) {
         drawTextCentered(ctx, T.name, cx + 2, 34, PAL.ink, 3);
         drawTextCentered(ctx, T.name, cx + 1, 33, PAL.redDark, 3);
         drawTextCentered(ctx, T.name, cx, 32, PAL.amber, 3);
