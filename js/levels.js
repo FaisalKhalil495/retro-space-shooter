@@ -1,4 +1,4 @@
-import { PATTERNS } from './waves.js?v=0.10.5';
+import { PATTERNS } from './waves.js?v=0.11.0';
 
 // Level scripts. Each event is [seconds from the start, pattern, options].
 // The final 'boss' event waits for the screen to clear, flashes a warning
@@ -111,30 +111,63 @@ export const LEVELS = [
       [184, 'boss'],
     ],
   },
+  {
+    // Placeholder (Stage 3, step 3A): proves the flow from level 1 into
+    // level 2. The real Rust Moon arrives in step 3B.
+    number: 2,
+    name: 'RUST MOON',
+    boss: null,
+    background: { space: '#24161a', sun: true, dust: false, farRocks: true },
+    events: [
+      [2, 'row', { n: 5, shooter: true }],
+      [5, 'gunner'],
+      [8, 'rocks', { big: 2, small: 3, spread: 3 }],
+      [11, 'snipers', { n: 1 }],
+      [14, 'seekers', { n: 3 }],
+      [17, 'spinner'],
+      [20, 'gunner', { two: true }],
+      [24, 'end'],
+    ],
+  },
 ];
 
-// Plays a level's timeline.
+// Plays a level's timeline. The level ends with either a 'boss' event
+// (wait for stragglers, warning, boss) or an 'end' event (a level without a
+// boss: it's cleared once the last enemies have gone).
 export class LevelRunner {
   constructor(game, level) {
     this.game = game;
     this.level = level;
     this.t = 0;
     this.next = 0;
-    this.bossPhase = null; // null | 'waiting' | 'warning' | 'fight'
-    this.bossTimer = 0;
+    this.phase = null; // null | 'ending' | 'waiting' | 'warning' | 'fight'
+    this.phaseTimer = 0;
   }
 
-  // Jump ahead, e.g. straight to the boss for testing.
-  skipTo(seconds) {
-    this.t = seconds;
-    while (this.next < this.level.events.length && this.level.events[this.next][0] < seconds) {
-      this.next++;
-    }
+  // When the level's last event (the boss or the end) happens.
+  get endsAt() {
+    const events = this.level.events;
+    return events[events.length - 1][0];
   }
 
   get progress() {
-    const last = this.level.events[this.level.events.length - 1][0];
-    return Math.min(1, this.t / last);
+    return Math.min(1, this.t / this.endsAt);
+  }
+
+  // Jump ahead, e.g. straight to the boss for testing. Enemy waves that are
+  // skipped don't happen, but a skipped boss or end still does.
+  skipTo(seconds) {
+    this.t = seconds;
+    const events = this.level.events;
+    while (this.next < events.length && events[this.next][0] < seconds) {
+      const name = events[this.next++][1];
+      if (name === 'boss' || name === 'end') this.startPhase(name === 'boss' ? 'waiting' : 'ending');
+    }
+  }
+
+  startPhase(phase) {
+    this.phase = phase;
+    this.phaseTimer = 0;
   }
 
   update(dt) {
@@ -143,26 +176,29 @@ export class LevelRunner {
     const events = this.level.events;
     while (this.next < events.length && events[this.next][0] <= this.t) {
       const [, name, opts] = events[this.next++];
-      if (name === 'boss') {
-        this.bossPhase = 'waiting';
-        this.bossTimer = 0;
-      } else {
-        PATTERNS[name](g, g.rand, opts);
-      }
+      if (name === 'boss') this.startPhase('waiting');
+      else if (name === 'end') this.startPhase('ending');
+      else PATTERNS[name](g, g.rand, opts);
     }
 
-    if (this.bossPhase === 'waiting') {
+    this.phaseTimer += dt;
+    if (this.phase === 'ending') {
+      // Wait until every enemy (including any still due to arrive) is gone,
+      // or 8 seconds at most; never while you're mid-death.
+      const clearOfEnemies = g.enemies.length === 0 && g.timers.length === 0;
+      if ((clearOfEnemies || this.phaseTimer > 8) && g.state === 'playing') {
+        this.phase = null;
+        g.levelClear();
+      }
+    } else if (this.phase === 'waiting') {
       // Give the player a breather: wait for stragglers to leave (max 5s).
-      this.bossTimer += dt;
-      if (g.enemies.length === 0 || this.bossTimer > 5) {
-        this.bossPhase = 'warning';
-        this.bossTimer = 0;
+      if (g.enemies.length === 0 || this.phaseTimer > 5) {
+        this.startPhase('warning');
         g.startWarning();
       }
-    } else if (this.bossPhase === 'warning') {
-      this.bossTimer += dt;
-      if (this.bossTimer > 3) {
-        this.bossPhase = 'fight';
+    } else if (this.phase === 'warning') {
+      if (this.phaseTimer > 3) {
+        this.startPhase('fight');
         g.spawnEnemy(this.level.boss, 0, 0);
       }
     }

@@ -1,4 +1,4 @@
-import { audioOut } from './audio.js?v=0.10.5';
+import { audioOut } from './audio.js?v=0.11.0';
 
 // Boss music, generated live: pounding drums, a growling bass line and dark
 // stabbing chords in D minor with a flattened second (the "phrygian" sound

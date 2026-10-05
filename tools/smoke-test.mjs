@@ -456,6 +456,88 @@ for (const phone of PHONES) {
   await context.close();
 }
 
+// Stage 3A: level flow. "?level=2" starts on level 2; clearing level 1
+// carries score, lives and the special into level 2 with full health; the
+// level-2 placeholder clears itself; after the last level you're back on
+// level 1 with a fresh run.
+{
+  const context = await browser.newContext({ viewport: { width: 915, height: 412 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  const errs = [];
+  page.on('pageerror', (e) => errs.push(String(e)));
+  await page.goto(base + '?level=2');
+  await page.waitForTimeout(300);
+  await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  await page.waitForTimeout(300);
+  const flow = await page.evaluate(() => {
+    window.__ember.frozen = true;
+    const g = window.__ember.game;
+    const startedOn = g.level.number;
+    const idle = { dx: 0, dy: 0, fire: true, special: false, tap: false };
+    const tap = { ...idle, tap: true };
+    // Play the level-2 placeholder (invincible) until it clears itself.
+    let t = 0;
+    while (g.state !== 'clear' && t < 120) {
+      g.player.invuln = 1;
+      g.update(1 / 120, idle);
+      t += 1 / 120;
+    }
+    const placeholderCleared = g.state === 'clear';
+    // Tap on: no level 3 yet, so back to level 1, fresh.
+    g.stateTimer = 4;
+    g.update(1 / 120, tap);
+    const afterLast = { level: g.level.number, score: g.score, lives: g.lives };
+    // Clear level 1 with some score, 2 lives and 2 laser shots.
+    g.score = 1234;
+    g.lives = 2;
+    g.health = 3;
+    g.weapons.kind = 'laser';
+    g.weapons.ammo = 2;
+    g.levelClear();
+    const withBonus = g.score;
+    g.stateTimer = 4;
+    g.update(1 / 120, tap);
+    const next = { level: g.level.number, score: g.score, expected: withBonus, lives: g.lives, health: g.health, weapon: g.weapons.kind, ammo: g.weapons.ammo, state: g.state };
+    // Dying just after a boss dies must not block the level clear.
+    g.levelIndex = 0;
+    g.reset();
+    g.clearPending = true;
+    g.state = 'dying';
+    g.stateTimer = 0;
+    let t2 = 0;
+    while (g.state !== 'clear' && t2 < 5) {
+      g.update(1 / 120, idle);
+      t2 += 1 / 120;
+    }
+    const clearAfterRespawn = g.state === 'clear';
+    // Starting past a boss-less level's end (?level=2&start=30) still ends it.
+    g.levelIndex = 1;
+    g.startAt = 30;
+    g.reset();
+    let t3 = 0;
+    while (g.state !== 'clear' && t3 < 15) {
+      g.player.invuln = 1;
+      g.update(1 / 120, idle);
+      t3 += 1 / 120;
+    }
+    const skippedEndStillEnds = g.state === 'clear';
+    g.startAt = 0;
+    return {
+      clearAfterRespawn, skippedEndStillEnds,
+      startedOn, placeholderCleared, afterLast,
+      next,
+    };
+  });
+  const flowOk = flow.startedOn === 2 && flow.placeholderCleared && flow.clearAfterRespawn && flow.skippedEndStillEnds &&
+    flow.afterLast.level === 1 && flow.afterLast.score === 0 && flow.afterLast.lives === 3 &&
+    flow.next.level === 2 && flow.next.score === flow.next.expected && flow.next.lives === 2 &&
+    flow.next.health === 5 && flow.next.weapon === 'laser' && flow.next.ammo === 2 && flow.next.state === 'playing' &&
+    errs.length === 0;
+  console.log(`${flowOk ? 'PASS' : 'FAIL'}  level flow: level 1 -> level 2 carries score, lives and special ${JSON.stringify(flow)} ${errs.join(' ')}`);
+  if (!flowOk) failures++;
+  await context.close();
+}
+
 // The test web server must refuse paths outside the game folder.
 const escape = await fetch(base + '..%2f..%2f..%2fetc%2fpasswd');
 const serverOk = escape.status === 403;

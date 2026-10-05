@@ -86,8 +86,7 @@ await page.evaluate(() => {
 const supply = await page.evaluate(() => {
   const g = window.__ember.game;
   g.reset();
-  const ev = g.runner.level.events;
-  g.runner.skipTo(ev[ev.length - 1][0] - 0.5);
+  g.runner.skipTo(g.runner.endsAt - 0.5);
   let pods = 0;
   const kinds = [];
   const spawn = g.spawnEnemy.bind(g);

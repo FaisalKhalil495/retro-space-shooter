@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.10.5';
-import { FAR_ROCKS } from './rockart.js?v=0.10.5';
-import { fillDisc } from './util.js?v=0.10.5';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.11.0';
+import { FAR_ROCKS } from './rockart.js?v=0.11.0';
+import { fillDisc } from './util.js?v=0.11.0';
 
 // Deep-space backdrop: a slow distant amber sun, a band of dust, distant
 // asteroids and three layers of stars moving at different speeds, which
@@ -40,7 +40,7 @@ function makeDust() {
 export class Background {
   constructor(rand, theme = {}) {
     this.rand = rand;
-    this.theme = { sun: true, dust: true, farRocks: false, ...theme };
+    this.theme = { space: PAL.space, sun: true, dust: true, farRocks: false, ...theme };
     this.stars = [];
     for (const layer of LAYERS) {
       for (let i = 0; i < layer.count; i++) {
@@ -87,7 +87,7 @@ export class Background {
   }
 
   draw(ctx, snap) {
-    ctx.fillStyle = PAL.space;
+    ctx.fillStyle = this.theme.space;
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
 
     if (this.dust) ctx.drawImage(this.dust, -snap(this.dustX), Math.round(VIEW_H * 0.6));

@@ -135,6 +135,8 @@ Last updated: end of Stage 2 (v0.10.3).
 | Owner played an old cached version | Version label on screen + reload instructions in every hand-over. |
 | Ambiguous request ("25%") | Ask with concrete options instead of guessing. |
 | Speech bubbles distracted mid-fight | Anything that asks to be read must happen when the player isn't busy dodging. Flavour goes in pauses, never on top of the action. |
+| A quick self-review missed bugs a deeper one found (v0.10.4) | Self-review every release at the **deeper** level, not the quick one. |
+| A new check couldn't fail (the test player never dies, so no kill line) | When adding a check, also break the code on purpose and confirm the check fails. |
 
 ## 5. Our working process (what works)
 

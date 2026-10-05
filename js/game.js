@@ -1,18 +1,18 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.10.5';
-import { SPRITES } from './sprites.js?v=0.10.5';
-import { ENEMY_TYPES } from './enemies.js?v=0.10.5';
-import { LEVELS, LevelRunner } from './levels.js?v=0.10.5';
-import { Background } from './background.js?v=0.10.5';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.10.5';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.10.5';
-import { buzz, HAPTIC } from './feedback.js?v=0.10.5';
-import { sfx } from './audio.js?v=0.10.5';
-import { clamp, rectsOverlap } from './util.js?v=0.10.5';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.10.5';
-import { Blasts } from './blasts.js?v=0.10.5';
-import { Speech } from './speech.js?v=0.10.5';
-import { startBossMusic, stopMusic } from './music.js?v=0.10.5';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.10.5';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.11.0';
+import { SPRITES } from './sprites.js?v=0.11.0';
+import { ENEMY_TYPES } from './enemies.js?v=0.11.0';
+import { LEVELS, LevelRunner } from './levels.js?v=0.11.0';
+import { Background } from './background.js?v=0.11.0';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.11.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.11.0';
+import { buzz, HAPTIC } from './feedback.js?v=0.11.0';
+import { sfx } from './audio.js?v=0.11.0';
+import { clamp, rectsOverlap } from './util.js?v=0.11.0';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.11.0';
+import { Blasts } from './blasts.js?v=0.11.0';
+import { Speech } from './speech.js?v=0.11.0';
+import { startBossMusic, stopMusic } from './music.js?v=0.11.0';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.11.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -34,10 +34,10 @@ const DEATH_LINES = [
 ];
 
 export class Game {
-  constructor({ startAt = 0 } = {}) {
+  constructor({ startAt = 0, level = 1 } = {}) {
     this.rand = Math.random;
     this.startAt = startAt; // testing aid: skip ahead in the level
-    this.levelIndex = 0;
+    this.levelIndex = Math.min(LEVELS.length, level) - 1;
     this.weapons = new Weapons(this);
     this.powerups = new PowerUps(this);
     this.gore = new Gore(this.rand);
@@ -58,10 +58,14 @@ export class Game {
     return LEVELS[this.levelIndex];
   }
 
-  reset() {
-    this.score = 0;
+  // Start (or restart) the current level. With carry, it's the next level of
+  // a run: score, lives and the special weapon come along; health refills.
+  // Without it, it's a fresh start (new game, or retry after game over).
+  reset(carry = null) {
+    this.score = carry ? carry.score : 0;
     this.supplyCount = 0; // boss supply pods so far (they take turns)
-    this.lives = PLAYER.lives;
+    this.clearPending = false; // the boss is dead; clear the level when alive
+    this.lives = carry ? carry.lives : PLAYER.lives;
     this.health = PLAYER.health;
     this.hurtFlash = 0;
     this.lowBeep = 0;
@@ -104,10 +108,13 @@ export class Game {
     this.bg = new Background(this.rand, this.level.background);
     this.weapons.reset();
     this.powerups.reset();
+    if (carry && carry.weapon) {
+      this.weapons.kind = carry.weapon;
+      this.weapons.ammo = carry.ammo;
+    }
     this.runner = new LevelRunner(this, this.level);
     if (this.startAt) {
-      const bossAt = this.level.events.find((ev) => ev[1] === 'boss')[0];
-      this.runner.skipTo(this.startAt === 'boss' ? bossAt - 0.5 : this.startAt);
+      this.runner.skipTo(this.startAt === 'boss' ? this.runner.endsAt - 0.5 : this.startAt);
       this.banner = null;
       this.weapons.kind = 'laser';
       this.weapons.ammo = 3;
@@ -413,11 +420,16 @@ export class Game {
       if (this.stateTimer > 1.2) p.x += (this.stateTimer - 1.2) * 160 * dt;
       p.moveX = 1;
       this.moveWorld(dt);
-      if (input.tap && this.stateTimer > 3) this.reset();
+      if (input.tap && this.stateTimer > 3) this.nextLevel();
       return;
     }
 
     if (this.state === 'playing') {
+      if (this.clearPending) {
+        this.clearPending = false;
+        this.levelClear();
+        return;
+      }
       this.updatePlayer(dt, input);
     } else if (this.state === 'dying') {
       this.stateTimer += dt;
@@ -668,7 +680,27 @@ export class Game {
     this.flash = 0.2;
     sfx.explode(2);
     buzz([80, 40, 120]);
-    this.later(3, () => this.levelClear());
+    // A few seconds later the level is cleared — as soon as you're alive
+    // (if a leftover shot got you just after the boss died, it waits for
+    // your respawn rather than never clearing).
+    this.later(3, () => {
+      this.clearPending = true;
+    });
+  }
+
+  // After a level-clear screen: on to the next level with your score, lives
+  // and special weapon. After the last level that exists so far, back to
+  // level 1 for a fresh run.
+  nextLevel() {
+    this.startAt = 0;
+    if (this.levelIndex + 1 < LEVELS.length) {
+      const carry = { score: this.score, lives: this.lives, weapon: this.weapons.kind, ammo: this.weapons.ammo };
+      this.levelIndex++;
+      this.reset(carry);
+    } else {
+      this.levelIndex = 0;
+      this.reset();
+    }
   }
 
   levelClear() {
@@ -1044,9 +1076,16 @@ export class Game {
         drawTextCentered(ctx, `LIVES BONUS ${this.lives} X ${LIFE_BONUS}`, VIEW_W / 2, 64, PAL.bluePale);
       }
       if (t > 1.4) drawTextCentered(ctx, 'SCORE ' + score, VIEW_W / 2, 76, PAL.amberLight);
-      if (t > 2) drawTextCentered(ctx, 'MORE LEVELS COMING IN STAGE 3', VIEW_W / 2, 96, PAL.textDim);
+      const next = LEVELS[this.levelIndex + 1];
+      if (t > 2) {
+        // Long level names drop the "LEVEL n" part so the line still fits.
+        let line = next ? 'NEXT  LEVEL ' + next.number + '  ' + next.name : 'MORE LEVELS COMING SOON';
+        if (next && textWidth(line) > VIEW_W - 8) line = 'NEXT  ' + next.name;
+        if (next && textWidth(line) > VIEW_W - 8) line = next.name;
+        drawTextCentered(ctx, line, VIEW_W / 2, 96, PAL.textDim);
+      }
       if (t > 3 && Math.floor(this.time * 2.5) % 2 === 0) {
-        drawTextCentered(ctx, 'TAP TO PLAY AGAIN', VIEW_W / 2, 112, PAL.amberLight);
+        drawTextCentered(ctx, next ? 'TAP TO CONTINUE' : 'TAP TO PLAY AGAIN', VIEW_W / 2, 112, PAL.amberLight);
       }
     }
   }

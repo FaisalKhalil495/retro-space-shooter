@@ -1,8 +1,8 @@
-import { VERSION, STAGE_LABEL, VIEW_W, VIEW_H, PAL } from './config.js?v=0.10.5';
-import { readSafeArea, computeLayout } from './layout.js?v=0.10.5';
-import { Controls } from './controls.js?v=0.10.5';
-import { Game } from './game.js?v=0.10.5';
-import { unlockAudio, suspendAudio, resumeAudio } from './audio.js?v=0.10.5';
+import { VERSION, STAGE_LABEL, VIEW_W, VIEW_H, PAL } from './config.js?v=0.11.0';
+import { readSafeArea, computeLayout } from './layout.js?v=0.11.0';
+import { Controls } from './controls.js?v=0.11.0';
+import { Game } from './game.js?v=0.11.0';
+import { unlockAudio, suspendAudio, resumeAudio } from './audio.js?v=0.11.0';
 
 const canvas = document.getElementById('screen');
 const ctx = canvas.getContext('2d', { alpha: false });
@@ -15,11 +15,14 @@ document.querySelectorAll('[data-version]').forEach((el) => {
 });
 
 const controls = new Controls(canvas);
-// Testing aid: "?start=boss" jumps straight to the boss (with a laser loaded);
-// "?start=60" starts 60 seconds into the level.
-const startParam = new URLSearchParams(location.search).get('start');
+// Testing aids: "?start=boss" jumps straight to the boss (with a laser
+// loaded); "?start=60" starts 60 seconds into the level; "?level=2" starts
+// on level 2 (they combine: "?level=2&start=boss").
+const params = new URLSearchParams(location.search);
+const startParam = params.get('start');
 const startAt = startParam === 'boss' ? 'boss' : Number(startParam) || 0;
-const game = new Game({ startAt });
+const level = Math.max(1, Math.round(Number(params.get('level')) || 1));
+const game = new Game({ startAt, level });
 
 let layout = null;
 let dpr = 1;
