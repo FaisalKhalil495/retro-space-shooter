@@ -1,17 +1,18 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.9.1';
-import { SPRITES } from './sprites.js?v=0.9.1';
-import { ENEMY_TYPES } from './enemies.js?v=0.9.1';
-import { LEVELS, LevelRunner } from './levels.js?v=0.9.1';
-import { Background } from './background.js?v=0.9.1';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.9.1';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.9.1';
-import { buzz, HAPTIC } from './feedback.js?v=0.9.1';
-import { sfx } from './audio.js?v=0.9.1';
-import { clamp, rectsOverlap } from './util.js?v=0.9.1';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.9.1';
-import { Blasts } from './blasts.js?v=0.9.1';
-import { startBossMusic, stopMusic } from './music.js?v=0.9.1';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.9.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.10.0';
+import { SPRITES } from './sprites.js?v=0.10.0';
+import { ENEMY_TYPES } from './enemies.js?v=0.10.0';
+import { LEVELS, LevelRunner } from './levels.js?v=0.10.0';
+import { Background } from './background.js?v=0.10.0';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.10.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.10.0';
+import { buzz, HAPTIC } from './feedback.js?v=0.10.0';
+import { sfx } from './audio.js?v=0.10.0';
+import { clamp, rectsOverlap } from './util.js?v=0.10.0';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.10.0';
+import { Blasts } from './blasts.js?v=0.10.0';
+import { Speech } from './speech.js?v=0.10.0';
+import { startBossMusic, stopMusic } from './music.js?v=0.10.0';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.10.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -40,6 +41,7 @@ export class Game {
     this.powerups = new PowerUps(this);
     this.gore = new Gore(this.rand);
     this.blasts = new Blasts(this.rand);
+    this.speech = new Speech();
     // What a pod's light shows. A weapon pod shows exactly what it would
     // give if shot open right now (ammo shows the colour of your special).
     this.pickupInfo = (kind) => {
@@ -98,6 +100,7 @@ export class Game {
     this.quip = '';
     this.gore.reset();
     this.blasts.reset();
+    this.speech.reset();
     stopMusic(0.3);
     this.bg = new Background(this.rand, this.level.background);
     this.weapons.reset();
@@ -135,8 +138,28 @@ export class Game {
     return e;
   }
 
-  spawnPickup(kind, x, y) {
-    if (kind) this.pickups.push({ kind, x, y, baseY: y, t: 0 });
+  // magnet: the pickup floats towards the ship so it can't be missed.
+  spawnPickup(kind, x, y, magnet = false) {
+    if (kind) this.pickups.push({ kind, x, y, baseY: y, t: 0, magnet });
+  }
+
+  // Something a character says, in a comic-book speech bubble beside them.
+  say(speaker, text, style = 'talk', dur) {
+    this.speech.say(speaker, text, style, dur);
+  }
+
+  // Breaking a boss into its next stage: a score bonus, and two bonus items
+  // burst out of the wound and float to the ship (one to keep you alive, one
+  // for your special weapon).
+  stageBonus(e, stage) {
+    const m = e.T.aimPoint ? e.T.aimPoint(e) : { x: e.x, y: e.y + e.h / 2 };
+    const bonus = stage === 2 ? 1000 : 2000;
+    this.score += bonus;
+    this.popups.push({ x: m.x, y: m.y - 14, text: '+' + bonus, t: 1.5 });
+    const survival = this.health < PLAYER.health ? 'repair' : 'shield';
+    this.spawnPickup(survival, m.x - 6, m.y - 10, true);
+    this.spawnPickup(this.weaponPick(), m.x - 6, m.y + 2, true);
+    this.burst(m.x, m.y, 12, 70);
   }
 
   // Specials and extra lives go to the weapon system; the rest are
@@ -193,6 +216,12 @@ export class Game {
   // 2 health blocks it gives Repair instead.
   weaponSupply() {
     if (this.health <= 2) return 'repair';
+    return this.weaponPick();
+  }
+
+  // The weapon item to hand out: a Laser if you have no special, ammo for the
+  // one you carry, or Rapid Fire / Spread Shot if your special is full.
+  weaponPick() {
     const w = this.weapons;
     if (!w.kind) return 'laser';
     if (w.ammo >= SPECIALS[w.kind].max) return this.powerups.has('rapid') ? 'spread' : 'rapid';
@@ -321,6 +350,7 @@ export class Game {
     if (this.title && (this.title.t += dt) > 3.6) this.title = null;
     this.gore.update(dt);
     this.blasts.update(dt);
+    this.speech.update(dt);
 
     if (this.state === 'gameover') {
       this.stateTimer += dt;
@@ -435,10 +465,18 @@ export class Game {
       (s) => !s.dead && s.x > -6 && s.x < VIEW_W + 6 && s.y > -6 && s.y < VIEW_H + 6,
     );
 
+    const p = this.player;
     for (const pk of this.pickups) {
       pk.t += dt;
       pk.x -= 20 * dt;
-      pk.y = pk.baseY + Math.sin(pk.t * 3) * 4;
+      if (pk.magnet && pk.t > 0.35) {
+        const dx = p.x + p.w / 2 - (pk.x + 4);
+        const dy = p.y + p.h / 2 - (pk.baseY + 4);
+        const d = Math.hypot(dx, dy) || 1;
+        pk.x += (dx / d) * 90 * dt;
+        pk.baseY += (dy / d) * 90 * dt;
+      }
+      pk.y = pk.baseY + Math.sin(pk.t * 3) * (pk.magnet ? 1 : 4);
     }
     this.pickups = this.pickups.filter((pk) => !pk.taken && pk.x > -12);
   }
@@ -646,7 +684,10 @@ export class Game {
     this.health = 0;
     this.state = 'dying';
     this.stateTimer = 0;
-    if (this.lives > 0) this.showToast(this.quip);
+    // A boss says its kill line in a speech bubble; anything else gets a
+    // caption at the top of the screen.
+    if (byBoss && this.boss && this.boss.mode !== 'dying') this.say(this.boss, this.quip);
+    else if (this.lives > 0) this.showToast(this.quip);
   }
 
   respawn() {
@@ -694,6 +735,10 @@ export class Game {
       ctx.fillStyle = `rgba(5, 6, 12, ${this.darken})`;
       ctx.fillRect(-10, -10, VIEW_W + 20, VIEW_H + 20);
     }
+
+    // Speech bubbles go under pickups, enemies, rocks and bullets, so a
+    // bubble can never hide anything that matters.
+    this.speech.draw(ctx, snap);
 
     for (const pk of this.pickups) {
       const blink = pk.x < 40 && Math.floor(pk.t * 8) % 2 === 0;
@@ -920,7 +965,6 @@ export class Game {
         drawTextCentered(ctx, T.name, cx + 1, 33, PAL.redDark, 3);
         drawTextCentered(ctx, T.name, cx, 32, PAL.amber, 3);
         if (t > 0.6) drawTextCentered(ctx, T.title, cx, 54, PAL.cream);
-        if (t > 1.3) drawTextCentered(ctx, T.taunt, cx, 66, Math.floor(t * 6) % 2 ? PAL.redSoft : PAL.red);
       }
     }
 

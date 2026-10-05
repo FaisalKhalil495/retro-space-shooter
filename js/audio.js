@@ -263,6 +263,12 @@ export const sfx = {
     growlVoice({ f0: 62, f1: 74, dur: 0.75, vol: 0.24, cutoff: 600, wobble: 16 });
     noise({ dur: 0.7, vol: 0.12, f0: 220, f1: 500, q: 2, type: 'bandpass' });
   },
+  voice(roar = false) {
+    // A low growly blip while a boss's speech bubble types out.
+    if (!ready()) return;
+    const f = (roar ? 70 : 95) + Math.random() * 25;
+    tone({ type: 'sawtooth', f0: f, f1: f * 0.8, dur: 0.06, vol: roar ? 0.09 : 0.06, cutoff: 700 });
+  },
   snap() {
     // Jaws slamming shut: a crunch and a thump.
     if (!ready()) return;

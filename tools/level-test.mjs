@@ -47,6 +47,12 @@ const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
   if (!g.__wrapped) {
     const collect = g.collectPickup.bind(g);
     g.collectPickup = (k) => { log.collected.push(k); collect(k); };
+    const say = g.say.bind(g);
+    log.said = [];
+    g.say = (e, text, style, dur) => { log.said.push(text); say(e, text, style, dur); };
+    const bonus = g.stageBonus.bind(g);
+    log.bonuses = 0;
+    g.stageBonus = (e, stage) => { log.bonuses++; bonus(e, stage); };
     g.__wrapped = true;
   }
   const step = 1 / 120;
@@ -154,6 +160,9 @@ const checks = {
   'spread shot power-up collected': r.collected.includes('spread'),
   'wingman power-up collected': r.collected.includes('wingman'),
   'boss appeared': r.bossSeen,
+  'Rockjaw talks in speech bubbles': ['YOU ARE FUCKING DINNER', 'MY FUCKING EYE!', 'NOW I EAT YOU WHOLE']
+    .every((line) => r.said.includes(line)),
+  'a stage bonus for each broken stage': r.bonuses === 2,
   'boss sends a supply pod every ~20s': pods >= 3,
   'supply pods alternate survival / weapon': supply.kinds.slice(0, 3).join() === 'smart,weapon,smart',
   'level cleared': r.state === 'clear',
