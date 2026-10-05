@@ -1,19 +1,19 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.13.0';
-import { SPRITES } from './sprites.js?v=0.13.0';
-import { ENEMY_TYPES } from './enemies.js?v=0.13.0';
-import { LEVELS, LevelRunner } from './levels.js?v=0.13.0';
-import { Background } from './background.js?v=0.13.0';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.13.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.13.0';
-import { buzz, HAPTIC } from './feedback.js?v=0.13.0';
-import { sfx } from './audio.js?v=0.13.0';
-import { clamp, rectsOverlap } from './util.js?v=0.13.0';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.13.0';
-import { Blasts } from './blasts.js?v=0.13.0';
-import { Speech } from './speech.js?v=0.13.0';
-import { Terrain } from './terrain.js?v=0.13.0';
-import { startBossMusic, stopMusic } from './music.js?v=0.13.0';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.13.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.13.1';
+import { SPRITES } from './sprites.js?v=0.13.1';
+import { ENEMY_TYPES } from './enemies.js?v=0.13.1';
+import { LEVELS, LevelRunner } from './levels.js?v=0.13.1';
+import { Background } from './background.js?v=0.13.1';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.13.1';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.13.1';
+import { buzz, HAPTIC } from './feedback.js?v=0.13.1';
+import { sfx } from './audio.js?v=0.13.1';
+import { clamp, rectsOverlap } from './util.js?v=0.13.1';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.13.1';
+import { Blasts } from './blasts.js?v=0.13.1';
+import { Speech } from './speech.js?v=0.13.1';
+import { Terrain } from './terrain.js?v=0.13.1';
+import { startBossMusic, stopMusic } from './music.js?v=0.13.1';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.13.1';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -23,6 +23,8 @@ const DUST_COLORS = ['#7a4632', '#9a6a4a', '#c4a68e'];
 const WING = { rows: ['aab', 'abbc', '.bcc'], colors: { a: PAL.bluePale, b: PAL.blue, c: PAL.amberSoft } };
 const LIFE_BONUS = 500;
 const TITLE_TIME = 3.3; // seconds a boss name card stays up
+const SUPPLY_EVERY = 20; // seconds between supply pods in a boss fight
+const FIRST_SUPPLY = 3; // the first one comes early
 const SMART_POD = { color: PAL.cream, light: '#ffffff' }; // white light on a survival supply pod
 
 // Things the game says when you die. Adults-only humour, as agreed.
@@ -296,6 +298,26 @@ export class Game {
     return shot;
   }
 
+  // The middle of the player's ship (what enemies aim at).
+  playerCenter() {
+    const p = this.player;
+    return { x: p.x + p.w / 2, y: p.y + p.h / 2 };
+  }
+
+  // Boss supply pods: one every 20 s of fighting (the first 3 s in), taking
+  // turns survival / weapon (see nextSupplyKind). Every boss gets them; a
+  // boss type's supplyY(e) says how high they fly in (away from it).
+  updateSupplies(dt) {
+    const b = this.boss;
+    if (!b || (b.mode !== 'fight' && b.mode !== 'transition')) return;
+    if (b.supplyT === undefined) b.supplyT = FIRST_SUPPLY;
+    b.supplyT -= dt;
+    if (b.supplyT > 0) return;
+    b.supplyT = SUPPLY_EVERY;
+    const y = b.T.supplyY ? b.T.supplyY(b, this) : HUD_H + 8;
+    this.spawnEnemy('carrier', VIEW_W + 8, y, { drop: this.nextSupplyKind() });
+  }
+
   // The player's hitbox: smaller than the drawing, so scrapes that look like
   // near-misses really are misses. Everything that can hit you uses this.
   playerHitbox() {
@@ -546,6 +568,7 @@ export class Game {
       e.flashCd = (e.flashCd || 0) - dt;
       e.T.update(e, dt, this);
     }
+    this.updateSupplies(dt);
     this.enemies = this.enemies.filter(
       (e) => !e.dead && (e.T.boss || (e.x > -e.w - 30 && e.x < VIEW_W + 90 && e.y > -60 && e.y < VIEW_H + 60)),
     );

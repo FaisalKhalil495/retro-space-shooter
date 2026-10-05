@@ -1,12 +1,12 @@
-import { VIEW_W, HUD_H, PAL } from './config.js?v=0.13.0';
-import { sfx } from './audio.js?v=0.13.0';
-import { clamp, rectsOverlap } from './util.js?v=0.13.0';
-import { METAL, MOLTEN } from './gore.js?v=0.13.0';
-import { GROUND_SPEED } from './terrain.js?v=0.13.0';
+import { VIEW_W, HUD_H, PAL } from './config.js?v=0.13.1';
+import { sfx } from './audio.js?v=0.13.1';
+import { clamp, rectsOverlap } from './util.js?v=0.13.1';
+import { METAL, MOLTEN } from './gore.js?v=0.13.1';
+import { GROUND_SPEED } from './terrain.js?v=0.13.1';
 import {
   CRAWLER, CRAWLER_W, CRAWLER_H, PIVOT, CORE, MORTAR_RACK, FLAK_GUNS, DRONE_BAY, MINE_HATCH, SLIT,
   drawLegs, drawBarrel, drawCore,
-} from './crawlerart.js?v=0.13.0';
+} from './crawlerart.js?v=0.13.1';
 
 // THE SIEGE CRAWLER · THE WALKING FORTRESS — boss of Rust Moon.
 //
@@ -25,7 +25,6 @@ import {
 
 const SPEED = [0, 1, 1.15, 1.3];
 const IDLE = [0, 1.1, 0.8, 0.55];
-const SUPPLY_EVERY = 20; // seconds between smart supply pods during the fight
 const HOME_X = VIEW_W - CRAWLER_W - 6;
 const LEFT_LIMIT = [0, 74, 56, 44];
 const BARREL = 18; // barrel length
@@ -49,26 +48,22 @@ const pivot = (e) => ({ x: e.x + PIVOT.x, y: bodyY(e) + PIVOT.y });
 const core = (e) => ({ x: e.x + CORE.x, y: bodyY(e) + CORE.y });
 
 // The cannon's aim is kept as an angle measured from "straight left" going
-// up and over: 0 = left, PI/2 = up, PI = right. It can tip a little below
-// level either way, but never swings down through its own body.
-const AIM_MIN = -0.36;
-const AIM_MAX = Math.PI + 0.36;
+// up and over: 0 = left, PI/2 = up, PI = right. It can tip well below
+// level either way (down over its nose, so there's no safe spot low in
+// front of it), but never swings down through its own body.
+const AIM_MIN = -0.6;
+const AIM_MAX = Math.PI + 0.6;
 const aimDir = (a) => ({ x: -Math.cos(a), y: -Math.sin(a) });
 function aimTo(e, x, y) {
   const p = pivot(e);
   let a = Math.atan2(-(y - p.y), -(x - p.x));
-  if (a < AIM_MIN) a = a < -Math.PI / 2 ? AIM_MAX : AIM_MIN;
+  if (a < -Math.PI / 2) a += Math.PI * 2; // behind it and below: past PI
   return clamp(a, AIM_MIN, AIM_MAX);
 }
 function muzzle(e) {
   const p = pivot(e);
   const d = aimDir(e.ang);
   return { x: p.x + d.x * BARREL, y: p.y + d.y * BARREL };
-}
-
-function playerCenter(g) {
-  const p = g.player;
-  return { x: p.x + p.w / 2, y: p.y + p.h / 2 };
 }
 
 
@@ -113,7 +108,7 @@ const ATTACKS = {
       a.started = true;
       sfx.rumble();
     }
-    const pc = playerCenter(g);
+    const pc = g.playerCenter();
     if (a.t < track) {
       turnTo(e, aimTo(e, pc.x, pc.y), 4, dt);
       e.slit = true;
@@ -121,7 +116,7 @@ const ATTACKS = {
     }
     if (!a.locked) {
       a.locked = true;
-      turnTo(e, aimTo(e, pc.x, pc.y), 99, dt); // snaps on to you as it locks
+      e.ang = aimTo(e, pc.x, pc.y); // snaps right on to you as it locks
       e.hatchTarget = 1;
       e.aimLine = true;
       sfx.charge(lock);
@@ -160,7 +155,7 @@ const ATTACKS = {
     }
     a.n = a.n || 0;
     if (a.n < n && a.t >= 0.5 + a.n * 0.3) {
-      const pc = playerCenter(g);
+      const pc = g.playerCenter();
       const spread = a.n === 0 ? 0 : 1;
       g.spawnEnemy('mortarShell', e.x + MORTAR_RACK.x, bodyY(e) + MORTAR_RACK.y, {
         tx: clamp(pc.x + (g.rand() - 0.5) * 70 * spread, 8, VIEW_W - 8),
@@ -183,7 +178,7 @@ const ATTACKS = {
     if (!a.lines) {
       const top = HUD_H + 8;
       const low = bodyY(e) + FLAK_GUNS[0].y - 12; // the flak can't reach below its own guns
-      const y0 = clamp(playerCenter(g).y, top, low);
+      const y0 = clamp(g.playerCenter().y, top, low);
       const ys = [y0];
       if (lines > 1) ys.push(y0 - 26 >= top ? y0 - 26 : y0 + 26);
       a.lines = ys.map((y) => {
@@ -214,8 +209,11 @@ const ATTACKS = {
         if (g.playerVulnerable() && g.touchesPlayer(x - FLAK_R, L.y - FLAK_R, FLAK_R * 2, FLAK_R * 2)) {
           g.hurtPlayer(1, e);
         }
-        // Every other burst throws a hot fragment down and back.
-        if (L.count++ % 2 === 0) g.fireShot(x, L.y + 2, Math.PI * 0.62, 46, 'gravel', true);
+        // Every other burst throws a hot fragment back and away from the
+        // other line (the top line's go up, the bottom line's go down), so
+        // no fragment can fall through the other line's gap.
+        const up = a.lines.length > 1 && L.y < Math.max(...a.lines.map((o) => o.y));
+        if (L.count++ % 2 === 0) g.fireShot(x, L.y + (up ? -2 : 2), Math.PI * (up ? -0.62 : 0.62), 46, 'gravel', true);
       }
       if (L.next > 0) left = true;
     }
@@ -303,9 +301,11 @@ const ATTACKS = {
         g.later(0.1 + i * 0.35, () => g.warn(x, HUD_H + 3, 0.75));
         g.later(0.85 + i * 0.35, () => {
           if (g.boss !== e || e.mode === 'dying') return;
-          g.spawnEnemy(i % 3 === 0 ? 'rockBig' : 'rockSmall', x - 6, -14, {
-            vx: -10 - g.rand() * 10, vy: 40, rust: true, ground: true, byBoss: true,
+          // Straight down on its marker; it only starts rolling once it lands.
+          const rock = g.spawnEnemy(i % 3 === 0 ? 'rockBig' : 'rockSmall', x, -14, {
+            vx: 0, vy: 40, rust: true, ground: true, byBoss: true, landVx: -10 - g.rand() * 10,
           });
+          rock.x = x - rock.w / 2;
         });
       }
     }
@@ -413,7 +413,6 @@ export const SIEGE_CRAWLER_TYPE = {
     e.attack = null;
     e.last = null;
     e.idle = 1;
-    e.supplyT = Infinity;
     e.lightT = 0;
   },
 
@@ -433,16 +432,6 @@ export const SIEGE_CRAWLER_TYPE = {
 
     updateWaves(e, dt, g);
     if (e.phase === 3 && e.mode !== 'dying') burning(e, g);
-
-    // Supply pods: one every 20 seconds of fighting, taking turns between
-    // survival and weapon pods (see Game.nextSupplyKind).
-    if (e.mode === 'fight' || e.mode === 'transition') {
-      e.supplyT -= dt;
-      if (e.supplyT <= 0) {
-        e.supplyT = SUPPLY_EVERY;
-        if (g.boss === e) g.spawnEnemy('carrier', VIEW_W + 8, HUD_H + 8 + g.rand() * 30, { drop: g.nextSupplyKind() });
-      }
-    }
 
     switch (e.mode) {
       case 'enter': {
@@ -488,7 +477,6 @@ export const SIEGE_CRAWLER_TYPE = {
         if (e.taunted && g.bossMayAttack(e)) {
           set('fight');
           e.idle = 0.6;
-          e.supplyT = 3; // the first pod comes early
         }
         break;
       case 'fight': {
@@ -496,7 +484,7 @@ export const SIEGE_CRAWLER_TYPE = {
           pace(e, dt, g);
           e.hatchTarget = 0;
           // Between attacks the cannon idly follows you.
-          const pc = playerCenter(g);
+          const pc = g.playerCenter();
           turnTo(e, aimTo(e, pc.x, pc.y), 1.2, dt);
           // A boss never starts an attack while its speech bubble is up
           // (e.g. gloating after a kill) — see Game.bossMayAttack.
@@ -532,6 +520,11 @@ export const SIEGE_CRAWLER_TYPE = {
     return core(e);
   },
 
+  // Supply pods fly in high, well above it.
+  supplyY(e, g) {
+    return HUD_H + 8 + g.rand() * 30;
+  },
+
   // Where its speech bubble's tail points: the vision slit on its turret.
   voicePoint(e) {
     return { x: e.x + SLIT.x + 2, y: bodyY(e) + SLIT.y };
@@ -545,18 +538,19 @@ export const SIEGE_CRAWLER_TYPE = {
     return e.mode !== 'enter';
   },
 
-  // Bumping into it knocks you away from it (left if you're in front,
-  // right if you're behind). If it's running you down, or you'd be pushed
-  // into the edge of the screen, you're thrown up over its turret instead,
-  // so it can never pin you.
+  // Bumping into it pushes you clear of it: out of the front if you hit its
+  // front, out of the back if you hit its back, otherwise (on top of it, or
+  // when it's running you down, or at the edge of the screen) up and over
+  // its turret, so it can never pin you.
   knockback(e, p) {
-    const away = p.x + p.w / 2 < e.x + e.w / 2 ? -14 : 14;
-    const x = p.x + away;
-    if ((e.attack && e.attack.running) || x < 2 || x > VIEW_W - p.w - 2) {
-      p.y = Math.max(HUD_H + 1, bodyY(e) - p.h - 2);
-    } else {
-      p.x = x;
+    const cx = p.x + p.w / 2;
+    let x = null;
+    if (!(e.attack && e.attack.running)) {
+      if (cx < e.x + 10) x = e.x - 12;
+      else if (cx > e.x + e.w - 8) x = e.x + e.w - 4;
     }
+    if (x !== null && x >= 2 && x <= VIEW_W - p.w - 2) p.x = x;
+    else p.y = Math.max(HUD_H + 1, bodyY(e) - p.h + 2);
   },
 
   // Health blocks lost by touching it: 3 if it runs you down, 2 otherwise.
@@ -613,7 +607,8 @@ export const SIEGE_CRAWLER_TYPE = {
 
   draw(e, ctx, snap, g) {
     const stage = Math.min(2, e.phase - 1);
-    const wx = e.wobble ? Math.round((g.rand() - 0.5) * 2 * e.wobble) : 0;
+    // (Drawing uses Math.random, never the game's own dice.)
+    const wx = e.wobble ? Math.round((Math.random() - 0.5) * 2 * e.wobble) : 0;
     const x = snap(e.x) + wx;
     const y = snap(bodyY(e));
     drawWaves(e, ctx, g);
@@ -779,10 +774,10 @@ export const CRAWLER_MINIONS = {
       e.vx += (-12 - e.vx) * Math.min(1, dt * 1.5);
       e.vy += (Math.sin(e.t * 3) * 6 - e.vy) * Math.min(1, dt * 2);
       e.y = clamp(e.y, HUD_H + 2, g.terrain.floorY - e.h - 2);
-      const p = g.player;
       const cx = e.x + e.w / 2;
       const cy = e.y + e.h / 2;
-      const d = Math.hypot(p.x + p.w / 2 - cx, p.y + p.h / 2 - cy);
+      const pc = g.playerCenter();
+      const d = Math.hypot(pc.x - cx, pc.y - cy);
       if (d < 22 && e.fuse > 0.5) e.fuse = 0.5; // you're close: it arms
       e.fuse -= dt;
       e.charge = e.fuse < 0.5 ? 1 : 0;

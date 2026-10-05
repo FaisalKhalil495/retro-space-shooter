@@ -893,22 +893,116 @@ for (const phone of PHONES) {
     g.health = 5;
     g.update(1 / 120, idle);
     res.runDown = { hurt: 5 - g.health, thrownUp: g.player.y + g.player.h <= b.y + 20 };
+    // No safe spots from the cannon: low and close in front (where you
+    // shoot the core), and behind it a little below the gun, the aim line
+    // still runs through the ship.
+    const aimMiss = (dx, dy) => {
+      b = fresh(1);
+      const pv = { x: b.x + 25, y: b.y + 12 };
+      g.player.x = pv.x + dx - g.player.w / 2;
+      g.player.y = pv.y + dy - g.player.h / 2;
+      b.attack = { name: 'cannon', t: 0 };
+      for (let i = 0; i < 120 && !b.aimLine; i++) {
+        g.player.invuln = 1;
+        g.update(1 / 120, idle);
+      }
+      const ang = Math.atan2(-Math.sin(b.ang), -Math.cos(b.ang));
+      const pc = g.playerCenter();
+      // Distance from the ship's centre to the aim line.
+      const vx = pc.x - pv.x;
+      const vy = pc.y - pv.y;
+      return +Math.abs(vx * Math.sin(ang) - vy * Math.cos(ang)).toFixed(1);
+    };
+    res.aimMiss = [aimMiss(-40, 20), aimMiss(-30, 16), aimMiss(40, 4)];
+
+    // Two flak lines: a ship parked in the lower line's gap stays safe (no
+    // fragment from the upper line falls through it).
+    b = fresh(2);
+    g.player.x = 30;
+    g.player.y = 70;
+    b.attack = { name: 'flak', t: 0 };
+    g.update(1 / 120, idle);
+    const [top, low] = [...b.flak].sort((m, n) => m.y - n.y);
+    top.gap0 = 20;
+    top.gap1 = 50;
+    // (Fragments thrown down-left from the top line's burst at x = 130
+    // would cross the lower line around x = 120, the middle of this gap.)
+    low.gap0 = 105;
+    low.gap1 = 135;
+    g.health = 5;
+    for (let i = 0; i < 3 * 120; i++) {
+      g.player.invuln = 0;
+      g.player.x = 120 - g.player.w / 2;
+      g.player.y = low.y - g.player.h / 2;
+      g.update(1 / 120, idle);
+    }
+    res.lowGapSafe = g.health === 5;
+
+    // Stomp rocks fall straight down onto their "!" markers.
+    b = fresh(2);
+    b.attack = { name: 'stomp', t: 0 };
+    const marks = [];
+    const landed = [];
+    const seen = new Set();
+    for (let i = 0; i < 4 * 120; i++) {
+      g.player.invuln = 1;
+      g.player.y = 20;
+      g.update(1 / 120, idle);
+      for (const m of g.markers) if (!marks.includes(m.x)) marks.push(m.x);
+      for (const e of g.enemies) {
+        if (e.type.startsWith('rock') && !seen.has(e) && e.y + e.h >= g.terrain.floorY - 0.5) {
+          seen.add(e);
+          landed.push(e.x + e.w / 2);
+        }
+      }
+    }
+    res.rockDrift = landed.length ? +Math.max(...landed.map((x) => Math.min(...marks.map((m) => Math.abs(m - x))))).toFixed(1) : -1;
+
+    // Supply pods keep coming in its fight (shared with every boss) and take
+    // turns, survival then weapon.
+    b = fresh(1);
+    const pods = [];
+    const spawn = g.spawnEnemy.bind(g);
+    g.spawnEnemy = (type, x, y, opts = {}) => {
+      if (type === 'carrier') pods.push(opts.drop);
+      return spawn(type, x, y, opts);
+    };
+    for (let i = 0; i < 45 * 120; i++) {
+      g.player.invuln = 1;
+      g.update(1 / 120, idle);
+    }
+    g.spawnEnemy = spawn;
+    res.pods = pods.join();
+
+    // Landing on top of it throws you up off it, not along it.
+    b = fresh(1);
+    b.x = 80;
+    g.player.x = b.x + 30;
+    g.player.y = b.y + 14;
+    g.player.invuln = 0;
+    g.update(1 / 120, idle);
+    const hb = g.playerHitbox();
+    res.offTop = !b.T.hitTest(b, hb.x, hb.y, hb.w, hb.h);
+
     // Bumping into it from behind pushes you back out behind it.
     b = fresh(1);
     b.x = 60;
-    g.player.x = b.x + 52;
+    g.player.x = b.x + 60;
     g.player.y = b.y + 30;
     g.player.invuln = 0;
     const beforeX = g.player.x;
     g.update(1 / 120, idle);
-    res.behindPushedOut = g.player.x > beforeX;
+    const hb2 = g.playerHitbox();
+    res.behindPushedOut = g.player.x > beforeX && !b.T.hitTest(b, hb2.x, hb2.y, hb2.w, hb2.h);
     g.reset();
     return res;
   });
   const w = r.warnings;
   const ok = r.shutHp === 0 && r.openHits >= 5 &&
     Object.values(w).every((v) => v >= 0.3) &&
-    r.flakGap.every((n) => n === 0) && r.flakLine === 1 && r.runDown.hurt === 3 && r.runDown.thrownUp && r.behindPushedOut && errs.length === 0;
+    r.flakGap.every((n) => n === 0) && r.flakLine === 1 && r.runDown.hurt === 3 && r.runDown.thrownUp && r.behindPushedOut &&
+    r.aimMiss.every((d) => d < 3) && r.lowGapSafe && r.rockDrift >= 0 && r.rockDrift < 3 &&
+    r.pods === 'smart,weapon,smart' && r.offTop && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  Siege Crawler rules ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;
   await context.close();

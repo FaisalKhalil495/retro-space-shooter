@@ -1,11 +1,11 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.13.0';
-import { ROCKS } from './rockart.js?v=0.13.0';
-import { SPRITES } from './sprites.js?v=0.13.0';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.13.0';
-import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.13.0';
-import { clamp, rectHitsCircle } from './util.js?v=0.13.0';
-import { GROUND_SPEED } from './terrain.js?v=0.13.0';
-import { sfx } from './audio.js?v=0.13.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.13.1';
+import { ROCKS } from './rockart.js?v=0.13.1';
+import { SPRITES } from './sprites.js?v=0.13.1';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.13.1';
+import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.13.1';
+import { clamp, rectHitsCircle } from './util.js?v=0.13.1';
+import { GROUND_SPEED } from './terrain.js?v=0.13.1';
+import { sfx } from './audio.js?v=0.13.1';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -670,6 +670,10 @@ function rockType(size, hp, score, radius, ram, onDeath) {
         if (e.y + e.h > floorY) {
           e.y = floorY - e.h;
           e.vy = Math.abs(e.vy) < 18 ? 0 : -Math.abs(e.vy) * 0.55;
+          if (e.landVx !== undefined) {
+            e.vx = e.landVx; // dropped straight down: starts rolling now
+            e.landVx = undefined;
+          }
         }
         if (game.terrain.hits(e.x + 2, e.y + 2, e.w - 4, e.h - 4)) e.vy = Math.min(e.vy, -70);
         return;

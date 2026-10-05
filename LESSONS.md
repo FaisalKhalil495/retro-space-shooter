@@ -143,7 +143,9 @@ Last updated: end of Stage 2 (v0.10.3).
 | A test kept a reference to the ship from before a level reset, so it could never fail | Tests must re-read game objects after anything that rebuilds them (reset, respawn, next level). Breaking the code on purpose caught it. |
 | The Siege Crawler's open core was almost unhittable: shots clipped the armour a pixel in front of it (v0.13.0, before release) | **Time the boss fight on autopilot and compare with the last boss.** A fight 10x longer than expected meant a bug, not a balance problem. A weak point's hit area must reach the edge a shot arrives from. |
 | A check on the flak gap passed on broken code only by luck (the gap's position is random) | When a rule depends on random positions, pin the worst case in the test instead of hoping the dice land on it. |
-| The boss's knock-back assumed you were always in front of it | Knock-backs, pushes and "away from" moves must work from every side, including behind a boss. |
+| The boss's knock-back assumed you were always in front of it | Knock-backs, pushes and "away from" moves must work from every side, including behind a boss — and must fully clear it, not just nudge. |
+| v0.13.0 review: the cannon couldn't aim low and close, leaving a safe spot right where you shoot the core | For every boss, look for **safe pockets** (low in front, behind, on top) and check at least one attack reaches each. A boss's weak spot must never also be a safe spot. |
+| Boss drawing used the game's dice for its wobble | Drawing must never use the game's random numbers, or tests stop being repeatable. |
 
 ## 5. Our working process (what works)
 
