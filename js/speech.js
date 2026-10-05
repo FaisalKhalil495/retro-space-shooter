@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.10.4';
-import { drawText, textWidth } from './font.js?v=0.10.4';
-import { sfx } from './audio.js?v=0.10.4';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.10.5';
+import { drawText, textWidth } from './font.js?v=0.10.5';
+import { sfx } from './audio.js?v=0.10.5';
 
 // Comic-book speech bubbles for characters that talk (bosses so far).
 // A bubble sits beside the speaker, follows them around, points its tail at
@@ -35,6 +35,11 @@ export class Speech {
     };
   }
 
+  // Is this character's bubble still up?
+  isSpeaking(speaker) {
+    return !!this.bubble && this.bubble.speaker === speaker;
+  }
+
   update(dt) {
     const b = this.bubble;
     if (!b) return;
@@ -60,8 +65,9 @@ export class Speech {
     const ay = snap(anchor.y);
     const { w, h } = b;
     // Bubbles are drawn under the speaker, so they must keep clear of their
-    // body. Placements, in order of preference: above them (out of the space
-    // between you and the boss), up-left of the mouth, beside, below. The
+    // body. Placements, in order of preference: above them, then below them
+    // (both out of the space between you and the boss), then up-left of the
+    // mouth, then beside them as a last resort. The
     // bubble keeps its placement while it still fits, so it doesn't jump
     // about as the speaker moves; otherwise it takes the clearest one.
     let spot = b.spot >= 0 ? placement(b.spot, e, ax, ay, w, h) : null;
@@ -154,8 +160,8 @@ export class Speech {
 
 // Where a bubble goes for placement i, kept on screen.
 function placement(i, e, ax, ay, w, h) {
-  const x = i === 0 ? ax - w / 2 : i === 1 ? ax - w - 6 : i === 2 ? e.x - w - 6 : ax - w / 2;
-  const y = i === 0 ? e.y - h - 8 : i === 1 ? ay - h - 10 : i === 2 ? ay - h / 2 : e.y + e.h + 8;
+  const x = i === 0 || i === 1 ? ax - w / 2 : i === 2 ? ax - w - 6 : e.x - w - 6;
+  const y = i === 0 ? e.y - h - 8 : i === 1 ? e.y + e.h + 8 : i === 2 ? ay - h - 10 : ay - h / 2;
   return {
     x: Math.round(Math.min(Math.max(x, 2), VIEW_W - w - 2)),
     y: Math.round(Math.min(Math.max(y, HUD_H + 4), VIEW_H - h - 2)),

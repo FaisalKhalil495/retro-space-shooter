@@ -1,18 +1,18 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.10.4';
-import { SPRITES } from './sprites.js?v=0.10.4';
-import { ENEMY_TYPES } from './enemies.js?v=0.10.4';
-import { LEVELS, LevelRunner } from './levels.js?v=0.10.4';
-import { Background } from './background.js?v=0.10.4';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.10.4';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.10.4';
-import { buzz, HAPTIC } from './feedback.js?v=0.10.4';
-import { sfx } from './audio.js?v=0.10.4';
-import { clamp, rectsOverlap } from './util.js?v=0.10.4';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.10.4';
-import { Blasts } from './blasts.js?v=0.10.4';
-import { Speech } from './speech.js?v=0.10.4';
-import { startBossMusic, stopMusic } from './music.js?v=0.10.4';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.10.4';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.10.5';
+import { SPRITES } from './sprites.js?v=0.10.5';
+import { ENEMY_TYPES } from './enemies.js?v=0.10.5';
+import { LEVELS, LevelRunner } from './levels.js?v=0.10.5';
+import { Background } from './background.js?v=0.10.5';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.10.5';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.10.5';
+import { buzz, HAPTIC } from './feedback.js?v=0.10.5';
+import { sfx } from './audio.js?v=0.10.5';
+import { clamp, rectsOverlap } from './util.js?v=0.10.5';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.10.5';
+import { Blasts } from './blasts.js?v=0.10.5';
+import { Speech } from './speech.js?v=0.10.5';
+import { startBossMusic, stopMusic } from './music.js?v=0.10.5';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.10.5';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -147,11 +147,16 @@ export class Game {
     this.speech.say(speaker, text, style, dur);
   }
 
-  // Is this character's speech bubble still up? (Bosses wait for it to
-  // finish before they attack, so talking never happens mid-fight.)
+  // Is this character's speech bubble still up?
   isSpeaking(e) {
-    const b = this.speech.bubble;
-    return !!b && b.speaker === e;
+    return this.speech.isSpeaking(e);
+  }
+
+  // Shared rule for every boss: it may not start an attack while it's
+  // talking (owner, v0.10.4 — bubbles mid-fight were distracting). A boss
+  // checks this before starting any attack, and before leaving a pause.
+  bossMayAttack(e) {
+    return !this.isSpeaking(e);
   }
 
   // Breaking a boss into its next stage: a score bonus, and two bonus items
@@ -284,9 +289,10 @@ export class Game {
     this.darkenTarget = v;
   }
 
-  // A boss's big name card. onEnd runs once the card has gone.
-  showTitle(T, onEnd = null) {
-    this.title = { T, t: 0, onEnd };
+  // A boss's big name card. (A boss waits for g.title to clear before its
+  // opening taunt.)
+  showTitle(T) {
+    this.title = { T, t: 0 };
   }
 
   later(delay, fn) {
@@ -388,11 +394,7 @@ export class Game {
     for (const m of this.markers) m.t += dt;
     this.markers = this.markers.filter((m) => m.t < m.dur);
     this.darken += clamp(this.darkenTarget - this.darken, -dt * 0.8, dt * 0.8);
-    if (this.title && (this.title.t += dt) > TITLE_TIME) {
-      const end = this.title.onEnd;
-      this.title = null;
-      if (end) end();
-    }
+    if (this.title && (this.title.t += dt) > TITLE_TIME) this.title = null;
     this.gore.update(dt);
     this.blasts.update(dt);
     this.speech.update(dt);

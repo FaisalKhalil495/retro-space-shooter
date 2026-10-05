@@ -1,8 +1,8 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.10.4';
-import { ROCKJAW } from './rockart.js?v=0.10.4';
-import { sfx } from './audio.js?v=0.10.4';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.10.4';
-import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.10.4';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.10.5';
+import { ROCKJAW } from './rockart.js?v=0.10.5';
+import { sfx } from './audio.js?v=0.10.5';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.10.5';
+import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.10.5';
 
 // ROCKJAW · THE LIVING ASTEROID — boss of The Outer Belt.
 //
@@ -445,14 +445,13 @@ export const ROCKJAW_TYPE = {
         // He hangs back and taunts you once his name card has gone, and only
         // starts attacking when he's finished talking. (Skipped if you've
         // just died.)
-        e.wobble = 0.5;
         moveToward(e, HOME_X, MID_Y, 40, dt);
         shut(e, dt);
         if (!g.title && !e.taunted) {
           e.taunted = true;
           if (g.state === 'playing') g.say(e, ROCKJAW_TYPE.taunt);
         }
-        if (e.taunted && !g.isSpeaking(e)) {
+        if (e.taunted && g.bossMayAttack(e)) {
           set('fight');
           e.idle = 0.6;
           e.supplyT = 3; // the first pod comes early
@@ -462,6 +461,9 @@ export const ROCKJAW_TYPE = {
         if (!e.attack) {
           wander(e, dt);
           shut(e, dt);
+          // A boss never starts an attack while its speech bubble is up
+          // (e.g. gloating after a kill) — see Game.bossMayAttack.
+          if (!g.bossMayAttack(e)) break;
           e.idle -= dt;
           if (e.queued) {
             e.attack = { ...e.queued, t: 0 };
@@ -484,7 +486,7 @@ export const ROCKJAW_TYPE = {
         e.angle = 0;
         moveToward(e, HOME_X, MID_Y, 40, dt);
         // He doesn't attack again until he's finished shouting.
-        if (e.timer > 1.9 && !g.isSpeaking(e)) {
+        if (e.timer > 1.9 && g.bossMayAttack(e)) {
           set('fight');
           e.idle = 0.4;
         }

@@ -409,6 +409,43 @@ for (const phone of PHONES) {
   console.log(`  ${rulesOk ? 'PASS' : 'FAIL'}  clean-up rules ${JSON.stringify(rules)}`);
   if (!rulesOk) failures++;
 
+  // A boss never starts an attack while its bubble is up (e.g. gloating
+  // after a kill), and when it floats high the bubble goes below it, not
+  // into the space between ship and boss.
+  const talk = await page.evaluate(() => {
+    const g = window.__ember.game;
+    g.enemies = [];
+    g.enemyShots = [];
+    const e = g.spawnEnemy('rockjaw', 0, 0);
+    Object.assign(e, { mode: 'fight', entered: true, attack: null, queued: null, idle: 0, timer: 0 });
+    e.x = 130;
+    e.y = 50 - e.h / 2;
+    g.say(e, 'PICKING YOU OUT OF MY TEETH');
+    g.speech.draw(document.createElement('canvas').getContext('2d'), (v) => v, g.aimPointOf);
+    const spot = g.speech.bubble.spot;
+    let attackedWhileTalking = false;
+    for (let i = 0; i < 400 && g.isSpeaking(e); i++) {
+      e.T.update(e, 1 / 120, g);
+      g.speech.update(1 / 120);
+      if (e.attack) attackedWhileTalking = true;
+    }
+    let attackedAfter = false;
+    const stillTalking = g.isSpeaking(e);
+    for (let i = 0; i < 240 && !attackedAfter; i++) {
+      e.T.update(e, 1 / 120, g);
+      g.speech.update(1 / 120);
+      if (e.attack) attackedAfter = true;
+    }
+    g.enemies = [];
+    g.enemyShots = [];
+    g.boss = null;
+    g.speech.reset();
+    return { spot, attackedWhileTalking, attackedAfter, stillTalking };
+  });
+  const talkOk = (talk.spot === 0 || talk.spot === 1) && !talk.attackedWhileTalking && talk.attackedAfter && !talk.stillTalking;
+  console.log(`  ${talkOk ? 'PASS' : 'FAIL'}  boss holds attacks while talking; bubble stays out of the way ${JSON.stringify(talk)}`);
+  if (!talkOk) failures++;
+
   // Portrait: should ask to rotate.
   await page.setViewportSize({ width: phone.height, height: phone.width });
   await page.waitForTimeout(400);
