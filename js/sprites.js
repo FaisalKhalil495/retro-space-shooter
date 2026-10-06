@@ -205,77 +205,88 @@ const ART = {
   ],
 };
 
-// Rust Moon's own look for the enemy types it shares with level 1: the same
-// shapes and sizes (so you know each threat at a glance), dressed as the
-// planet's desert garrison: sand and khaki armour, gunmetal frames, rust-red
-// guns and amber visors, which stand out against the dark red canyon. The
-// weaver becomes a native dust manta with a sandy, leathery hide.
-// (Cargo pods look the same on every level: their light is a signal.)
+// Rust Moon's own versions of the enemy types it shares with level 1: new
+// shapes (about the same size, so they're as easy to hit) and the planet's
+// desert-garrison colours: sand and khaki armour, gunmetal frames, rust-red
+// guns and amber visors, which stand out against the dark red canyon. They
+// behave exactly like their level 1 cousins. The weaver becomes a native
+// dust manta. (Cargo pods look the same on every level: their light is a
+// signal.)
 const RUST_ART = {
+  // Pod -> dune beetle: a squat armoured shell on little legs.
   drifter: [
-    '...kkkk...',
-    '..keddek..',
-    '.kedaadekk',
-    'kcRrrrrRfk',
-    'kcRrrrrRfk',
-    '.kedaadekk',
-    '..keefek..',
-    '...kkkk...',
+    '...kkkkk..',
+    '..kdddddk.',
+    '.kddaaddek',
+    'kcRRRRRRek',
+    'kcrrrrrrfk',
+    '.kkfkkfkk.',
+    '.kf.kf.kf.',
+    '.k..k..k..',
   ],
+  // Weaver -> dust manta: a native creature with wide swept wings and a whip
+  // tail (sandy, leathery, striped hide).
   weaver: [
-    '.........kk',
-    '.......kkek',
-    '....kkkdefk',
-    'kkkkladdefk',
-    '.kccaedfdfk',
-    'kkkkladdefk',
-    '....kkkdefk',
-    '.......kkek',
-    '.........kk',
+    '.........kk..',
+    '.......kkdek.',
+    '....kkkddeek.',
+    'kkkkldddeefk.',
+    'kccdadeeffffk',
+    'kkkkldddeefk.',
+    '....kkkddeek.',
+    '.......kkdek.',
+    '.........kk..',
   ],
+  // Gunship -> hover tank: a boxy hull with a turret on top, a twin cannon
+  // in front and dust jets underneath.
   gunner: [
-    '....kkkkkk....',
-    '...kgddddgk...',
-    '..kgdaaaddgk..',
-    'kkkkgddddddgk.',
-    'kggkRrrsrRdgkk',
-    '.kkkRrsllrRdgk',
-    'kggkRrrsrRdgkk',
-    'kkkkgeeeeeegk.',
-    '..kgeeeeeegk..',
-    '...kgeeeegk...',
-    '....kkkkkk....',
+    '.....kkkkk....',
+    '....kgddddk...',
+    '..kkkgdaadkk..',
+    '.kddddddddddk.',
+    'kggkRrrsrRddek',
+    'kkkkRrsllrRdek',
+    'kggkRrrsrRddek',
+    '.keeeeeeeeeek.',
+    '.kfkfkfkfkfkk.',
+    '..a.a.a.a.a...',
+    '..............',
   ],
+  // Seeker -> dust hawk: its wings swept forwards.
   seeker: [
-    '......kkk.',
-    '....kkedk.',
-    '..kkeddekk',
+    '.kkk......',
+    '..kdkk....',
+    '...kddkkk.',
     'kclRrddeek',
-    '..kkeddekk',
-    '....kkedk.',
-    '......kkk.',
+    '...kddkkk.',
+    '..kdkk....',
+    '.kkk......',
   ],
+  // Sniper -> rail lancer: a long rifle with a scope on top and tail fins.
   sniper: [
-    '......kkkkkk..',
-    '....kkddddaak.',
-    'kkkkkddrrddeak',
-    'cclccfdrsdeeek',
-    'kkkkkddrrddeak',
-    '....kkffffffk.',
-    '......kkkkkk..',
+    '.......kkk....',
+    '......kaak....',
+    '.....kkkkkkk..',
+    'kkkkkkddrrddk.',
+    'cclcccfdrsddek',
+    'kkkkkkddrrddk.',
+    '.....kkeeeeek.',
+    '.......kfk.kfk',
+    '........k...k.',
   ],
+  // Spinner -> rotor: a four-bladed turbine (drawn spinning).
   spinner: [
-    '.....k.....',
-    '....kgk....',
-    '...kedek...',
-    '.kkedddekk.',
-    'kgedrrrdegk',
-    'kgedrsrdegk',
-    'kgedrrrdegk',
-    '.kkedddekk.',
-    '...kedek...',
-    '....kgk....',
-    '.....k.....',
+    '.kek.......',
+    '.kddkk...kk',
+    '..kddek.kde',
+    '...keekkddk',
+    '..kkrrredk.',
+    '.keersreek.',
+    '.kderrrkk..',
+    'kddkkeek...',
+    'edk.keddk..',
+    'kk...kkddk.',
+    '.......kek.',
   ],
 };
 for (const [name, rows] of Object.entries(RUST_ART)) ART[name + '_rust'] = rows;

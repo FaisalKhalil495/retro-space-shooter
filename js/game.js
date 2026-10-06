@@ -133,7 +133,7 @@ export class Game {
   // ---- helpers used by enemies, patterns and weapons ----
   spawnEnemy(type, x, y, opts = {}) {
     const T = ENEMY_TYPES[type];
-    const spr = T.sprite ? SPRITES[T.sprite] : null;
+    const spr = T.sprite ? SPRITES[this.spriteName(T.sprite)] : null; // (its size: this level's look)
     const e = {
       type,
       T,
