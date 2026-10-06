@@ -1,19 +1,19 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.14.1';
-import { SPRITES } from './sprites.js?v=0.14.1';
-import { ENEMY_TYPES } from './enemies.js?v=0.14.1';
-import { LEVELS, LevelRunner } from './levels.js?v=0.14.1';
-import { Background } from './background.js?v=0.14.1';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.14.1';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.14.1';
-import { buzz, HAPTIC } from './feedback.js?v=0.14.1';
-import { sfx } from './audio.js?v=0.14.1';
-import { clamp, rectsOverlap } from './util.js?v=0.14.1';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.14.1';
-import { Blasts } from './blasts.js?v=0.14.1';
-import { Speech } from './speech.js?v=0.14.1';
-import { Terrain } from './terrain.js?v=0.14.1';
-import { startBossMusic, stopMusic } from './music.js?v=0.14.1';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.14.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.14.2';
+import { SPRITES } from './sprites.js?v=0.14.2';
+import { ENEMY_TYPES } from './enemies.js?v=0.14.2';
+import { LEVELS, LevelRunner } from './levels.js?v=0.14.2';
+import { Background } from './background.js?v=0.14.2';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.14.2';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.14.2';
+import { buzz, HAPTIC } from './feedback.js?v=0.14.2';
+import { sfx } from './audio.js?v=0.14.2';
+import { clamp, rectsOverlap } from './util.js?v=0.14.2';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.14.2';
+import { Blasts } from './blasts.js?v=0.14.2';
+import { Speech } from './speech.js?v=0.14.2';
+import { Terrain } from './terrain.js?v=0.14.2';
+import { startBossMusic, stopMusic } from './music.js?v=0.14.2';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.14.2';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -369,7 +369,7 @@ export class Game {
     let best = null;
     let bestD = Infinity;
     for (const e of this.enemies) {
-      if (e.dead || e.mode === 'dying' || e.T.harmless || e.x > VIEW_W || e.x + e.w < 0) continue;
+      if (e.dead || e.mode === 'dying' || e.under || e.T.harmless || e.x > VIEW_W || e.x + e.w < 0) continue;
       const tp = this.aimPoint(e);
       let d = Math.hypot(tp.x - x, tp.y - y) + (tp.x < x ? 80 : 0); // prefer targets ahead
       if (e.T.isVulnerable && !e.T.isVulnerable(e)) d += 60; // armour up: try something else first
@@ -398,13 +398,20 @@ export class Game {
     return rectsOverlap(x, y, w, h, e.x + i, e.y + i, e.w - i * 2, e.h - i * 2) ? 'hit' : null;
   }
 
+  // Does one of your shots (bullet, rocket, laser) touch this enemy? An
+  // enemy type can give a more forgiving area for your shots (shotTest) than
+  // for bumping into your ship.
+  shotContact(e, x, y, w, h) {
+    return e.T.shotTest ? e.T.shotTest(e, x, y, w, h) : this.contact(e, x, y, w, h);
+  }
+
   hits(e, x, y, w, h) {
-    return this.contact(e, x, y, w, h) !== null;
+    return this.shotContact(e, x, y, w, h) !== null;
   }
 
   // Hit an enemy with something that has a position (shot, rocket, beam).
   strike(e, x, y, w, h, amount) {
-    const res = this.contact(e, x, y, w, h);
+    const res = this.shotContact(e, x, y, w, h);
     if (res === 'hit') this.damage(e, amount, x + w, y + h / 2);
     else if (res === 'block') this.blocked(x + w, y + h / 2);
     return res;
@@ -412,7 +419,7 @@ export class Game {
 
   // Damage an enemy. Bosses ignore damage while armoured.
   damage(e, amount, hx = e.x + e.w / 2, hy = e.y + e.h / 2) {
-    if (e.dead || e.mode === 'dying') return;
+    if (e.dead || e.mode === 'dying' || e.under) return; // (underground: out of reach, no sparks)
     if (e.T.isVulnerable && !e.T.isVulnerable(e)) {
       this.blocked(e.x + e.w / 3, e.y + e.h / 2);
       return;

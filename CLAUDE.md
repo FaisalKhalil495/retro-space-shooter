@@ -78,15 +78,21 @@ a real console controller, so you can play by feel while watching the game.
   - **Cliff turret** (on spires, or on a low rock mound on the floor, so
     the ordinary gun can always reach it): shut and armoured 1.6 s, hatch
     blinks 0.4 s, opens and fires 2 aimed shots at least 0.35 s apart,
-    shuts. Only hurt
-    while open (specials too; ramming a shut turret costs you 2 blocks and
-    doesn't break it). 4 HP, 50 pts, 15% drop. Never fires at a
-    ship that's behind it.
+    then stays open venting — **1.6 s open in all** (owner, v0.14.2: they
+    were too hard to kill), then shuts. Only hurt while open (specials too;
+    ramming a shut turret costs you 2 blocks and doesn't break it). **3 HP**,
+    50 pts, 15% drop; your shots also count 2 px above its dome. Arriving at
+    a random moment, roughly lined up, one dies in about 1.2 s / 9 shots
+    (was 3.1 s / 24). Never fires at a ship that's behind it.
   - **Dust skimmer**: races in along the floor (hopping spires), swoops to
     your height, blinks 0.3 s, fires a 3-shot spread, climbs away. Only
     fires if you're in front of it. 2 HP, 40 pts, 10% drop.
-  - **Mortar crawler**: walks the floor (climbing over spires, never
-    hiding inside one), lobs a shell every 2.5 s. A red
+  - **Mortar crawler**: a ground tank — it **never leaves the ground**
+    (owner, v0.14.2). At a spire it digs under it in a puff of dirt (out of
+    reach, can't fire, shown as a moving dirt mound) and pops out the other
+    side. It walks slowly in the open, hurries past spires, and **only fires
+    when you could shoot back** (never with a spire right in front of it).
+    Lobs a shell every 1.8 s (about 14 shells a level). A red
     ring with a cross marks where it bursts (where you were at launch)
     0.9 s ahead; the burst costs 1 if you're on it and throws 4 fragments
     (1 each). A shell that touches you on the way bursts right there.
