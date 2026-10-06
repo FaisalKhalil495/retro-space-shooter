@@ -14,7 +14,7 @@ stage — and, one day, a system for building more games.
 - At the end of every stage also add a retrospective (section 7) and move
   anything reusable into section 8 ("Recipe for future games").
 
-Last updated: v0.15.0 (Stage 3, after step 3B).
+Last updated: v0.16.0 (Stage 3, after step 3B).
 
 ---
 
@@ -124,6 +124,12 @@ Last updated: v0.15.0 (Stage 3, after step 3B).
   tallest possible tower; drops always appear above rock.
 - **Ambushes from behind come only while the towers are short**, and fly
   above them — a threat you can't fight back against is just unfair.
+- **Every level must look like its own world** (v0.16.0). Level 2 reused
+  level 1's enemies unchanged; the owner wanted them to look different.
+  A recolour wasn't enough ("change the shapes as well"), and a first
+  reshape in the same style was rejected; out of four complete themed
+  sets shown side by side the owner chose the **"Dust Pirates"** (patched desert
+  raiders with canvas sails). Personality and a story beat a tidy look.
 - **Every enemy must fight** (v0.15.0). Harmless loot carriers (the
   supply drones) were "no fun — they don't fire, they just come towards
   me". Loot belongs on enemies that shoot back (now the Rust Raiders), so
@@ -197,6 +203,7 @@ Last updated: v0.15.0 (Stage 3, after step 3B).
 | A scripted edit that cut out "everything from the drone up to the dust skimmer" also deleted the cliff turret sitting between them (caught at once by a test crash, fixed before release) | After any scripted edit, read the diff's summary first: a far bigger change than expected means something else was caught in it. |
 | Raiders in a convoy each picked their own speed, so one could catch up and merge with the one ahead once both were lifted over a tower | Ships in a formation share one speed, or their spacing isn't guaranteed. Random per-ship variation belongs in looks or timing, not in spacing. |
 | A whole-level check failed about 1 run in 12 (v0.15.0 testing): ambush lanes were picked at the warning, but a taller tower could scroll in before the pods arrived | **A test that fails "sometimes" is a real bug until proven otherwise.** Loop the test to catch the failure, find the cause, then write a check that reproduces it every time. Anything decided early (at a warning) must be re-checked when it happens. |
+| Two rounds of enemy redesigns were rejected (a recolour, then new shapes in one style) before the owner chose from four different sets | For anything visual and subjective, **show several clearly different directions at once, in one picture**, with a recommendation, instead of one design at a time. Draft them in a scratch tool first (cheap to iterate), self-critique and redraw the weak ones before showing. |
 | LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
 
 ## 5. Our working process (what works)
@@ -315,6 +322,9 @@ fewer rounds are needed.
 - v0.15.0: supply drones replaced by **Rust Raiders** (armed fighters
   carrying the same loot gamble); crawlers tunnel under rows of towers and
   only come up (and only arrive) where they have room to fire.
+- v0.16.0: Rust Moon's own look, the **Dust Pirates** (sail skiffs, dust
+  bats, sand galleons, kite gliders, harpoon guns, windmills), chosen by
+  the owner from four sets.
 **So far:** the owner's feedback has been about the world making sense
 (rocks on a planet, tanks on towers, enemies through towers) and about
 fairness (hidden or unreachable enemies) rather than raw difficulty.
@@ -361,3 +371,8 @@ test on Android and iPhone sizes, an autopilot playthrough test, and
 approve → build → self-review → release → phone test → feedback; one
 decision at a time; Claude merges with standing permission; full review +
 retrospective at the end of every stage.
+
+**Visual choices** (art, looks, themes): draft several clearly different
+complete sets in a scratch tool, critique and fix the weak ones, then show
+them side by side in one picture (with the current look for comparison)
+and a recommendation. One design at a time leads to rounds of rejections.

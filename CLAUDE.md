@@ -138,6 +138,13 @@ a real console controller, so you can play by feel while watching the game.
     2:31 and 2:53.
   - About 15 turrets, 20 skimmers, 9 mortars, 21 gunships, 10 snipers,
     6 spinners and 30 Rust Raiders.
+  - **Its own look: the "Dust Pirates"** (owner, v0.16.0, chosen from four
+    sets): the enemy types it shares with level 1 are desert raiders built
+    from canvas, planks and rust-red metal: pod → sail skiff, weaver →
+    dust bat (a creature, still bleeds lightly), gunship → sand galleon,
+    seeker → kite glider, sniper → harpoon gun, spinner → windmill. Each
+    is exactly the size of its level 1 cousin and behaves exactly the same.
+    Cargo pods look the same on every level (their light is a signal).
 - **The Siege Crawler** (boss of Rust Moon, step 3B-2, v0.13.0): a giant
   six-legged gunmetal war machine walking the canyon floor (gunmetal so it
   stands out against the red canyon). Name card "SIEGE CRAWLER / THE
@@ -363,6 +370,11 @@ a real console controller, so you can play by feel while watching the game.
 
 ### Look
 - Modern retro **pixel art in colour**.
+- **Every level has its own look** (owner, v0.16.0): enemy types shared
+  between levels get new shapes *and* colours that belong to that world
+  (`level.skin`: '<sprite>_<skin>' art, e.g. 'gunner_rust'), same size
+  and behaviour. Show the owner several complete sets side by side in one
+  picture and let them choose before building.
 - Muted, warm palette: deep space blues, soft ambers, dusty reds.
 - **No neon colours and no neon glow effects.**
 - All names, ship, enemies, bosses, artwork and sounds are our own originals.
@@ -423,7 +435,7 @@ Approved by the owner. Keep the status column up to date.
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
-| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.15.0) |
+| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0) |
 | 4 | **Levels 5–8** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |
@@ -462,7 +474,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   canyon (sky bands, mesas, walls, dust devils) (per-level theme).
 - `js/terrain.js` — solid ground: floor strip, rock spires, `solid()` for shots,
   `tallestOnScreen()`, `openAtEdge()`, `turretPerch()`.
-- `js/sprites.js` — pixel art as text grids. `js/rockart.js` — asteroids and
+- `js/sprites.js` — pixel art as text grids (plus each level's own look
+  for shared enemy types, e.g. Rust Moon's `RUST_ART`). `js/rockart.js` — asteroids and
   Rockjaw drawn by code. `js/font.js` — 5×5 pixel font.
 - `js/audio.js` — all sound effects, synthesised in code (incl. boss roar,
   growl, jaw snap, inhale, splat).

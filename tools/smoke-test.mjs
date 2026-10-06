@@ -799,6 +799,23 @@ for (const phone of PHONES) {
     res.raiderLoot = +(loot / N).toFixed(3);
     res.ammoShare = +(ammo / Math.max(1, loot)).toFixed(2);
 
+    // Rust Moon draws its own look for the enemy types it shares with level
+    // 1 (exactly the same sizes, so they're as easy to hit); level 1 keeps
+    // its own; cargo pods look the same everywhere.
+    const { SPRITES } = await import('/js/sprites.js' + v);
+    const { LEVELS } = await import('/js/levels.js' + v);
+    const shared = ['drifter', 'weaver', 'gunner', 'seeker', 'sniper', 'spinner'];
+    res.rustLook = {
+      own: shared.filter((n) => g.spriteName(n) === n + '_rust').length,
+      sameSize: shared.filter((n) => {
+        const e = g.spawnEnemy(n, 300, 60);
+        g.enemies = g.enemies.filter((x) => x !== e);
+        return e.w === SPRITES[n].width && e.h === SPRITES[n].height;
+      }).length,
+      level1Plain: !LEVELS[0].skin,
+      cargoSame: g.spriteName('carrier') === 'carrier',
+    };
+
     // A raider never fires at a ship behind it; in front, it blinks before
     // each shot and fires 2 at most.
     quiet();
@@ -1064,7 +1081,7 @@ for (const phone of PHONES) {
     r.turretReach.every((n) => n > 0) && r.turretShotGap >= 0.34 && r.pushedRight && r.solidWhileFlashing &&
     r.shellTouch.dead && r.shellTouch.hurt === 1 && r.shellTouch.fragments === 4 && r.shellTouch.points === 0 &&
     r.raiders.behindShots === 0 && !r.raiders.behindBlink && r.raiders.frontShots === 2 && r.raiders.blinkOk && r.raiders.convoyShooters === 4 && r.raiders.minGap >= 0.3 && r.raiders.convoySpeeds === 1 && r.raiders.merged === 0 && r.raiderLoot > 0.31 && r.raiderLoot < 0.39 && r.ammoShare > 0.22 && r.ammoShare < 0.38 &&
-    r.perchHeight >= 56 && r.raiderClearsTurret && r.ambushWaits && r.ambushLateSpire.seen === 4 && r.ambushLateSpire.low === 0 && r.gunshipsStacked === 0 && r.hiddenTurrets.length === 0 && r.turretsSeen === 15 && r.pods === 10 && r.lowPods === 0 && r.crawlersOffGround === 0 && r.flyersInRock.length === 0 && r.ambushers === 20 && r.ambushAmongTall === 0 && r.ambushLow === 0 && r.shellsFromCover === 0 && r.crawlerHiddenPct <= 60 && r.shells >= 14 && r.shells <= 22 && r.crawlers === 9 && r.silentCrawlers === 0 && r.pointlessPopUps === 0 && r.intoRock.length === 0 && errs.length === 0;
+    r.rustLook.own === 6 && r.rustLook.sameSize === 6 && r.rustLook.level1Plain && r.rustLook.cargoSame && r.perchHeight >= 56 && r.raiderClearsTurret && r.ambushWaits && r.ambushLateSpire.seen === 4 && r.ambushLateSpire.low === 0 && r.gunshipsStacked === 0 && r.hiddenTurrets.length === 0 && r.turretsSeen === 15 && r.pods === 10 && r.lowPods === 0 && r.crawlersOffGround === 0 && r.flyersInRock.length === 0 && r.ambushers === 20 && r.ambushAmongTall === 0 && r.ambushLow === 0 && r.shellsFromCover === 0 && r.crawlerHiddenPct <= 60 && r.shells >= 14 && r.shells <= 22 && r.crawlers === 9 && r.silentCrawlers === 0 && r.pointlessPopUps === 0 && r.intoRock.length === 0 && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  Rust Moon rules ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;
   await context.close();

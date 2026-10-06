@@ -1,4 +1,4 @@
-import { PAL } from './config.js?v=0.15.0';
+import { PAL } from './config.js?v=0.16.0';
 
 // Pixel art is written as text grids: each character is one pixel and maps
 // to a palette colour ('.' is transparent). Each sprite is drawn once onto
@@ -17,10 +17,11 @@ const KEY = {
   R: PAL.redDark,
   s: PAL.redSoft,
   g: PAL.grey,
-  // Rust Moon's desert garrison: sand, khaki and dark tan armour.
+  // Rust Moon: sand, tan and dark tan (canvas, planks, desert hide).
   d: '#c9ab86',
   e: '#9a7352',
   f: '#5e4434',
+  h: '#a7a4ad', // steel (gun barrels)
 };
 
 const ART = {
@@ -205,88 +206,85 @@ const ART = {
   ],
 };
 
-// Rust Moon's own versions of the enemy types it shares with level 1: new
-// shapes (about the same size, so they're as easy to hit) and the planet's
-// desert-garrison colours: sand and khaki armour, gunmetal frames, rust-red
-// guns and amber visors, which stand out against the dark red canyon. They
-// behave exactly like their level 1 cousins. The weaver becomes a native
-// dust manta. (Cargo pods look the same on every level: their light is a
-// signal.)
+// Rust Moon's own versions of the enemy types it shares with level 1, chosen
+// by the owner (v0.16.0) from four sets: the "Dust Pirates", desert raiders
+// who patch their craft together from canvas, planks and rust-red metal.
+// Each is exactly the size of its level 1 cousin and behaves exactly the
+// same; only the look changes. (Cargo pods look the same on every level:
+// their light is a signal.)
 const RUST_ART = {
-  // Pod -> dune beetle: a squat armoured shell on little legs.
+  // Pod -> sail skiff: a small patched hull under a canvas sail.
   drifter: [
-    '...kkkkk..',
-    '..kdddddk.',
-    '.kddaaddek',
-    'kcRRRRRRek',
-    'kcrrrrrrfk',
-    '.kkfkkfkk.',
-    '.kf.kf.kf.',
-    '.k..k..k..',
+    '.....kk...',
+    '....kcck..',
+    '...kcccck.',
+    '..kkkekkkk',
+    'kaRrrrrrRk',
+    'klRssrrrRk',
+    '.kRRRRRRk.',
+    '..kkkkkk..',
   ],
-  // Weaver -> dust manta: a native creature with wide swept wings and a whip
-  // tail (sandy, leathery, striped hide).
+  // Weaver -> dust bat: a native creature with ragged wings and a snapping
+  // mouth (it still bleeds lightly, like the weaver).
   weaver: [
-    '.........kk..',
-    '.......kkdek.',
-    '....kkkddeek.',
-    'kkkkldddeefk.',
-    'kccdadeeffffk',
-    'kkkkldddeefk.',
-    '....kkkddeek.',
-    '.......kkdek.',
-    '.........kk..',
+    '......k.k..',
+    '.....kdkdk.',
+    '....kddedk.',
+    'kk.kdeeek..',
+    'kcklseeefkk',
+    'kk.kdeeek..',
+    '....kddedk.',
+    '.....kdkdk.',
+    '......k.k..',
   ],
-  // Gunship -> hover tank: a boxy hull with a turret on top, a twin cannon
-  // in front and dust jets underneath.
+  // Gunship -> sand galleon: a flying ship with two sails, portholes, a plank
+  // keel and twin cannons out front.
   gunner: [
-    '.....kkkkk....',
-    '....kgddddk...',
-    '..kkkgdaadkk..',
-    '.kddddddddddk.',
-    'kggkRrrsrRddek',
-    'kkkkRrsllrRdek',
-    'kggkRrrsrRddek',
-    '.keeeeeeeeeek.',
-    '.kfkfkfkfkfkk.',
-    '..a.a.a.a.a...',
+    '......kk..kk..',
+    '.....kcckkcck.',
+    '....kccckcccck',
+    '...kkkkkkkkkkk',
+    'hhkRrrrrrrrrRk',
+    'kkRrcRcRcRrrRk',
+    'hhkRrrrrrrrrRk',
+    '.kRRRRRRRRRRk.',
+    '..kfefefefek..',
+    '...kkkkkkkkk..',
     '..............',
   ],
-  // Seeker -> dust hawk: its wings swept forwards.
+  // Seeker -> kite glider: a fast canvas-winged glider.
   seeker: [
-    '.kkk......',
-    '..kdkk....',
-    '...kddkkk.',
-    'kclRrddeek',
-    '...kddkkk.',
-    '..kdkk....',
-    '.kkk......',
+    '.....kk...',
+    '...kkcck..',
+    '.kkcccccrk',
+    'kaRRRRRrrk',
+    '.kkcccccrk',
+    '...kkcck..',
+    '.....kk...',
   ],
-  // Sniper -> rail lancer: a long rifle with a scope on top and tail fins.
+  // Sniper -> harpoon gun: a long barbed harpoon on a patched hull.
   sniper: [
-    '.......kkk....',
-    '......kaak....',
-    '.....kkkkkkk..',
-    'kkkkkkddrrddk.',
-    'cclcccfdrsddek',
-    'kkkkkkddrrddk.',
-    '.....kkeeeeek.',
-    '.......kfk.kfk',
-    '........k...k.',
+    '..........kk..',
+    '.........kcck.',
+    'kk.....kkkcckk',
+    'ckkhhhhhRrrrRk',
+    'kk.....kRsrRek',
+    '........kRRRk.',
+    '.........kkk..',
   ],
-  // Spinner -> rotor: a four-bladed turbine (drawn spinning).
+  // Spinner -> windmill: four canvas sails (drawn spinning).
   spinner: [
-    '.kek.......',
-    '.kddkk...kk',
-    '..kddek.kde',
-    '...keekkddk',
-    '..kkrrredk.',
-    '.keersreek.',
-    '.kderrrkk..',
-    'kddkkeek...',
-    'edk.keddk..',
-    'kk...kkddk.',
-    '.......kek.',
+    '....kcckk..',
+    '.k..kccddk.',
+    'kdk.kccdk..',
+    'kddkkcdk...',
+    'cccdfRfkkkk',
+    'ccccRRRcccc',
+    'kkkkfRfdccc',
+    '...kdckkddk',
+    '..kdcck.kdk',
+    '.kddcck..k.',
+    '..kkcck....',
   ],
 };
 for (const [name, rows] of Object.entries(RUST_ART)) ART[name + '_rust'] = rows;
