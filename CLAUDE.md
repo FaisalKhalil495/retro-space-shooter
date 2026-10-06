@@ -74,7 +74,8 @@ a real console controller, so you can play by feel while watching the game.
     with a dust puff; indestructible. Spires stay solid while you're
     flashing after a hit or respawn (they just don't hurt then; v0.12.1).
     Dropped items always appear above spires, never inside them.
-    Pods diving from above crash into the ground; snipers leave upwards.
+    Pods diving from above crash into the ground (or into a spire in
+    their way; v0.14.3); snipers leave upwards.
   - **Cliff turret** (on spires, or on a low rock mound on the floor, so
     the ordinary gun can always reach it): shut and armoured 1.6 s, hatch
     blinks 0.4 s, opens and fires 2 aimed shots at least 0.35 s apart,
@@ -112,6 +113,16 @@ a real console controller, so you can play by feel while watching the game.
   - **Cargo pods fly above the towers** on levels with ground (their bottom
     stays above the tallest possible spire, `MAX_SPIRE` = 74 px in
     terrain.js; no spire is ever taller).
+  - **No flying enemy ever passes through a tower** (owner, v0.14.3):
+    pods, skimmers, gunships, seekers, snipers, spinners and weavers lift
+    over any spire just ahead, keeping 10 px clear (`ROCK_CLEARANCE`); a
+    sniper lifted mid-aim cancels its shot and aims again. Dive-bombers
+    crash instead.
+  - **Ambushes from behind** (owner, v0.14.3) only come while the towers
+    are short — every spire on screen 44 px or less (`SHORT_SPIRE`); an
+    ambush waits up to 6 s for that — and their lanes are always above
+    the tallest tower on screen. Level 2 ambushes at 0:46, 1:33, 1:57,
+    2:31 and 2:53.
   - About 15 turrets, 20 skimmers, 9 mortars, 21 gunships, 10 snipers,
     6 spinners and 30 supply drones.
 - **The Siege Crawler** (boss of Rust Moon, step 3B-2, v0.13.0): a giant
@@ -283,6 +294,10 @@ a real console controller, so you can play by feel while watching the game.
   machines). Hazards a boss handles itself use `g.playerVulnerable()` and
   `g.touchesPlayer(x, y, w, h)` (one shared player hitbox, `g.playerHitbox()`).
   `fireShot` returns the shot, so a boss can give it more damage (`.dmg`).
+  Enemy hooks for towers (v0.14.3): `flies: true` makes Game lift the enemy
+  over spires (`Game.keepAboveRock`); `liftsOver(e)` can say "not now"
+  (a diving pod; a skimmer hopping spires itself); `onLift(e, d)` lets a
+  type shift its own planned path when lifted by `d` pixels.
 
 ### The 8 levels and bosses (in order)
 1. **The Outer Belt** — asteroid field in deep blue space, distant amber sun.
@@ -395,7 +410,7 @@ Approved by the owner. Keep the status column up to date.
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
-| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0) |
+| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.14.3) |
 | 4 | **Levels 5–8** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |
@@ -432,7 +447,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   once every enemy, including ones still due to arrive, has gone; 8 s max).
 - `js/background.js` — starfield, sun, dust band, distant rocks, Rust Moon
   canyon (sky bands, mesas, walls, dust devils) (per-level theme).
-- `js/terrain.js` — solid ground: floor strip, rock spires, `solid()` for shots.
+- `js/terrain.js` — solid ground: floor strip, rock spires, `solid()` for shots,
+  `tallestOnScreen()`, `turretPerch()`.
 - `js/sprites.js` — pixel art as text grids. `js/rockart.js` — asteroids and
   Rockjaw drawn by code. `js/font.js` — 5×5 pixel font.
 - `js/audio.js` — all sound effects, synthesised in code (incl. boss roar,

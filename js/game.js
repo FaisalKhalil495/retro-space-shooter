@@ -1,19 +1,19 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.14.2';
-import { SPRITES } from './sprites.js?v=0.14.2';
-import { ENEMY_TYPES } from './enemies.js?v=0.14.2';
-import { LEVELS, LevelRunner } from './levels.js?v=0.14.2';
-import { Background } from './background.js?v=0.14.2';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.14.2';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.14.2';
-import { buzz, HAPTIC } from './feedback.js?v=0.14.2';
-import { sfx } from './audio.js?v=0.14.2';
-import { clamp, rectsOverlap } from './util.js?v=0.14.2';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.14.2';
-import { Blasts } from './blasts.js?v=0.14.2';
-import { Speech } from './speech.js?v=0.14.2';
-import { Terrain } from './terrain.js?v=0.14.2';
-import { startBossMusic, stopMusic } from './music.js?v=0.14.2';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.14.2';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.14.3';
+import { SPRITES } from './sprites.js?v=0.14.3';
+import { ENEMY_TYPES } from './enemies.js?v=0.14.3';
+import { LEVELS, LevelRunner } from './levels.js?v=0.14.3';
+import { Background } from './background.js?v=0.14.3';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.14.3';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.14.3';
+import { buzz, HAPTIC } from './feedback.js?v=0.14.3';
+import { sfx } from './audio.js?v=0.14.3';
+import { clamp, rectsOverlap } from './util.js?v=0.14.3';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.14.3';
+import { Blasts } from './blasts.js?v=0.14.3';
+import { Speech } from './speech.js?v=0.14.3';
+import { Terrain, ROCK_CLEARANCE } from './terrain.js?v=0.14.3';
+import { startBossMusic, stopMusic } from './music.js?v=0.14.3';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.14.3';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -24,6 +24,7 @@ const WING = { rows: ['aab', 'abbc', '.bcc'], colors: { a: PAL.bluePale, b: PAL.
 const LIFE_BONUS = 500;
 const TITLE_TIME = 3.3; // seconds a boss name card stays up
 const SUPPLY_EVERY = 20; // seconds between supply pods in a boss fight
+const LIFT_LOOK = 48; // how far ahead (either way) flying enemies look for spires
 const FIRST_SUPPLY = 3; // the first one comes early
 const SMART_POD = { color: PAL.cream, light: '#ffffff' }; // white light on a survival supply pod
 
@@ -296,6 +297,21 @@ export class Game {
     const shot = { x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, t: 0, kind, byBoss };
     this.enemyShots.push(shot);
     return shot;
+  }
+
+  // Flying enemies never pass through rock spires: they lift up over any
+  // spire near them (and any turret on it), looking well ahead either way so
+  // the climb is smooth. A type can opt out at times (liftsOver(e) false,
+  // e.g. a dive-bomber, which crashes into rock instead) and react to being
+  // lifted (onLift(e, d), e.g. to move its whole weave up or re-aim).
+  keepAboveRock(e, dt) {
+    if (e.T.liftsOver && !e.T.liftsOver(e)) return;
+    const clear = this.terrain.groundTop(e.x - LIFT_LOOK, e.w + LIFT_LOOK * 2) - e.h - ROCK_CLEARANCE;
+    if (e.y <= clear) return;
+    const inRock = this.terrain.hits(e.x, e.y, e.w, e.h);
+    const d = inRock ? e.y - clear : Math.min(e.y - clear, 120 * dt);
+    e.y -= d;
+    if (e.T.onLift) e.T.onLift(e, d);
   }
 
   // The middle of the player's ship (what enemies aim at).
@@ -580,6 +596,7 @@ export class Game {
       e.flash = Math.max(0, e.flash - dt);
       e.flashCd = (e.flashCd || 0) - dt;
       e.T.update(e, dt, this);
+      if (e.T.flies && this.terrain.floor && !e.dead) this.keepAboveRock(e, dt);
     }
     this.updateSupplies(dt);
     this.enemies = this.enemies.filter(

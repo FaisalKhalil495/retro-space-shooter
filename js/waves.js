@@ -1,5 +1,5 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.14.2';
-import { MAX_SPIRE } from './terrain.js?v=0.14.2';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.14.3';
+import { MAX_SPIRE, SHORT_SPIRE } from './terrain.js?v=0.14.3';
 
 // Enemy formations. Levels are built by placing these on a timeline
 // (see levels.js). Every pattern takes the game, a random-number function
@@ -85,14 +85,34 @@ export const PATTERNS = {
   // Ambush from BEHIND: pods sneak in from the left edge (a warning marker
   // flashes there first) and try to ram you. Their guns face away from you,
   // so they never fire.
+  // On levels with ground, an ambush waits (up to 6 s) for a stretch where
+  // every spire on screen is short, then comes in above them all (and the
+  // pods lift over any spire that turns up, so they never go through rock).
   ambush(game, rand, { n = 3 } = {}) {
-    for (let i = 0; i < n; i++) {
-      const y = TOP + rand() * (bottom(game) - TOP);
-      game.warn(7, y, 0.9, 'left');
-      game.later(0.9 + i * 0.35, () => {
-        game.spawnEnemy('drifter', -12, y, { speed: -64, flip: true });
-      });
+    const go = () => {
+      const terrain = game.terrain;
+      const low = terrain.floor > 0 ? terrain.floorY - terrain.tallestOnScreen() - 18 : bottom(game);
+      for (let i = 0; i < n; i++) {
+        const y = TOP + rand() * (Math.max(TOP, low) - TOP);
+        game.warn(7, y, 0.9, 'left');
+        game.later(0.9 + i * 0.35, () => {
+          game.spawnEnemy('drifter', -12, y, { speed: -64, flip: true });
+        });
+      }
+    };
+    if (!game.terrain.floor) {
+      go();
+      return;
     }
+    let waited = 0;
+    const tryNow = () => {
+      if (game.terrain.tallestOnScreen() <= SHORT_SPIRE || waited >= 6) go();
+      else {
+        waited += 0.25;
+        game.later(0.25, tryNow);
+      }
+    };
+    tryNow();
   },
 
   // Pods dive-bombing in from the top or bottom edge.

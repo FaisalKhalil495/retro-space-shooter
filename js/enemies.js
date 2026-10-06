@@ -1,11 +1,11 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.14.2';
-import { ROCKS } from './rockart.js?v=0.14.2';
-import { SPRITES } from './sprites.js?v=0.14.2';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.14.2';
-import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.14.2';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.14.2';
-import { GROUND_SPEED } from './terrain.js?v=0.14.2';
-import { sfx } from './audio.js?v=0.14.2';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.14.3';
+import { ROCKS } from './rockart.js?v=0.14.3';
+import { SPRITES } from './sprites.js?v=0.14.3';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.14.3';
+import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.14.3';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.14.3';
+import { GROUND_SPEED, ROCK_CLEARANCE } from './terrain.js?v=0.14.3';
+import { sfx } from './audio.js?v=0.14.3';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -20,6 +20,8 @@ import { sfx } from './audio.js?v=0.14.2';
 export const ENEMY_TYPES = {
   // A small pod with an alien pilot. Flies straight; some take a pot-shot.
   drifter: {
+    flies: true, // lifts over rock spires (see Game.keepAboveRock)
+    liftsOver: (e) => Math.abs(e.vy) <= DIVE_VY, // a dive-bomber crashes instead
     sprite: 'drifter',
     hp: 1,
     score: 10,
@@ -31,10 +33,12 @@ export const ENEMY_TYPES = {
     update(e, dt, game) {
       e.x += e.vx * dt;
       e.y += e.vy * dt;
-      // A dive-bomber that reaches solid ground crashes into it (no points).
-      if (game.terrain.floor && e.y + e.h > game.terrain.floorY + 2) {
+      // A dive-bomber that reaches solid ground (or a spire) crashes into it
+      // (no points).
+      const diving = Math.abs(e.vy) > DIVE_VY;
+      if (game.terrain.floor && (e.y + e.h > game.terrain.floorY + 2 || (diving && game.terrain.hits(e.x, e.y, e.w, e.h)))) {
         e.dead = true;
-        game.blasts.blast(e.x + e.w / 2, game.terrain.floorY - 2, 0.4);
+        game.blasts.blast(e.x + e.w / 2, Math.min(e.y + e.h, game.terrain.floorY - 2), 0.4);
         sfx.explode(0.3);
         return;
       }
@@ -44,7 +48,6 @@ export const ENEMY_TYPES = {
       // from above or below can fire.
       if (e.shooter && !e.fired && !e.flip) {
         const p = game.player;
-        const diving = Math.abs(e.vy) > 30;
         const facing = diving || p.x + p.w < e.x - 6;
         const inView = e.x < VIEW_W - 34;
         if (!facing) {
@@ -67,6 +70,10 @@ export const ENEMY_TYPES = {
   // A living alien manta, all muscle and teeth. Weaves in snake-like chains
   // and sometimes spits a glob of acid.
   weaver: {
+    flies: true, // lifts over rock spires (see Game.keepAboveRock)
+    onLift(e, d) {
+      e.baseY -= d; // its whole weave moves up
+    },
     sprite: 'weaver',
     hp: 1,
     score: 20,
@@ -101,6 +108,7 @@ export const ENEMY_TYPES = {
   // Gunship: slides in, hovers, fires aimed shots (with a warning blink),
   // then pushes on through.
   gunner: {
+    flies: true, // lifts over rock spires (see Game.keepAboveRock)
     sprite: 'gunner',
     hp: 5,
     score: 50,
@@ -139,6 +147,7 @@ export const ENEMY_TYPES = {
 
   // Fast dart that steers hard towards the player.
   seeker: {
+    flies: true, // lifts over rock spires (see Game.keepAboveRock)
     sprite: 'seeker',
     hp: 2,
     score: 30,
@@ -180,6 +189,17 @@ export const ENEMY_TYPES = {
   // Sniper: parks at the far right, shows a thin flashing aiming line for a
   // moment, then fires a fast shot along it. Three shots, then it leaves.
   sniper: {
+    flies: true, // lifts over rock spires (see Game.keepAboveRock)
+    // Pushed up mid-aim? Its aim line would no longer be true, so it
+    // re-aims from its new spot (with a fresh warning).
+    onLift(e) {
+      if (e.mode === 'aim') {
+        e.mode = 'wait';
+        e.timer = 0.2;
+        e.aimLine = 0;
+        e.charge = 0;
+      }
+    },
     sprite: 'sniper',
     hp: 3,
     score: 60,
@@ -244,6 +264,7 @@ export const ENEMY_TYPES = {
   // Spinner: a rotating disc that drifts in and sprays 8 bullets in a star
   // pattern every couple of seconds (it blinks just before each burst).
   spinner: {
+    flies: true, // lifts over rock spires (see Game.keepAboveRock)
     sprite: 'spinner',
     hp: 6,
     score: 80,
@@ -513,6 +534,14 @@ export const ENEMY_TYPES = {
   // Dust skimmer: races in low along the canyon floor (hopping spires), then
   // swoops up to your height, blinks, fires a 3-shot spread and climbs away.
   dustSkimmer: {
+    flies: true, // lifts over rock spires (see Game.keepAboveRock)
+    liftsOver: (e) => e.mode !== 'run', // (while skimming it hops spires itself)
+    onLift(e, d) {
+      if (e.y0 !== undefined) {
+        e.y0 -= d;
+        e.ty -= d;
+      }
+    },
     sprite: 'skimmer',
     hp: 2,
     score: 40,
@@ -522,7 +551,7 @@ export const ENEMY_TYPES = {
     init(e, game) {
       e.mode = 'run';
       e.vx = -90;
-      e.y = game.terrain.floorY - e.h - 2;
+      e.y = skimHeight(e, game.terrain); // (already above a spire it's born beside)
     },
     update(e, dt, game) {
       const p = game.player;
@@ -531,11 +560,9 @@ export const ENEMY_TYPES = {
       e.x += e.vx * dt;
       if (e.mode === 'run') {
         // Skim the ground, lifting over any spire just ahead.
-        let want = floorY - e.h - 2;
-        for (const s of game.terrain.spires) {
-          if (s.x < e.x + e.w + 26 && s.x + s.w > e.x - 4) want = Math.min(want, s.top - e.h - 3);
-        }
+        const want = skimHeight(e, game.terrain);
         e.y += (want - e.y) * Math.min(1, dt * 9);
+        if (game.terrain.hits(e.x, e.y, e.w, e.h)) e.y = Math.min(e.y, want); // never inside rock
         if (inFront && e.x - p.x < 110 && e.x < VIEW_W - 12) {
           e.mode = 'swoop';
           e.timer = 0.6;
@@ -720,11 +747,21 @@ export const ENEMY_TYPES = {
 };
 
 const SHELL_TIME = 0.9; // seconds from launch to burst
+const DIVE_VY = 30; // a pod falling faster than this is dive-bombing
 // Is a mortar crawler at (or about to walk into) a spire? Then it digs under.
 const crawlerAtRock = (e, terrain) => terrain.hits(e.x - 3, terrain.floorY - e.h, e.w + 4, e.h) !== null;
 // Is a mortar crawler tucked behind a spire (one right in front of it, with
 // no room for your ship to slip in between and shoot it)?
 const crawlerCovered = (e, terrain) => terrain.spires.some((s) => s.x + s.w <= e.x + 2 && s.x + s.w > e.x - 26);
+// How high a dust skimmer flies: just above the floor, or clear of any spire
+// just ahead of it (it flies left) or under it.
+function skimHeight(e, terrain) {
+  let want = terrain.floorY - e.h - 2;
+  for (const s of terrain.spires) {
+    if (s.x + s.w > e.x - 30 && s.x < e.x + e.w + 4) want = Math.min(want, s.top - e.h - ROCK_CLEARANCE);
+  }
+  return want;
+}
 const TURRET_OPEN = 1.6; // seconds a cliff turret stays open (its core exposed)
 const DIRT = ['#57302a', '#7a4632', '#9a6a4a'];
 const CRATE_BITS = ['#7a3a36', '#9a6a4a', '#6d6a73', '#c4a68e'];

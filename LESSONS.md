@@ -8,11 +8,13 @@ stage — and, one day, a system for building more games.
 
 **When to use it**
 - Read it (with `CLAUDE.md`) before planning any stage.
-- Update it at the end of **every** stage: add a retrospective (section 7),
-  add any new preferences or lessons, and move anything reusable into
-  section 8 ("Recipe for future games").
+- Update it with **every release** (the owner asked for this in v0.14.2):
+  new preferences go in sections 1–3, new lessons in section 4, progress in
+  section 7.
+- At the end of every stage also add a retrospective (section 7) and move
+  anything reusable into section 8 ("Recipe for future games").
 
-Last updated: end of Stage 2 (v0.10.3).
+Last updated: v0.14.3 (Stage 3, after step 3B).
 
 ---
 
@@ -45,6 +47,14 @@ Last updated: end of Stage 2 (v0.10.3).
 - **Phones cache old versions.** Once the owner tested an old copy (v0.4.2)
   and sent a screenshot of it. Always remind them to check the version label
   in the corner, and how to reload (⋮ → circular arrow in Chrome).
+- **Plays and reports what feels wrong in the world.** Most Stage 3
+  changes came from the owner describing a scene ("tanks jumping on
+  towers", "enemies coming from behind, too low to shoot"). Turn each one
+  into a general rule for the whole level (and future levels), not a
+  one-off patch — then check every similar enemy against it.
+- **Expects the docs to stay current.** Asked whether this file was being
+  updated with every release (it wasn't, for a few releases). Update both
+  `CLAUDE.md` and this file in the same release as the change.
 - **Wants to understand the systems.** Questions like "how often do power-ups
   appear?" or "what are we supposed to get in the boss fight?" deserve a
   real audit of the code, with numbers — that's how the supply-pod bug
@@ -97,6 +107,25 @@ Last updated: end of Stage 2 (v0.10.3).
 - **Wasted rewards**: a Repair at full health, ammo for a full weapon,
   a pod that swaps away the weapon you're saving. Every drop should be useful
   at the moment you get it.
+
+**Worlds must make sense (Stage 3, Rust Moon)**
+- **Every object belongs to its setting.** "What the hell are rocks doing
+  on this planet?" — asteroids belong to level 1's space belt. On a planet
+  the same loot gamble came back as supply drones carrying crates.
+- **Ground units stay on the ground.** Tanks must never climb towers; they
+  dig under them instead.
+- **Flyers never pass through towers** (v0.14.3): everything that flies
+  lifts over rock; a diving pod crashes into it.
+- **An enemy only fires when you could shoot back** — no turrets behind
+  taller towers, no tanks shooting from cover, no shots from behind you.
+- **Turrets are never hidden**: always perched at least as high as every
+  tower on screen, so a straight shot reaches them.
+- **Pickups are never stuck among the towers**: cargo pods fly above the
+  tallest possible tower; drops always appear above rock.
+- **Ambushes from behind come only while the towers are short**, and fly
+  above them — a threat you can't fight back against is just unfair.
+- **Hard targets must still die quickly once open**: turrets felt "very
+  hard to kill" until their open window and hit area grew (1.2 s to kill).
 
 **Numbers the owner has set (and cares about)**
 - Level 1 ≈ 3 minutes before the boss, in three parts.
@@ -152,6 +181,10 @@ Last updated: end of Stage 2 (v0.10.3).
 | Ground tanks climbed towers (my v0.13.2 fix for them hiding inside rock) — the owner: "they're supposed to sit on the land" | A fix must keep the enemy true to what it is. Ground units stay on the ground (dig under obstacles); and an enemy only fires when you could shoot back. Check a fix's side effects on the threat level too (shell count dropped 18 → 8 until movement was rebalanced). |
 | Turrets felt "very hard to kill": a 0.9 s window, a 5-px target, 4 hits | Measure **time-to-kill for a player arriving at a random moment**, not just perfect play (3.1 s → 1.2 s after the fix). Small armoured targets need generous windows and hit areas. |
 | 6 of 15 turrets sat behind taller towers; half the cargo pods flew low among the towers | Test the **whole level as played**, not just each enemy alone: simulate the timeline and check every target can be shot and every pickup reached. Turn layout rules into code (a pattern that enforces them), not just careful level data. |
+| v0.14.1 review: v0.14.0's "turrets never hidden" rule depended on where the ship was, so a turret could still end up hidden once the ship moved; and "no spire taller than 74 px" was only a promise in the level data | "Never hidden" and "always reachable" rules must cover **where the ship can go next**, not just where it is now — make them depend on the world, not the ship. Enforce limits in code (`addSpire` clamps to `MAX_SPIRE`), not by careful data. |
+| Ambushers from behind came in low among the towers, where neither side could shoot (v0.14.2) | A random lane must be chosen **against the world at that moment** (the tallest tower on screen), and timed events must suit the layout around them (ambushes now wait for short towers). |
+| v0.14.3: the dust skimmer's "spire ahead" check looked behind it — it flies left, so "ahead" is the lower x | For anything moving right-to-left, double-check "ahead" and "behind" in the code. The whole-level check (no flyer ever inside rock) caught it; a one-enemy test wouldn't have. |
+| LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
 
 ## 5. Our working process (what works)
 
@@ -206,6 +239,12 @@ Last updated: end of Stage 2 (v0.10.3).
   stage bonuses, talking rules, player hitbox). Measuring each boss on
   autopilot (fight length, how long the weak point is open) keeps
   difficulty steps honest.
+- **Terrain-aware enemies** (v0.14.3): a type marked `flies: true` is
+  lifted over rock by the game core (`Game.keepAboveRock`, 10 px clear);
+  `liftsOver(e)` and `onLift(e, d)` let a type opt out for a moment or
+  shift its own planned path. `terrain.tallestOnScreen()` and
+  `turretPerch()` let patterns choose lanes and perches that suit the
+  towers on screen right now.
 - **Per-level difficulty**: `shotSpeed` on a level scales every enemy shot
   (Rust Moon 1.1). An enemy whose gun isn't at its front-middle gives a
   `muzzle(e)` so the warning blink shows in the right place.
@@ -244,6 +283,26 @@ reviewing every release.
 fewer things per release; test edge cases (screen edges, deaths, last
 life) from the start; carry Stage 2's preferences into the first plan so
 fewer rounds are needed.
+
+### Stage 3 — Levels 2–4 (in progress, v0.11.0 → )
+- 3A, v0.11.0: moving between levels (score, lives and special carry on).
+- 3B-1, v0.12.x: Rust Moon — canyon floor, rock spires, cliff turrets,
+  dust skimmers, mortar crawlers.
+- 3B-2, v0.13.x: the Siege Crawler (3 stages, 7 attacks, stomp → ground
+  spikes); a whole-level review found enemies hiding in rock, drops in
+  rock and rockets chasing junk.
+- v0.14.0: owner fixes — rocks replaced by supply drones, turrets never
+  hidden, cargo pods above the towers.
+- v0.14.1–0.14.2: tanks stay on the ground and dig under towers, only fire
+  when you can shoot back; turrets much quicker to kill.
+- v0.14.3: no flyer passes through a tower; ambushes from behind wait for
+  short towers and fly above them.
+**So far:** the owner's feedback has been about the world making sense
+(rocks on a planet, tanks on towers, enemies through towers) and about
+fairness (hidden or unreachable enemies) rather than raw difficulty.
+**For 3C/3D:** design each new level's enemies around its terrain from the
+start, and run the whole-level checks (reachable targets, nothing inside
+rock, pickups reachable) before the first hand-over.
 
 ### Carry into Stage 3 (checklist for the plan)
 - Each boss: 3+ phases, 5+ attacks, entrance + name card, roar, music,
