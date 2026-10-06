@@ -1,19 +1,19 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.15.0';
-import { SPRITES } from './sprites.js?v=0.15.0';
-import { ENEMY_TYPES } from './enemies.js?v=0.15.0';
-import { LEVELS, LevelRunner } from './levels.js?v=0.15.0';
-import { Background } from './background.js?v=0.15.0';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.15.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.15.0';
-import { buzz, HAPTIC } from './feedback.js?v=0.15.0';
-import { sfx } from './audio.js?v=0.15.0';
-import { clamp, rectsOverlap } from './util.js?v=0.15.0';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.15.0';
-import { Blasts } from './blasts.js?v=0.15.0';
-import { Speech } from './speech.js?v=0.15.0';
-import { Terrain, ROCK_CLEARANCE } from './terrain.js?v=0.15.0';
-import { startBossMusic, stopMusic } from './music.js?v=0.15.0';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.15.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.16.0';
+import { SPRITES } from './sprites.js?v=0.16.0';
+import { ENEMY_TYPES } from './enemies.js?v=0.16.0';
+import { LEVELS, LevelRunner } from './levels.js?v=0.16.0';
+import { Background } from './background.js?v=0.16.0';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.16.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.16.0';
+import { buzz, HAPTIC } from './feedback.js?v=0.16.0';
+import { sfx } from './audio.js?v=0.16.0';
+import { clamp, rectsOverlap } from './util.js?v=0.16.0';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.16.0';
+import { Blasts } from './blasts.js?v=0.16.0';
+import { Speech } from './speech.js?v=0.16.0';
+import { Terrain, ROCK_CLEARANCE } from './terrain.js?v=0.16.0';
+import { startBossMusic, stopMusic } from './music.js?v=0.16.0';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.16.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -133,7 +133,7 @@ export class Game {
   // ---- helpers used by enemies, patterns and weapons ----
   spawnEnemy(type, x, y, opts = {}) {
     const T = ENEMY_TYPES[type];
-    const spr = T.sprite ? SPRITES[T.sprite] : null;
+    const spr = T.sprite ? SPRITES[this.spriteName(T.sprite)] : null; // (its size: this level's look)
     const e = {
       type,
       T,
@@ -312,6 +312,13 @@ export class Game {
     const d = inRock ? e.y - clear : Math.min(e.y - clear, 120 * dt);
     e.y -= d;
     if (e.T.onLift) e.T.onLift(e, d);
+  }
+
+  // A level can give the enemy types it shares with others its own look
+  // (level.skin, e.g. 'rust' draws 'gunner_rust' instead of 'gunner').
+  spriteName(name) {
+    const skin = this.level.skin;
+    return skin && SPRITES[name + '_' + skin] ? name + '_' + skin : name;
   }
 
   // The middle of the player's ship (what enemies aim at).
@@ -946,7 +953,7 @@ export class Game {
     }
 
     for (const e of this.enemies) {
-      const spr = e.T.sprite ? SPRITES[e.T.sprite + (e.flash > 0 ? 'Flash' : '')] : null;
+      const spr = e.T.sprite ? SPRITES[this.spriteName(e.T.sprite) + (e.flash > 0 ? 'Flash' : '')] : null;
       if (e.T.draw) e.T.draw(e, ctx, snap, this, spr);
       else if (e.flip) {
         ctx.save();

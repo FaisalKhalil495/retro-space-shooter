@@ -1,4 +1,4 @@
-import { PAL } from './config.js?v=0.15.0';
+import { PAL } from './config.js?v=0.16.0';
 
 // Pixel art is written as text grids: each character is one pixel and maps
 // to a palette colour ('.' is transparent). Each sprite is drawn once onto
@@ -17,6 +17,11 @@ const KEY = {
   R: PAL.redDark,
   s: PAL.redSoft,
   g: PAL.grey,
+  // Rust Moon: sand, tan and dark tan (canvas, planks, desert hide).
+  d: '#c9ab86',
+  e: '#9a7352',
+  f: '#5e4434',
+  h: '#a7a4ad', // steel (gun barrels)
 };
 
 const ART = {
@@ -200,6 +205,89 @@ const ART = {
     '.kkk...',
   ],
 };
+
+// Rust Moon's own versions of the enemy types it shares with level 1, chosen
+// by the owner (v0.16.0) from four sets: the "Dust Pirates", desert raiders
+// who patch their craft together from canvas, planks and rust-red metal.
+// Each is exactly the size of its level 1 cousin and behaves exactly the
+// same; only the look changes. (Cargo pods look the same on every level:
+// their light is a signal.)
+const RUST_ART = {
+  // Pod -> sail skiff: a small patched hull under a canvas sail.
+  drifter: [
+    '.....kk...',
+    '....kcck..',
+    '...kcccck.',
+    '..kkkekkkk',
+    'kaRrrrrrRk',
+    'klRssrrrRk',
+    '.kRRRRRRk.',
+    '..kkkkkk..',
+  ],
+  // Weaver -> dust bat: a native creature with ragged wings and a snapping
+  // mouth (it still bleeds lightly, like the weaver).
+  weaver: [
+    '......k.k..',
+    '.....kdkdk.',
+    '....kddedk.',
+    'kk.kdeeek..',
+    'kcklseeefkk',
+    'kk.kdeeek..',
+    '....kddedk.',
+    '.....kdkdk.',
+    '......k.k..',
+  ],
+  // Gunship -> sand galleon: a flying ship with two sails, portholes, a plank
+  // keel and twin cannons out front.
+  gunner: [
+    '......kk..kk..',
+    '.....kcckkcck.',
+    '....kccckcccck',
+    '...kkkkkkkkkkk',
+    'hhkRrrrrrrrrRk',
+    'kkRrcRcRcRrrRk',
+    'hhkRrrrrrrrrRk',
+    '.kRRRRRRRRRRk.',
+    '..kfefefefek..',
+    '...kkkkkkkkk..',
+    '..............',
+  ],
+  // Seeker -> kite glider: a fast canvas-winged glider.
+  seeker: [
+    '.....kk...',
+    '...kkcck..',
+    '.kkcccccrk',
+    'kaRRRRRrrk',
+    '.kkcccccrk',
+    '...kkcck..',
+    '.....kk...',
+  ],
+  // Sniper -> harpoon gun: a long barbed harpoon on a patched hull.
+  sniper: [
+    '..........kk..',
+    '.........kcck.',
+    'kk.....kkkcckk',
+    'ckkhhhhhRrrrRk',
+    'kk.....kRsrRek',
+    '........kRRRk.',
+    '.........kkk..',
+  ],
+  // Spinner -> windmill: four canvas sails (drawn spinning).
+  spinner: [
+    '....kcckk..',
+    '.k..kccddk.',
+    'kdk.kccdk..',
+    'kddkkcdk...',
+    'cccdfRfkkkk',
+    'ccccRRRcccc',
+    'kkkkfRfdccc',
+    '...kdckkddk',
+    '..kdcck.kdk',
+    '.kddcck..k.',
+    '..kkcck....',
+  ],
+};
+for (const [name, rows] of Object.entries(RUST_ART)) ART[name + '_rust'] = rows;
 
 function build(rows, colorOverride) {
   const w = Math.max(...rows.map((r) => r.length));

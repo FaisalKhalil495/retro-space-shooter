@@ -1,4 +1,4 @@
-import { audioOut } from './audio.js?v=0.15.0';
+import { audioOut } from './audio.js?v=0.16.0';
 
 // Boss music, generated live: pounding drums, a growling bass line and dark
 // stabbing chords. Rockjaw's is in D minor with a flattened second (the
