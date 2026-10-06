@@ -1,5 +1,5 @@
-import { VIEW_W, VIEW_H } from './config.js?v=0.14.0';
-import { seeded } from './util.js?v=0.14.0';
+import { VIEW_W, VIEW_H } from './config.js?v=0.14.1';
+import { seeded } from './util.js?v=0.14.1';
 
 // Solid ground for levels that have it (Rust Moon first; the Ember Mines'
 // tunnels will build on this). Two parts:
@@ -7,9 +7,13 @@ import { seeded } from './util.js?v=0.14.0';
 //   - rock spires standing on the floor: they scroll with the ground, cost
 //     2 health blocks if you crash into one, and stop shots.
 // Everything here moves at GROUND_SPEED, the same speed as pickups drift,
-// so the ground, spires, turrets on them and boulders all move together.
+// so the ground, spires, the turrets on them and anything else standing on
+// the ground all move together.
 
 export const GROUND_SPEED = 20;
+// The tallest a spire can be. (On levels with ground, cargo pods fly above
+// it, so a spire can never get in the way of one.)
+export const MAX_SPIRE = 74;
 
 const FLOOR_COLORS = ['#3a2224', '#57302a', '#7a4632', '#9a6a4a'];
 const SPIRE_COLORS = ['#2e1c1f', '#4a2a27', '#6b3d2e', '#8c5a3e', '#a8785a'];
@@ -62,6 +66,7 @@ export class Terrain {
   // Stand a spire on the floor just off the right edge. Returns it so a
   // turret can be mounted on top.
   addSpire(h, w = 12, seed = 1) {
+    h = Math.min(h, MAX_SPIRE);
     const s = { x: VIEW_W + 4, w, h, top: this.floorY - h, img: spireImage(w, h, seed) };
     this.spires.push(s);
     return s;
@@ -92,6 +97,14 @@ export class Terrain {
       if (x < s.x + s.w - 2 && x + w > s.x + 2) top = Math.min(top, s.top);
     }
     return top;
+  }
+
+  // How tall a spire (or mound) carrying a turret must be so that no spire
+  // on screen can stand between your ship and the turret: at least as tall
+  // as every one of them. (They're all to its left, as it's the newest.)
+  turretPerch(h) {
+    for (const s of this.spires) if (s.x + s.w > 0) h = Math.max(h, s.h);
+    return Math.min(h, MAX_SPIRE);
   }
 
   // Does a shot (or anything small) touch rock: a spire or the floor?
