@@ -1,5 +1,5 @@
-import { VIEW_W, VIEW_H } from './config.js?v=0.14.1';
-import { seeded } from './util.js?v=0.14.1';
+import { VIEW_W, VIEW_H } from './config.js?v=0.14.2';
+import { seeded } from './util.js?v=0.14.2';
 
 // Solid ground for levels that have it (Rust Moon first; the Ember Mines'
 // tunnels will build on this). Two parts:
@@ -89,7 +89,7 @@ export class Terrain {
   }
 
   // The top of the ground under a strip from x to x + w: the floor, or the
-  // top of the tallest spire there. (Walkers climb over spires; dropped
+  // top of the tallest spire there. (Supply drones fly over spires; dropped
   // items float above them.)
   groundTop(x, w) {
     let top = this.floorY;

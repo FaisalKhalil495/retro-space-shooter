@@ -594,14 +594,14 @@ for (const phone of PHONES) {
     const tur = g.spawnEnemy('cliffTurret', 150, 0);
     step(0.1);
     g.damage(tur, 1);
-    res.turretShutHp = tur.hp; // still 4
+    res.turretShutHp = tur.maxHp - tur.hp; // 0: armour held
     let opened = false;
     for (let i = 0; i < 400 && !opened; i++) {
       step(1 / 120);
       opened = tur.open;
     }
     g.damage(tur, 1);
-    res.turretOpenHp = tur.hp; // 3
+    res.turretOpenHp = tur.maxHp - tur.hp; // 1
     // ...and it never fires backwards at a ship that's behind it.
     quiet();
     const tur2 = g.spawnEnemy('cliffTurret', 60, 0);
@@ -628,7 +628,7 @@ for (const phone of PHONES) {
           g.player.y = y;
           g.update(1 / 120, { ...idle, fire: true });
         }
-        if (t.hp < 4) heights++;
+        if (t.hp < t.maxHp) heights++;
       }
       return heights;
     };
@@ -648,6 +648,40 @@ for (const phone of PHONES) {
       reachable(onSpire(22)),
       reachable(onSpire(74)),
     ];
+
+    // A turret dies in one opening: arriving at any moment in its cycle and
+    // roughly lined up, on average it's gone in well under 2 s; and a shot
+    // just above its dome still counts while it's open.
+    let ttk = 0;
+    let trials = 0;
+    for (let arrive = 0; arrive < 3.6; arrive += 0.4) {
+      quiet();
+      const sp = g.terrain.addSpire(40, 12, 3);
+      sp.x = 150;
+      const t = g.spawnEnemy('cliffTurret', sp.x, 0, { spire: sp });
+      for (let i = 0; i < (1.5 + arrive) * 120; i++) {
+        g.player.invuln = 5;
+        g.player.y = 120;
+        g.update(1 / 120, idle);
+      }
+      let time = 0;
+      for (let i = 0; i < 20 * 120 && !t.dead; i++) {
+        g.player.invuln = 5;
+        g.player.x = 30;
+        g.player.y = t.y + t.h / 2 - 6 + (i % 240 < 120 ? 2 : -2); // a little off, drifting
+        g.update(1 / 120, { ...idle, fire: true });
+        time += 1 / 120;
+      }
+      ttk += time;
+      trials++;
+    }
+    res.turretSecondsToKill = +(ttk / trials).toFixed(1);
+    quiet();
+    const topT = g.spawnEnemy('cliffTurret', 120, 0);
+    g.update(1 / 120, idle);
+    topT.open = true;
+    g.strike(topT, topT.x - 3, topT.y - 2, 7, 2, 1);
+    res.domeGraze = topT.hp === topT.maxHp - 1; // a graze just above it really hurts it
 
     // A turret whose first shot was held back still spaces its two shots.
     quiet();
@@ -798,6 +832,12 @@ for (const phone of PHONES) {
     const turrets = new Map();
     let pods = 0;
     let lowPods = 0;
+    let crawlerOn = 0;
+    let crawlerHidden = 0;
+    let crawlersOffGround = 0;
+    let firedHidden = 0;
+    let shellsFired = 0;
+    const crawlerWasHidden = new Map();
     const intoRock = [];
     const seen = new Set();
     for (let i = 0; i < 184 * 120; i++) {
@@ -813,6 +853,22 @@ for (const phone of PHONES) {
           if (g.terrain.spires.some((sp) => sp !== e.spire && sp.x > 0 && sp.x + sp.w < e.x && y > sp.top + 3)) rec.hidden++;
           turrets.set(e, rec);
         }
+        if (e.type === 'mortarCrawler' && e.x > 30 && e.x < 196) {
+          crawlerOn++;
+          if (e.y + e.h < g.terrain.floorY - 1) crawlersOffGround++;
+          // Out of reach: underground, or a spire right in front of it with
+          // no room for your ship to slip in between.
+          const hiddenNow = e.under || g.terrain.spires.some((sp) => sp.x + sp.w <= e.x + 2 && sp.x + sp.w > e.x - 26);
+          if (hiddenNow) crawlerHidden++;
+          crawlerWasHidden.set(e, hiddenNow);
+        }
+        // A shell launched by a crawler you couldn't reach would be unfair.
+        if (e.type === 'mortarShell' && !seen.has(e)) {
+          seen.add(e);
+          shellsFired++;
+          const from = g.enemies.find((c) => c.type === 'mortarCrawler' && Math.abs(c.x + 1 - e.x0) < 3);
+          if (from && crawlerWasHidden.get(from)) firedHidden++;
+        }
         if (e.type === 'carrier' || e.type === 'hauler') {
           if (e.type === 'carrier' && !seen.has(e)) {
             seen.add(e);
@@ -826,6 +882,10 @@ for (const phone of PHONES) {
       }
     }
     res.hiddenTurrets = [...turrets.values()].filter((t) => t.hidden / t.on > 0.1).map((t) => t.at);
+    res.crawlersOffGround = crawlersOffGround;
+    res.crawlerHiddenPct = Math.round(100 * crawlerHidden / Math.max(1, crawlerOn));
+    res.shellsFromCover = firedHidden;
+    res.shells = shellsFired;
     res.turretsSeen = turrets.size;
     res.pods = pods;
     res.lowPods = lowPods;
@@ -833,13 +893,13 @@ for (const phone of PHONES) {
     g.reset();
     return res;
   });
-  const ok = r.turretShutHp === 4 && r.turretOpenHp === 3 && r.turretShotsWhenBehind === 0 && !r.turretOpenedWhenBehind &&
+  const ok = r.turretShutHp === 0 && r.turretOpenHp === 1 && r.turretSecondsToKill < 1.8 && r.domeGraze && r.turretShotsWhenBehind === 0 && !r.turretOpenedWhenBehind &&
     r.ringOnYou && r.ringWarning >= 0.85 && r.ringWarning <= 0.95 && r.fragments === 4 &&
     r.spireDamage === 2 && r.knockedClear && r.shotSpeed === 110 && r.diverCrashed &&
     r.turretReach.every((n) => n > 0) && r.turretShotGap >= 0.34 && r.pushedRight && r.solidWhileFlashing &&
     r.shellTouch.dead && r.shellTouch.hurt === 1 && r.shellTouch.fragments === 4 && r.shellTouch.points === 0 &&
     r.crateLoot > 0.31 && r.crateLoot < 0.39 && r.ammoShare > 0.22 && r.ammoShare < 0.38 &&
-    r.perchHeight >= 56 && r.droneClearsTurret && r.hiddenTurrets.length === 0 && r.turretsSeen === 15 && r.pods === 10 && r.lowPods === 0 && r.intoRock.length === 0 && errs.length === 0;
+    r.perchHeight >= 56 && r.droneClearsTurret && r.hiddenTurrets.length === 0 && r.turretsSeen === 15 && r.pods === 10 && r.lowPods === 0 && r.crawlersOffGround === 0 && r.shellsFromCover === 0 && r.crawlerHiddenPct <= 60 && r.shells >= 12 && r.intoRock.length === 0 && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  Rust Moon rules ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;
   await context.close();
@@ -1004,18 +1064,37 @@ for (const phone of PHONES) {
     g.reset();
     g.runner.next = g.level.events.length;
     g.player.entering = 0;
-    // Mortar crawlers climb over spires instead of hiding inside them.
+    // Mortar crawlers stay on the ground: at a spire they dig under it
+    // (out of reach while underground) and come back out the other side.
     const sp = g.terrain.addSpire(30, 14, 4);
     sp.x = 80;
     const mc = g.spawnEnemy('mortarCrawler', 100, 0);
-    let worst = 0;
+    let climbed = false;
+    let visibleInRock = false;
+    let wentUnder = false;
+    let cameOut = false;
     for (let i = 0; i < 3 * 120; i++) {
       g.player.invuln = 1;
       g.player.y = 20;
       g.update(1 / 120, idle);
-      if (!mc.dead && mc.x + 2 < sp.x + sp.w - 2 && mc.x + mc.w - 2 > sp.x + 2) worst = Math.max(worst, mc.y + mc.h - sp.top);
+      if (mc.dead) break;
+      if (mc.y + mc.h < g.terrain.floorY - 1) climbed = true;
+      if (mc.under) wentUnder = true;
+      if (wentUnder && !mc.under && mc.x + mc.w < sp.x) cameOut = true;
+      if (!mc.under && mc.x + 2 < sp.x + sp.w - 2 && mc.x + mc.w - 2 > sp.x + 2) visibleInRock = true;
     }
-    res.crawlerInRock = +worst.toFixed(1);
+    res.crawlerGround = { climbed, visibleInRock, wentUnder, cameOut };
+    // Underground it can't be shot.
+    const dug = g.spawnEnemy('mortarCrawler', 100, 0, {});
+    dug.under = true;
+    res.underShootable = g.hits(dug, dug.x - 4, dug.y + 3, 8, 2);
+    // Rockets never pick an underground crawler, and a bomb's shockwave
+    // makes no sparks at one (it's out of reach, hidden in the rock).
+    g.enemies = [dug];
+    res.rocketIgnoresUnder = g.nearestEnemy(30, 100) === null;
+    const sparks = g.particles.length;
+    g.damage(dug, 1);
+    res.noSparksUnder = g.particles.length === sparks && dug.hp === dug.maxHp;
     // Items dropped over a spire float above it, not inside it.
     g.pickups = [];
     g.spawnPickup('shield', sp.x + 2, g.terrain.floorY - 6);
@@ -1029,7 +1108,7 @@ for (const phone of PHONES) {
     g.player.invuln = 0;
     g.health = 5;
     g.update(1 / 120, idle);
-    res.ramShut = { turretAlive: !tur.dead && tur.hp === 4, hurt: 5 - g.health };
+    res.ramShut = { turretAlive: !tur.dead && tur.hp === tur.maxHp, hurt: 5 - g.health };
     // Rockets skip shells, mines and cargo pods; an open boss core comes first.
     g.enemies = [];
     g.spawnEnemy('mortarShell', 40, 60, { tx: 100, ty: 60 });
@@ -1189,7 +1268,8 @@ for (const phone of PHONES) {
     r.pods === 'smart,weapon,smart' && r.offTop &&
     r.spikes.cracks === 4 && r.spikes.firstUnder && r.spikes.warnGap >= 0.7 && r.spikes.hurt === 2 && r.spikes.tipMiss && r.spikes.stageClears &&
     r.spikes.scrolled > 9 && r.spikes.scrolled < 11 && r.spikes.walked > 1 && r.spikes.keepsStanding &&
-    r.trampled && r.airTouch === null && r.crawlerInRock <= 1 && r.pickupClear &&
+    r.trampled && r.airTouch === null && !r.crawlerGround.climbed && !r.crawlerGround.visibleInRock && r.crawlerGround.wentUnder && r.crawlerGround.cameOut && !r.underShootable &&
+    r.rocketIgnoresUnder && r.noSparksUnder && r.pickupClear &&
     r.ramShut.turretAlive && r.ramShut.hurt === 2 && r.rocketSkipsJunk && r.rocketPrefersCore && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  Siege Crawler rules ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;

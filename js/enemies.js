@@ -1,11 +1,11 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.14.1';
-import { ROCKS } from './rockart.js?v=0.14.1';
-import { SPRITES } from './sprites.js?v=0.14.1';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.14.1';
-import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.14.1';
-import { clamp, rectHitsCircle } from './util.js?v=0.14.1';
-import { GROUND_SPEED } from './terrain.js?v=0.14.1';
-import { sfx } from './audio.js?v=0.14.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.14.2';
+import { ROCKS } from './rockart.js?v=0.14.2';
+import { SPRITES } from './sprites.js?v=0.14.2';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.14.2';
+import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.14.2';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.14.2';
+import { GROUND_SPEED } from './terrain.js?v=0.14.2';
+import { sfx } from './audio.js?v=0.14.2';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -13,7 +13,10 @@ import { sfx } from './audio.js?v=0.14.1';
 // (where homing rockets aim), organic (bleeds when hit), gore (what flies
 // out when it dies: blood amount, flesh/metal/rock chunks, a stain),
 // ram (health blocks lost if it rams you, default 2), dropChance (odds of
-// leaving a random power-up behind).
+// leaving a random power-up behind), isVulnerable (false while armoured:
+// shots spark off), shotTest (a more forgiving area for your shots than for
+// bumping into you), muzzle (where its "about to fire" blink shows). An
+// enemy with e.under set is underground: out of reach of everything.
 export const ENEMY_TYPES = {
   // A small pod with an alien pilot. Flies straight; some take a pot-shot.
   drifter: {
@@ -432,7 +435,7 @@ export const ENEMY_TYPES = {
   // can only be hurt while it's open (shots spark off the shut armour).
   cliffTurret: {
     sprite: 'turretShut',
-    hp: 4,
+    hp: 3,
     score: 50,
     dropChance: 0.15,
     gore: { metal: 7 },
@@ -444,6 +447,12 @@ export const ENEMY_TYPES = {
     },
     isVulnerable(e) {
       return e.open;
+    },
+    // Your shots count a couple of pixels above its dome and across its whole
+    // height, so you don't need pixel-perfect aim (it's small). Bumping into
+    // it uses its drawing.
+    shotTest(e, x, y, w, h) {
+      return rectsOverlap(x, y, w, h, e.x, e.y - 2, e.w, e.h + 1) ? 'hit' : null;
     },
     muzzle(e) {
       return { x: e.x - 2, y: e.y + 2 };
@@ -471,9 +480,11 @@ export const ENEMY_TYPES = {
       } else if (e.mode === 'charge') {
         if (e.timer <= 0) {
           e.charge = 0;
+          // Fires its two shots, then stays open venting for a while, so
+          // you get a fair chance to hit back.
           e.mode = 'open';
           e.open = true;
-          e.timer = 0.9;
+          e.timer = TURRET_OPEN;
           e.shots = 0;
           e.shotCd = 0;
         }
@@ -558,8 +569,10 @@ export const ENEMY_TYPES = {
   },
 
   // Mortar crawler: a six-legged walker on the canyon floor that lobs a shell
-  // every 2.5 s. A red ring marks where the shell will burst (where you were
-  // when it fired), so keep moving.
+  // every 1.8 s. A red ring marks where the shell will burst (where you were
+  // when it fired), so keep moving. It always stays on the ground: when it
+  // reaches a rock spire it digs under it (it can't shoot or be hit while
+  // underground) and pops out on the other side.
   mortarCrawler: {
     sprite: 'crawler',
     hp: 3,
@@ -569,20 +582,44 @@ export const ENEMY_TYPES = {
     init(e, game) {
       e.y = game.terrain.floorY - e.h;
       e.timer = 0.6;
+      e.under = crawlerAtRock(e, game.terrain); // born under a spire? start dug in
     },
     muzzle(e) {
       return { x: e.x + 1, y: e.y - 1 };
     },
+    isVulnerable(e) {
+      return !e.under;
+    },
+    // Underground it can't be hit or bumped into.
+    hitTest(e, x, y, w, h) {
+      return !e.under && rectsOverlap(x, y, w, h, e.x + 1, e.y + 1, e.w - 2, e.h - 2) ? 'hit' : null;
+    },
     update(e, dt, game) {
-      e.x -= (GROUND_SPEED + 8) * dt;
-      // It walks along the floor and clambers up and over any spire in its
-      // way, starting just before it gets there (so it can never hide
-      // inside the rock).
-      const want = game.terrain.groundTop(e.x - 12, e.w + 10) - e.h;
-      e.base = e.base === undefined ? want : e.base + clamp(want - e.base, -60 * dt, 90 * dt);
-      e.y = e.base + (Math.floor(e.t * 6) % 2); // little steps
-      const inRange = e.x > 40 && e.x < VIEW_W - 20;
+      const terrain = game.terrain;
+      e.y = terrain.floorY - e.h + (e.under ? 0 : Math.floor(e.t * 6) % 2); // little steps
+      // A spire just ahead (or over it): dig under it, in a puff of dust,
+      // and tunnel along fast until it's clear, then pop back out.
+      const rock = crawlerAtRock(e, terrain);
+      if (rock && !e.under) {
+        e.under = true;
+        e.charge = 0;
+        game.burst(e.x + e.w / 2, terrain.floorY - 2, 10, 50, DIRT);
+      } else if (!rock && e.under) {
+        e.under = false;
+        e.timer = Math.max(e.timer, 0.6); // a moment before it can fire
+        game.burst(e.x + e.w / 2, terrain.floorY - 2, 10, 50, DIRT);
+      }
+      // Underground it tunnels fast; tucked behind a spire it hurries on;
+      // out in the open it walks slowly while it shells you.
+      const covered = !e.under && crawlerCovered(e, terrain);
+      e.x -= (GROUND_SPEED + (e.under ? 60 : covered ? 36 : 8)) * dt;
+      if (e.under) return;
+      // Fair play: it only fires when you could shoot back, so it holds its
+      // fire while a spire stands right in front of it (and blinks again
+      // before its next shot once it's in the open).
+      const inRange = e.x > 40 && e.x < VIEW_W - 20 && !covered;
       if (!inRange) {
+        e.timer = Math.max(e.timer, 0.4);
         e.charge = 0;
         return;
       }
@@ -590,10 +627,25 @@ export const ENEMY_TYPES = {
       e.charge = e.timer < 0.4 ? 1 : 0;
       if (e.timer <= 0) {
         e.charge = 0;
-        e.timer = 2.5;
+        e.timer = 1.8;
         const p = game.player;
         game.spawnEnemy('mortarShell', e.x + 1, e.y - 2, { tx: p.x + p.w / 2, ty: p.y + p.h / 2 });
         sfx.mortar();
+      }
+    },
+    draw(e, ctx, snap, game, spr) {
+      if (!e.under) {
+        ctx.drawImage(spr, snap(e.x), snap(e.y));
+        return;
+      }
+      // Tunnelling: a little mound of churned-up dirt moving along the floor
+      // (only in the open — under a spire, it's hidden by the rock).
+      const floorY = game.terrain.floorY;
+      for (let i = 0; i < e.w; i += 2) {
+        if (game.terrain.hits(e.x + i, floorY - 4, 2, 4)) continue;
+        const h = 1 + ((i + Math.floor(game.time * 20)) % 3 === 0 ? 1 : 0);
+        ctx.fillStyle = DIRT[(i >> 1) % 3];
+        ctx.fillRect(snap(e.x) + i, floorY - h, 2, h);
       }
     },
   },
@@ -668,6 +720,13 @@ export const ENEMY_TYPES = {
 };
 
 const SHELL_TIME = 0.9; // seconds from launch to burst
+// Is a mortar crawler at (or about to walk into) a spire? Then it digs under.
+const crawlerAtRock = (e, terrain) => terrain.hits(e.x - 3, terrain.floorY - e.h, e.w + 4, e.h) !== null;
+// Is a mortar crawler tucked behind a spire (one right in front of it, with
+// no room for your ship to slip in between and shoot it)?
+const crawlerCovered = (e, terrain) => terrain.spires.some((s) => s.x + s.w <= e.x + 2 && s.x + s.w > e.x - 26);
+const TURRET_OPEN = 1.6; // seconds a cliff turret stays open (its core exposed)
+const DIRT = ['#57302a', '#7a4632', '#9a6a4a'];
 const CRATE_BITS = ['#7a3a36', '#9a6a4a', '#6d6a73', '#c4a68e'];
 const SHELL_G = 120; // gravity on a mortar shell (pixels per second squared)
 

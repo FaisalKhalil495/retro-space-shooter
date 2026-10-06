@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.14.1';
-import { drawText } from './font.js?v=0.14.1';
-import { sfx } from './audio.js?v=0.14.1';
-import { buzz } from './feedback.js?v=0.14.1';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.14.2';
+import { drawText } from './font.js?v=0.14.2';
+import { sfx } from './audio.js?v=0.14.2';
+import { buzz } from './feedback.js?v=0.14.2';
 
 // Special weapons and pickups.
 // The player carries ONE special at a time. A pickup gives some shots;
@@ -130,7 +130,9 @@ export class Weapons {
     // Rockets: curve towards the nearest enemy.
     for (const r of this.rockets) {
       r.t += dt;
-      const target = r.target && !r.target.dead ? r.target : (r.target = g.nearestEnemy(r.x, r.y));
+      // (A target that dies or digs underground is dropped for a new one.)
+      const keep = r.target && !r.target.dead && !r.target.under;
+      const target = keep ? r.target : (r.target = g.nearestEnemy(r.x, r.y));
       let ax = 260;
       let ay = 0;
       if (target && r.t > 0.12) {
