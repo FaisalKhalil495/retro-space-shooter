@@ -160,21 +160,18 @@ const ART = {
     '..k.k.k.k.k.k.',
     '.k.k.k...k.k.k',
   ],
-  // Rust Moon supply drone, a crate slung underneath (every crate looks the
-  // same: you can't tell which ones hold anything).
-  hauler: [
-    'kkkk....kkkk',
-    '.kgk....kgk.',
-    '..kkkkkkkk..',
-    '.kBBpBBBBBk.',
-    'klBBBBBBBbk.',
-    '..kkkkkkkk..',
-    '.....kk.....',
-    '...kkkkkk...',
-    '...kgRRgk...',
-    '...kRgRgk...',
-    '...kgRRgk...',
-    '...kkkkkk...',
+  // Rust Moon: a raider, a small armed fighter (rust-red hull, swept-back
+  // gunmetal wings, amber cockpit); its gun is in its nose, facing left.
+  raider: [
+    '.........kkk.',
+    '.......kkggk.',
+    '......kgggk..',
+    '..kkkkRRrrRk.',
+    'kclgRRsraaRRk',
+    '..kkkkRRrrRk.',
+    '......kgggk..',
+    '.......kkggk.',
+    '.........kkk.',
   ],
   // Siege Crawler's floating mine (its light blinks, see crawler.js).
   mine: [

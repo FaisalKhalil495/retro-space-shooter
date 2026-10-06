@@ -14,7 +14,7 @@ stage — and, one day, a system for building more games.
 - At the end of every stage also add a retrospective (section 7) and move
   anything reusable into section 8 ("Recipe for future games").
 
-Last updated: v0.14.4 (Stage 3, after step 3B).
+Last updated: v0.15.0 (Stage 3, after step 3B).
 
 ---
 
@@ -124,6 +124,13 @@ Last updated: v0.14.4 (Stage 3, after step 3B).
   tallest possible tower; drops always appear above rock.
 - **Ambushes from behind come only while the towers are short**, and fly
   above them — a threat you can't fight back against is just unfair.
+- **Every enemy must fight** (v0.15.0). Harmless loot carriers (the
+  supply drones) were "no fun — they don't fire, they just come towards
+  me". Loot belongs on enemies that shoot back (now the Rust Raiders), so
+  earning it is part of the fight.
+- **No idle enemies.** A crawler that popped up between towers and did
+  nothing looked broken. Every enemy on screen should be doing something
+  threatening, or be out of sight.
 - **Hard targets must still die quickly once open**: turrets felt "very
   hard to kill" until their open window and hit area grew (1.2 s to kill).
 
@@ -185,6 +192,10 @@ Last updated: v0.14.4 (Stage 3, after step 3B).
 | Ambushers from behind came in low among the towers, where neither side could shoot (v0.14.2) | A random lane must be chosen **against the world at that moment** (the tallest tower on screen), and timed events must suit the layout around them (ambushes now wait for short towers). |
 | v0.14.3: the dust skimmer's "spire ahead" check looked behind it — it flies left, so "ahead" is the lower x | For anything moving right-to-left, double-check "ahead" and "behind" in the code. The whole-level check (no flyer ever inside rock) caught it; a one-enemy test wouldn't have. |
 | v0.14.3 review: lifting every flyer to the same "clear of the tower" height stacked two gunships of a group exactly on top of each other when you flew low | A rule that moves many things to the same place (a safe height, an edge, a lane) can make them **pile up**. After such a rule, check that enemies don't end up hidden behind one another (the whole-level overlap audit found it). |
+| Supply drones that never fired were "no fun" (v0.14.0 → v0.15.0) | When re-dressing a system for a new world, keep the *fun* as well as the reward: an enemy that can't hurt you except by bumping is filler. Check every new enemy against "does it fight back?" |
+| A fair-play rule (crawlers don't fire from cover) left 3 of 9 crawlers never firing and 9 of 16 pop-ups pointless | When a rule **stops** an enemy from acting, measure how often it now does nothing at all, and fix *where it appears*, not just what it may do. |
+| A scripted edit that cut out "everything from the drone up to the dust skimmer" also deleted the cliff turret sitting between them (caught at once by a test crash, fixed before release) | After any scripted edit, read the diff's summary first: a far bigger change than expected means something else was caught in it. |
+| Raiders in a convoy each picked their own speed, so one could catch up and merge with the one ahead once both were lifted over a tower | Ships in a formation share one speed, or their spacing isn't guaranteed. Random per-ship variation belongs in looks or timing, not in spacing. |
 | LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
 
 ## 5. Our working process (what works)
@@ -300,6 +311,9 @@ fewer rounds are needed.
   short towers and fly above them.
 - v0.14.4 (review of v0.14.3): gunships in a group no longer stack into
   one when lifted over a tower.
+- v0.15.0: supply drones replaced by **Rust Raiders** (armed fighters
+  carrying the same loot gamble); crawlers tunnel under rows of towers and
+  only come up (and only arrive) where they have room to fire.
 **So far:** the owner's feedback has been about the world making sense
 (rocks on a planet, tanks on towers, enemies through towers) and about
 fairness (hidden or unreachable enemies) rather than raw difficulty.

@@ -175,7 +175,7 @@ const checks = {
   'supply pods alternate survival / weapon': supply.kinds.slice(0, 3).join() === 'smart,weapon,smart',
   'level cleared': r.state === 'clear',
   'level 2 follows level 1': level2.level === 2 && level2.state === 'playing',
-  'Rust Moon enemies appeared': ['cliffTurret', 'dustSkimmer', 'mortarCrawler', 'mortarShell', 'hauler', 'sniper', 'spinner', 'gunner']
+  'Rust Moon enemies appeared': ['cliffTurret', 'dustSkimmer', 'mortarCrawler', 'mortarShell', 'raider', 'sniper', 'spinner', 'gunner']
     .every((t) => r2.types.includes(t)),
   'Rust Moon cargo pods all collected': pickups2.every((k) => r2.collected.includes(k)),
   'Siege Crawler appeared': r2.bossSeen,

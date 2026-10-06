@@ -420,41 +420,57 @@ export const ENEMY_TYPES = {
 
   // ---- Rust Moon ----
 
-  // Supply drone: the enemy keeps its canyon turrets stocked with drones
-  // that fly across in small convoys, each carrying a crate. Shoot one down
-  // and its crate bursts open. All crates look the same, and only about a
-  // third hold anything (a power-up or special-weapon ammo), so it's a
-  // gamble which ones are worth chasing. They don't shoot, but they ram.
-  // They lift up over any rock spire in their way.
-  hauler: {
-    sprite: 'hauler',
+  // Rust Raider: a small armed fighter flying in with its convoy in a gentle
+  // wave. While you're in front of its nose it blinks, then fires an aimed
+  // shot, and a second one a moment later if you're still there (2 at
+  // most; never at a ship behind it). A convoy takes turns (each one's
+  // first shot comes a little later than the one before). Raiders all look
+  // alike, and about a third carry loot (a power-up or special-weapon ammo),
+  // so it's a gamble which ones are worth chasing.
+  raider: {
+    flies: true, // lifts over rock spires (see Game.keepAboveRock)
+    onLift(e, d) {
+      e.baseY -= d; // its whole wave moves up
+    },
+    sprite: 'raider',
     hp: 3,
-    score: 25,
+    score: 40,
     ram: 2,
     dropChance: 0.35,
     hurtDropChance: 0.5,
     ammoLoot: true,
-    explodeSize: 0.6,
+    explodeSize: 0.5,
     gore: { metal: 6 },
     init(e, game) {
-      e.vx = e.vx ?? -(40 + game.rand() * 8);
+      e.vx = e.vx ?? -(44 + game.rand() * 6); // (a convoy shares one speed)
       e.baseY = e.y;
       e.phase = game.rand() * 6;
+      e.shots = 0;
+      e.fireTimer = RAIDER_FIRST + (e.slot || 0) * RAIDER_TURN;
+      e.charge = 0;
     },
     update(e, dt, game) {
       e.x += e.vx * dt;
-      // Fly at its own height, but climb over any spire just ahead, high
-      // enough to clear a turret on top of it too. (If a spire pops up right
-      // under it at the screen's edge, it jumps clear.)
-      const clear = game.terrain.groundTop(e.x - 30, e.w + 32) - e.h - 12;
-      const want = Math.min(e.baseY, clear) + Math.sin(e.t * 3 + e.phase) * 2;
-      if (game.terrain.hits(e.x, e.y, e.w, e.h)) e.y = Math.min(e.y, clear);
-      else e.y += clamp(want - e.y, -80 * dt, 50 * dt);
-    },
-    onDeath(e, game) {
-      // The crate bursts: splinters either way; anything inside drops out
-      // (see Game.maybeDrop).
-      game.burst(e.x + e.w / 2, e.y + e.h - 3, 8, 50, CRATE_BITS);
+      e.y = Math.max(HUD_H + 2, e.baseY + Math.sin(e.t * 2.2 + e.phase) * 5);
+      if (e.shots >= 2) return;
+      const p = game.player;
+      const inFront = p.x + p.w < e.x - 6;
+      const inView = e.x < VIEW_W - 16 && e.x > 24;
+      if (!inFront || !inView) {
+        // No shot from here: stop any warning blink (it blinks afresh
+        // before its next shot).
+        e.fireTimer = Math.max(e.fireTimer, RAIDER_BLINK);
+        e.charge = 0;
+        return;
+      }
+      e.fireTimer -= dt;
+      e.charge = e.fireTimer < RAIDER_BLINK ? 1 : 0;
+      if (e.fireTimer <= 0) {
+        e.charge = 0;
+        e.shots++;
+        e.fireTimer = 1.5;
+        game.fireAtPlayer(e.x - 1, e.y + e.h / 2, 80);
+      }
     },
   },
 
@@ -606,7 +622,8 @@ export const ENEMY_TYPES = {
   // every 1.8 s. A red ring marks where the shell will burst (where you were
   // when it fired), so keep moving. It always stays on the ground: when it
   // reaches a rock spire it digs under it (it can't shoot or be hit while
-  // underground) and pops out on the other side.
+  // underground) and only comes up again where it has room to fire, so it
+  // tunnels right under a row of close spires in one go.
   mortarCrawler: {
     sprite: 'crawler',
     hp: 3,
@@ -616,7 +633,7 @@ export const ENEMY_TYPES = {
     init(e, game) {
       e.y = game.terrain.floorY - e.h;
       e.timer = 0.6;
-      e.under = crawlerAtRock(e, game.terrain); // born under a spire? start dug in
+      e.under = crawlerAtRock(e, game.terrain) || crawlerCovered(e, game.terrain, CRAWLER_ROOM); // no room? start dug in
     },
     muzzle(e) {
       return { x: e.x + 1, y: e.y - 1 };
@@ -632,13 +649,15 @@ export const ENEMY_TYPES = {
       const terrain = game.terrain;
       e.y = terrain.floorY - e.h + (e.under ? 0 : Math.floor(e.t * 6) % 2); // little steps
       // A spire just ahead (or over it): dig under it, in a puff of dust,
-      // and tunnel along fast until it's clear, then pop back out.
+      // and tunnel along fast until it's clear of the rock *and* has room to
+      // fire before the next spire, then pop back out. (Coming up in a narrow
+      // gap between spires, where it could never fire, would be pointless.)
       const rock = crawlerAtRock(e, terrain);
       if (rock && !e.under) {
         e.under = true;
         e.charge = 0;
         game.burst(e.x + e.w / 2, terrain.floorY - 2, 10, 50, DIRT);
-      } else if (!rock && e.under) {
+      } else if (e.under && !rock && !crawlerCovered(e, terrain, CRAWLER_ROOM)) {
         e.under = false;
         e.timer = Math.max(e.timer, 0.6); // a moment before it can fire
         game.burst(e.x + e.w / 2, terrain.floorY - 2, 10, 50, DIRT);
@@ -646,7 +665,7 @@ export const ENEMY_TYPES = {
       // Underground it tunnels fast; tucked behind a spire it hurries on;
       // out in the open it walks slowly while it shells you.
       const covered = !e.under && crawlerCovered(e, terrain);
-      e.x -= (GROUND_SPEED + (e.under ? 60 : covered ? 36 : 8)) * dt;
+      e.x -= (GROUND_SPEED + (e.under ? 60 : covered ? 36 : 13)) * dt;
       if (e.under) return;
       // Fair play: it only fires when you could shoot back, so it holds its
       // fire while a spire stands right in front of it (and blinks again
@@ -759,7 +778,10 @@ const DIVE_VY = 30; // a pod falling faster than this is dive-bombing
 const crawlerAtRock = (e, terrain) => terrain.hits(e.x - 3, terrain.floorY - e.h, e.w + 4, e.h) !== null;
 // Is a mortar crawler tucked behind a spire (one right in front of it, with
 // no room for your ship to slip in between and shoot it)?
-const crawlerCovered = (e, terrain) => terrain.spires.some((s) => s.x + s.w <= e.x + 2 && s.x + s.w > e.x - 26);
+const crawlerCovered = (e, terrain, reach = 26) => terrain.spires.some((s) => s.x + s.w <= e.x + 2 && s.x + s.w > e.x - reach);
+// How much open ground a crawler needs in front of it before it comes up:
+// enough to walk out and fire at least once before the next spire covers it.
+const CRAWLER_ROOM = 48;
 // How high a dust skimmer flies: just above the floor, or clear of any spire
 // just ahead of it (it flies left) or under it.
 function skimHeight(e, terrain) {
@@ -769,9 +791,11 @@ function skimHeight(e, terrain) {
   }
   return want;
 }
+const RAIDER_FIRST = 0.5; // a raider's first shot (once you're in its sights)
+const RAIDER_TURN = 0.45; // ...and how much later each one in its convoy fires
+const RAIDER_BLINK = 0.3; // its warning blink before each shot
 const TURRET_OPEN = 1.6; // seconds a cliff turret stays open (its core exposed)
 const DIRT = ['#57302a', '#7a4632', '#9a6a4a'];
-const CRATE_BITS = ['#7a3a36', '#9a6a4a', '#6d6a73', '#c4a68e'];
 const SHELL_G = 120; // gravity on a mortar shell (pixels per second squared)
 
 const SPLIT_WARNING = 0.5; // seconds a spat rock cracks before it bursts

@@ -91,22 +91,33 @@ a real console controller, so you can play by feel while watching the game.
   - **Mortar crawler**: a ground tank — it **never leaves the ground**
     (owner, v0.14.2). At a spire it digs under it in a puff of dirt (out of
     reach, can't fire, shown as a moving dirt mound) and pops out the other
-    side. It walks slowly in the open, hurries past spires, and **only fires
+    side — **only where it has room to fire** (48 px of open ground before
+    the next spire; owner, v0.15.0: they kept popping up in gaps between
+    towers doing nothing), so it tunnels under a whole row of close spires
+    in one go. It **arrives only over open ground**: it waits (up to 10 s)
+    until the newest spire is 60 px in from the right edge. It walks in the
+    open, hurries past spires, and **only fires
     when you could shoot back** (never with a spire right in front of it).
-    Lobs a shell every 1.8 s (about 14 shells a level). A red
+    Lobs a shell every 1.8 s (about 19 shells a level; every crawler fires
+    at least once). A red
     ring with a cross marks where it bursts (where you were at launch)
     0.9 s ahead; the burst costs 1 if you're on it and throws 4 fragments
     (1 each). A shell that touches you on the way bursts right there.
     Shells can be shot down. 3 HP, 50 pts, 15% drop.
   - **No rocks on this planet** (owner, v0.14.0: rocks belong to level
-    1's asteroid field, not a planet). Instead, **supply drones**: the enemy
-    keeps its turrets stocked with drones flying across in convoys of 1–4,
-    each carrying a crate. They don't shoot but ram (2 blocks), 3 HP,
-    25 pts, and lift up over any spire in their way (high enough to clear
-    a turret on it too). Shoot one and its crate
-    bursts: **all crates look the same**, about **35% hold loot** (50% when
-    hurt), and about 30% of that is "A" ammo, the rest power-ups — the
-    owner's guessing game, about 10 items a level (as the rocks gave).
+    1's asteroid field, not a planet). Their loot went to supply drones
+    (v0.14.0), which the owner found no fun ("they don't fire, they just
+    come towards me"), so since v0.15.0 it's carried by **Rust Raiders**:
+    small armed fighters (rust-red, swept-back grey wings) flying in
+    convoys of 1–4 in a gentle wave, the whole convoy at one speed (so its
+    ships never merge). While you're in front of its nose a raider blinks
+    0.3 s, then fires an aimed shot, and a second 1.5 s later (2 at most;
+    never at a ship behind it); a convoy takes turns (each one's first shot
+    0.45 s after the one before). Ram 2 blocks, 3 HP, 40 pts; they lift
+    over spires like every flyer. **All raiders look the same**, about
+    **35% carry loot** (50% when hurt), and about 30% of that is "A" ammo,
+    the rest power-ups — the owner's guessing game, about 10 items a level
+    (as the rocks gave).
   - **Turrets are never hidden** (owner, v0.14.0): a turret's spire (or
     mound) is at least as tall as every spire on screen when it arrives
     (`terrain.turretPerch`), so a straight shot always reaches it.
@@ -125,7 +136,7 @@ a real console controller, so you can play by feel while watching the game.
     the tallest tower on screen. Level 2 ambushes at 0:46, 1:33, 1:57,
     2:31 and 2:53.
   - About 15 turrets, 20 skimmers, 9 mortars, 21 gunships, 10 snipers,
-    6 spinners and 30 supply drones.
+    6 spinners and 30 Rust Raiders.
 - **The Siege Crawler** (boss of Rust Moon, step 3B-2, v0.13.0): a giant
   six-legged gunmetal war machine walking the canyon floor (gunmetal so it
   stands out against the red canyon). Name card "SIEGE CRAWLER / THE
@@ -411,7 +422,7 @@ Approved by the owner. Keep the status column up to date.
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
-| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.14.3) |
+| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.15.0) |
 | 4 | **Levels 5–8** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |
@@ -433,7 +444,7 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   damage/armour, lives, score, HUD, banners, level clear.
 - `js/enemies.js` — enemy types (incl. asteroids, seekers, snipers, spinners,
   cargo pods; Rust Moon's cliff turrets, dust skimmers, mortar crawlers and
-  shells, supply drones) and how they move/shoot.
+  shells, Rust Raiders) and how they move/shoot.
 - `js/bosses.js` — Rockjaw (3 phases, 8 attacks, entrance, transitions,
   gory death).
 - `js/crawler.js` — the Siege Crawler (3 stages, 7 attacks + paired attacks,
@@ -449,7 +460,7 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - `js/background.js` — starfield, sun, dust band, distant rocks, Rust Moon
   canyon (sky bands, mesas, walls, dust devils) (per-level theme).
 - `js/terrain.js` — solid ground: floor strip, rock spires, `solid()` for shots,
-  `tallestOnScreen()`, `turretPerch()`.
+  `tallestOnScreen()`, `openAtEdge()`, `turretPerch()`.
 - `js/sprites.js` — pixel art as text grids. `js/rockart.js` — asteroids and
   Rockjaw drawn by code. `js/font.js` — 5×5 pixel font.
 - `js/audio.js` — all sound effects, synthesised in code (incl. boss roar,
