@@ -91,11 +91,21 @@ a real console controller, so you can play by feel while watching the game.
     0.9 s ahead; the burst costs 1 if you're on it and throws 4 fragments
     (1 each). A shell that touches you on the way bursts right there.
     Shells can be shot down. 3 HP, 50 pts, 15% drop.
-  - **Rust boulders**: bounce and roll along the floor (some tumble down
-    from high up) and bound over spires. Same rules as level-1 rocks: big
-    ones 35% loot (no tell), burst into 3 shards; small ones none.
+  - **No rocks on this planet** (owner, v0.14.0: rocks belong to level
+    1's asteroid field, not a planet). Instead, **supply drones**: the enemy
+    keeps its turrets stocked with drones flying across in convoys of 1–4,
+    each carrying a crate. They don't shoot but ram (2 blocks), 3 HP,
+    25 pts, and lift up over any spire in their way. Shoot one and its crate
+    bursts: **all crates look the same**, about **35% hold loot** (50% when
+    hurt), and about 30% of that is "A" ammo, the rest power-ups — the
+    owner's guessing game, about 10 items a level (as the rocks gave).
+  - **Turrets are never hidden** (owner, v0.14.0): a turret's spire is at
+    least as tall as every spire between you and it (the spires pattern
+    enforces it), so a straight shot always reaches it.
+  - **Cargo pods fly above the towers** on levels with ground (their bottom
+    stays above the tallest possible spire, MAX_SPIRE = 74 px).
   - About 15 turrets, 20 skimmers, 9 mortars, 21 gunships, 10 snipers,
-    6 spinners and 30 big boulders.
+    6 spinners and 30 supply drones.
 - **The Siege Crawler** (boss of Rust Moon, step 3B-2, v0.13.0): a giant
   six-legged gunmetal war machine walking the canyon floor (gunmetal so it
   stands out against the red canyon). Name card "SIEGE CRAWLER / THE
@@ -119,7 +129,10 @@ a real console controller, so you can play by feel while watching the game.
     burst after 3 s or 0.5 s after you get close, or on touch, 2 blocks +
     fragments, shootable), **Drones** (hunt you, blink, fire once), **Stomp**
     (rears up 0.6 s, a dust wave rolls along the floor both ways, 2 blocks,
-    fly above it; rocks fall straight down onto "!" markers, then roll); stage 3: **Tread charge**
+    fly above it; then the ground cracks open: each crack shows with a "!"
+    for 0.75 s — the first one under you — before a rock spike bursts up out
+    of the floor, 2 blocks, then crumbles; the stomp lasts until the last
+    spike has gone, and a stage break closes any cracks still waiting); stage 3: **Tread charge**
     (revs 1 s with horn and smoke, runs across the screen, 3 blocks, fly
     over it) and **All guns** (flak wall + mortars together).
   - Stages at 66% and 33%: armour blows off ("YOU SCRATCHED MY FUCKING
@@ -394,7 +407,7 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   damage/armour, lives, score, HUD, banners, level clear.
 - `js/enemies.js` — enemy types (incl. asteroids, seekers, snipers, spinners,
   cargo pods; Rust Moon's cliff turrets, dust skimmers, mortar crawlers and
-  shells, rust boulders) and how they move/shoot.
+  shells, supply drones) and how they move/shoot.
 - `js/bosses.js` — Rockjaw (3 phases, 8 attacks, entrance, transitions,
   gory death).
 - `js/crawler.js` — the Siege Crawler (3 stages, 7 attacks + paired attacks,

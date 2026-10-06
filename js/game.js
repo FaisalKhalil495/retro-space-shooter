@@ -1,19 +1,19 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.13.2';
-import { SPRITES } from './sprites.js?v=0.13.2';
-import { ENEMY_TYPES } from './enemies.js?v=0.13.2';
-import { LEVELS, LevelRunner } from './levels.js?v=0.13.2';
-import { Background } from './background.js?v=0.13.2';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.13.2';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.13.2';
-import { buzz, HAPTIC } from './feedback.js?v=0.13.2';
-import { sfx } from './audio.js?v=0.13.2';
-import { clamp, rectsOverlap } from './util.js?v=0.13.2';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.13.2';
-import { Blasts } from './blasts.js?v=0.13.2';
-import { Speech } from './speech.js?v=0.13.2';
-import { Terrain } from './terrain.js?v=0.13.2';
-import { startBossMusic, stopMusic } from './music.js?v=0.13.2';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.13.2';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.14.0';
+import { SPRITES } from './sprites.js?v=0.14.0';
+import { ENEMY_TYPES } from './enemies.js?v=0.14.0';
+import { LEVELS, LevelRunner } from './levels.js?v=0.14.0';
+import { Background } from './background.js?v=0.14.0';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.14.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.14.0';
+import { buzz, HAPTIC } from './feedback.js?v=0.14.0';
+import { sfx } from './audio.js?v=0.14.0';
+import { clamp, rectsOverlap } from './util.js?v=0.14.0';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.14.0';
+import { Blasts } from './blasts.js?v=0.14.0';
+import { Speech } from './speech.js?v=0.14.0';
+import { Terrain } from './terrain.js?v=0.14.0';
+import { startBossMusic, stopMusic } from './music.js?v=0.14.0';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.14.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -236,7 +236,7 @@ export class Game {
     if (!chance || this.rand() >= chance) return;
     let kind;
     if (hurt && this.rand() < 0.6) kind = 'repair';
-    else if (e.T.rockLoot && this.rand() < 0.3) kind = 'ammo'; // special ammo, see weapons.js
+    else if (e.T.ammoLoot && this.rand() < 0.3) kind = 'ammo'; // special ammo, see weapons.js
     else kind = randomPowerup(this.rand, this.health >= PLAYER.health);
     this.spawnPickup(kind, e.x + e.w / 2 - 4, e.y + e.h / 2 - 4);
   }

@@ -1,11 +1,11 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.13.2';
-import { ROCKS } from './rockart.js?v=0.13.2';
-import { SPRITES } from './sprites.js?v=0.13.2';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.13.2';
-import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.13.2';
-import { clamp, rectHitsCircle } from './util.js?v=0.13.2';
-import { GROUND_SPEED } from './terrain.js?v=0.13.2';
-import { sfx } from './audio.js?v=0.13.2';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.14.0';
+import { ROCKS } from './rockart.js?v=0.14.0';
+import { SPRITES } from './sprites.js?v=0.14.0';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.14.0';
+import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.14.0';
+import { clamp, rectHitsCircle } from './util.js?v=0.14.0';
+import { GROUND_SPEED } from './terrain.js?v=0.14.0';
+import { sfx } from './audio.js?v=0.14.0';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -324,14 +324,14 @@ export const ENEMY_TYPES = {
     const cy = e.y + e.h / 2 - 5;
     if (e.byBoss) {
       for (const side of [-1, 1]) {
-        game.spawnEnemy('rockShard', cx, cy, { vx: e.vx * 0.45, vy: side * (40 + game.rand() * 12), byBoss: true, rust: e.rust });
+        game.spawnEnemy('rockShard', cx, cy, { vx: e.vx * 0.45, vy: side * (40 + game.rand() * 12), byBoss: true });
       }
       return;
     }
     const a0 = game.rand() * Math.PI * 2;
     for (let k = 0; k < 3; k++) {
       const a = a0 + (k * Math.PI * 2) / 3;
-      game.spawnEnemy('rockShard', cx, cy, { vx: e.vx * 0.3 + Math.cos(a) * 70, vy: Math.sin(a) * 70, rust: e.rust });
+      game.spawnEnemy('rockShard', cx, cy, { vx: e.vx * 0.3 + Math.cos(a) * 70, vy: Math.sin(a) * 70 });
     }
   }),
   // Small rocks crack into 2 sharp pebbles in the level (1 block each).
@@ -349,12 +349,10 @@ export const ENEMY_TYPES = {
     ...rockType('small', 1, 3, 4, 1),
     noDrop: true,
     explodeSize: 0.3,
-    update(e, dt, game) {
+    update(e, dt) {
       e.x += e.vx * dt;
       e.y += e.vy * dt;
       e.vy *= 1 - 0.4 * dt;
-      // Glances off the ground rather than sinking into it.
-      if (game.terrain.floor && e.y + e.h > game.terrain.floorY && e.vy > 0) e.vy = -e.vy * 0.5;
       e.flash = e.t < 0.5 && Math.floor(e.t * 16) % 2 === 0 ? 0.02 : e.flash;
     },
   },
@@ -390,6 +388,43 @@ export const ENEMY_TYPES = {
   },
 
   // ---- Rust Moon ----
+
+  // Supply drone: the enemy keeps its canyon turrets stocked with drones
+  // that fly across in small convoys, each carrying a crate. Shoot one down
+  // and its crate bursts open. All crates look the same, and only about a
+  // third hold anything (a power-up or special-weapon ammo), so it's a
+  // gamble which ones are worth chasing. They don't shoot, but they ram.
+  // They lift up over any rock spire in their way.
+  hauler: {
+    sprite: 'hauler',
+    hp: 3,
+    score: 25,
+    ram: 2,
+    dropChance: 0.35,
+    hurtDropChance: 0.5,
+    ammoLoot: true,
+    explodeSize: 0.6,
+    gore: { metal: 6 },
+    init(e, game) {
+      e.vx = e.vx ?? -(40 + game.rand() * 8);
+      e.baseY = e.y;
+      e.phase = game.rand() * 6;
+    },
+    update(e, dt, game) {
+      e.x += e.vx * dt;
+      // Fly at its own height, but climb over any spire just ahead. (If a
+      // spire pops up right under it at the screen's edge, it jumps clear.)
+      const clear = game.terrain.groundTop(e.x - 30, e.w + 32) - e.h - 4;
+      const want = Math.min(e.baseY, clear) + Math.sin(e.t * 3 + e.phase) * 2;
+      if (game.terrain.hits(e.x, e.y, e.w, e.h)) e.y = Math.min(e.y, clear);
+      else e.y += clamp(want - e.y, -80 * dt, 50 * dt);
+    },
+    onDeath(e, game) {
+      // The crate bursts: splinters either way; anything inside drops out
+      // (see Game.maybeDrop).
+      game.burst(e.x + e.w / 2, e.y + e.h - 3, 8, 50, CRATE_BITS);
+    },
+  },
 
   // Cliff turret: sits on a rock spire (or a low mound), armoured shut.
   // Its hatch blinks, it opens, fires two aimed shots, then shuts again. It
@@ -632,6 +667,7 @@ export const ENEMY_TYPES = {
 };
 
 const SHELL_TIME = 0.9; // seconds from launch to burst
+const CRATE_BITS = ['#7a3a36', '#9a6a4a', '#6d6a73', '#c4a68e'];
 const SHELL_G = 120; // gravity on a mortar shell (pixels per second squared)
 
 const SPLIT_WARNING = 0.5; // seconds a spat rock cracks before it bursts
@@ -646,7 +682,7 @@ function rockType(size, hp, score, radius, ram, onDeath) {
     // ones are worth breaking. Chances go up when you're badly hurt.
     dropChance: size === 'big' ? 0.35 : 0,
     hurtDropChance: size === 'big' ? 0.5 : 0,
-    rockLoot: size === 'big',
+    ammoLoot: size === 'big', // some of the loot is special-weapon ammo
     explodeSize: size === 'big' ? 1 : 0.5,
     gore: { rock: size === 'big' ? 12 : 6 },
     // Rocks are round, so hits are checked against a circle, not a box.
@@ -654,9 +690,7 @@ function rockType(size, hp, score, radius, ram, onDeath) {
       return rectHitsCircle(x, y, w, h, e.x + e.w / 2, e.y + e.h / 2, radius) ? 'hit' : null;
     },
     init(e, game) {
-      // Rust Moon's boulders are the same shapes painted in rusty reds.
-      e.key = size + (e.rust ? 'Rust' : '');
-      const set = ROCKS[e.key];
+      const set = ROCKS[size];
       e.variant = e.variant ?? Math.floor(game.rand() * set.length);
       e.w = set[e.variant].width;
       e.h = set[e.variant].height;
@@ -667,22 +701,6 @@ function rockType(size, hp, score, radius, ram, onDeath) {
       e.x += e.vx * dt;
       e.y += e.vy * dt;
       const floorY = game.terrain.floorY;
-      if (e.ground) {
-        // Boulders: low-gravity tumbles that bounce along the canyon floor,
-        // rolling as they go, and bounding up over any spire in the way.
-        e.vy += 90 * dt;
-        e.spin = (e.spin || 0) + (e.vx / radius) * dt;
-        if (e.y + e.h > floorY) {
-          e.y = floorY - e.h;
-          e.vy = Math.abs(e.vy) < 18 ? 0 : -Math.abs(e.vy) * 0.55;
-          if (e.landVx !== undefined) {
-            e.vx = e.landVx; // dropped straight down: starts rolling now
-            e.landVx = undefined;
-          }
-        }
-        if (game.terrain.hits(e.x + 2, e.y + 2, e.w - 4, e.h - 4)) e.vy = Math.min(e.vy, -70);
-        return;
-      }
       // Drifting rocks bounce gently off the top and bottom so they stay in
       // play; falling meteors (Rockjaw's) just fall through.
       if (!e.fall) {
@@ -692,16 +710,8 @@ function rockType(size, hp, score, radius, ram, onDeath) {
     },
     onDeath,
     draw(e, ctx, snap) {
-      const img = ROCKS[e.key + (e.flash > 0 ? 'Flash' : '')][e.variant];
-      if (!e.spin) {
-        ctx.drawImage(img, snap(e.x), snap(e.y));
-        return;
-      }
-      ctx.save();
-      ctx.translate(snap(e.x + e.w / 2), snap(e.y + e.h / 2));
-      ctx.rotate(Math.round(e.spin * 4) / 4); // turns in small steps, like pixel art
-      ctx.drawImage(img, -Math.floor(e.w / 2), -Math.floor(e.h / 2));
-      ctx.restore();
+      const set = e.flash > 0 ? ROCKS[size + 'Flash'] : ROCKS[size];
+      ctx.drawImage(set[e.variant], snap(e.x), snap(e.y));
     },
   };
 }

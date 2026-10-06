@@ -2,8 +2,8 @@
 // VERSION is shown in-game so the owner can tell whether the phone has the
 // latest copy. Change it with tools/set-version.sh, never by hand, so every
 // file's cache-busting "?v=" stays in step.
-export const VERSION = '0.13.2';
-export const STAGE_LABEL = 'Stage 3 \u00b7 Siege Crawler';
+export const VERSION = '0.14.0';
+export const STAGE_LABEL = 'Stage 3 \u00b7 Rust Moon';
 
 // The game world is a fixed grid of "game pixels". It is scaled up to fit the
 // phone, so every phone sees exactly the same playfield.

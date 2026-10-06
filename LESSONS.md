@@ -148,6 +148,8 @@ Last updated: end of Stage 2 (v0.10.3).
 | Boss drawing used the game's dice for its wobble | Drawing must never use the game's random numbers, or tests stop being repeatable. |
 | Whole-level review (v0.13.2): enemies hid inside spires, drops landed in rock, a shut turret could be rammed to death, rockets chased junk | When a new obstacle arrives (spires), check **every** moving thing against it — walkers, drops, homing weapons — not just the player and bullets. Armour rules must cover every way of doing damage, ramming included. |
 | A check passed on the old code by chance (the boss sometimes wandered into the ship anyway) | Test the decision itself (where it's heading), not just an outcome that luck can also produce. |
+| The owner: "what the hell are rocks doing on this planet?" — level 1's asteroids had been copied onto Rust Moon (v0.12–0.13) | **Every object must make sense in its setting.** When reusing a system on a new level, re-dress it for that world (rocks → supply drones carrying crates) and keep what the owner liked about it (the loot gamble). |
+| 6 of 15 turrets sat behind taller towers; half the cargo pods flew low among the towers | Test the **whole level as played**, not just each enemy alone: simulate the timeline and check every target can be shot and every pickup reached. Turn layout rules into code (a pattern that enforces them), not just careful level data. |
 
 ## 5. Our working process (what works)
 

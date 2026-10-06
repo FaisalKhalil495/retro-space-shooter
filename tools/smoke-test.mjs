@@ -748,23 +748,65 @@ for (const phone of PHONES) {
     step(0.5);
     res.diverCrashed = diver.dead;
 
-    // Big rusty boulders carry loot about 35% of the time; small ones never.
+    // Supply drones' crates hold loot about 35% of the time, and about 30%
+    // of that loot is special-weapon ammo (no rocks on this planet any more).
     quiet();
-    let big = 0;
-    let small = 0;
+    let loot = 0;
+    let ammo = 0;
     const N = 2000;
     for (let i = 0; i < N; i++) {
       g.pickups = [];
-      g.killEnemy(g.spawnEnemy('rockBig', 100, 60, { rust: true, ground: true }));
-      big += g.pickups.length;
-      g.pickups = [];
-      g.killEnemy(g.spawnEnemy('rockSmall', 100, 60, { rust: true, ground: true }));
-      small += g.pickups.length;
+      g.killEnemy(g.spawnEnemy('hauler', 100, 60));
+      loot += g.pickups.length;
+      ammo += g.pickups.filter((pk) => pk.kind === 'ammo').length;
       g.enemies = [];
       g.enemyShots = [];
     }
-    res.bigLoot = +(big / N).toFixed(3);
-    res.smallLoot = small;
+    res.crateLoot = +(loot / N).toFixed(3);
+    res.ammoShare = +(ammo / Math.max(1, loot)).toFixed(2);
+
+    const { MAX_SPIRE } = await import('/js/waves.js' + new URL(document.querySelector('script[type=module]').src).search);
+    // The whole level, start to boss, with the ship parked out of the way:
+    // no turret is hidden behind a taller spire (a straight shot at it from
+    // the left always gets through), and no cargo pod or supply drone ever
+    // flies into a spire.
+    g.reset();
+    g.banner = null;
+    const turrets = new Map();
+    let pods = 0;
+    let lowPods = 0;
+    const intoRock = [];
+    const seen = new Set();
+    for (let i = 0; i < 184 * 120; i++) {
+      g.player.invuln = 5;
+      g.player.x = 4;
+      g.player.y = 12;
+      g.update(1 / 120, idle);
+      for (const e of g.enemies) {
+        if (e.type === 'cliffTurret' && e.x < 196 && e.x > 30) {
+          const rec = turrets.get(e) || { on: 0, hidden: 0, at: Math.round(g.runner.t) };
+          rec.on++;
+          const y = e.y + e.h / 2;
+          if (g.terrain.spires.some((sp) => sp !== e.spire && sp.x > 0 && sp.x + sp.w < e.x && y > sp.top + 3)) rec.hidden++;
+          turrets.set(e, rec);
+        }
+        if (e.type === 'carrier' || e.type === 'hauler') {
+          if (e.type === 'carrier' && !seen.has(e)) {
+            seen.add(e);
+            pods++;
+            // Its lowest point (with its bob) must clear the tallest spire
+            // there can ever be (74 px), so no spire can stand in the way.
+            if (e.baseY + e.h + 3 > g.terrain.floorY - MAX_SPIRE) lowPods++;
+          }
+          if (g.terrain.hits(e.x + 1, e.y + 1, e.w - 2, e.h - 2)) intoRock.push(e.type + '@' + Math.round(g.runner.t));
+        }
+      }
+    }
+    res.hiddenTurrets = [...turrets.values()].filter((t) => t.hidden / t.on > 0.1).map((t) => t.at);
+    res.turretsSeen = turrets.size;
+    res.pods = pods;
+    res.lowPods = lowPods;
+    res.intoRock = [...new Set(intoRock)].slice(0, 5);
     g.reset();
     return res;
   });
@@ -773,7 +815,8 @@ for (const phone of PHONES) {
     r.spireDamage === 2 && r.knockedClear && r.shotSpeed === 110 && r.diverCrashed &&
     r.turretReach.every((n) => n > 0) && r.turretShotGap >= 0.34 && r.pushedRight && r.solidWhileFlashing &&
     r.shellTouch.dead && r.shellTouch.hurt === 1 && r.shellTouch.fragments === 4 && r.shellTouch.points === 0 &&
-    r.bigLoot > 0.31 && r.bigLoot < 0.39 && r.smallLoot === 0 && errs.length === 0;
+    r.crateLoot > 0.31 && r.crateLoot < 0.39 && r.ammoShare > 0.22 && r.ammoShare < 0.38 &&
+    r.hiddenTurrets.length === 0 && r.turretsSeen === 15 && r.pods === 10 && r.lowPods === 0 && r.intoRock.length === 0 && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  Rust Moon rules ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;
   await context.close();
@@ -998,25 +1041,56 @@ for (const phone of PHONES) {
     }
     res.lowGapSafe = g.health === 5;
 
-    // Stomp rocks fall straight down onto their "!" markers.
+
+    // The stomp cracks the ground: the first crack opens under you, every
+    // crack shows (with a "!") for 0.75 s before its spike bursts up, and a
+    // spike costs 2 blocks.
     b = fresh(2);
+    g.player.x = 40;
+    g.player.y = 60;
     b.attack = { name: 'stomp', t: 0 };
-    const marks = [];
-    const landed = [];
-    const seen = new Set();
+    const crackSeen = new Map();
+    let firstUnder = null;
+    let gap = Infinity;
     for (let i = 0; i < 4 * 120; i++) {
       g.player.invuln = 1;
-      g.player.y = 20;
       g.update(1 / 120, idle);
-      for (const m of g.markers) if (!marks.includes(m.x)) marks.push(m.x);
-      for (const e of g.enemies) {
-        if (e.type.startsWith('rock') && !seen.has(e) && e.y + e.h >= g.terrain.floorY - 0.5) {
-          seen.add(e);
-          landed.push(e.x + e.w / 2);
+      for (const sk of b.spikes) {
+        if (sk.t >= 0 && !crackSeen.has(sk)) {
+          crackSeen.set(sk, g.time);
+          if (firstUnder === null) firstUnder = Math.abs(sk.x - g.playerCenter().x) < 2;
+        }
+        if (sk.t >= 0.75 && !sk.rose) {
+          sk.rose = true;
+          gap = Math.min(gap, g.time - crackSeen.get(sk));
         }
       }
     }
-    res.rockDrift = landed.length ? +Math.max(...landed.map((x) => Math.min(...marks.map((m) => Math.abs(m - x))))).toFixed(1) : -1;
+    b = fresh(2);
+    b.spikes.push({ x: 60, t: 0.8 });
+    g.player.x = 60 - g.player.w / 2;
+    g.player.y = g.terrain.floorY - g.player.h - 1;
+    g.player.invuln = 0;
+    g.health = 5;
+    g.update(1 / 120, idle);
+    const spikeHurt = 5 - g.health;
+    // Just beside a spike's thin tip is a miss (it hurts where it's drawn).
+    b = fresh(2);
+    b.spikes.push({ x: 60, t: 0.9 });
+    g.player.x = 57;
+    g.player.y = g.terrain.floorY - 29;
+    g.player.invuln = 0;
+    g.health = 5;
+    g.update(1 / 120, idle);
+    const tipMiss = g.health === 5;
+    // A stage break closes any cracks still waiting to burst.
+    b = fresh(2);
+    b.spikes.push({ x: 60, t: -0.5 });
+    b.hp = Math.floor(b.maxHp * 0.33) + 1;
+    b.hatch = 1;
+    g.damage(b, 2);
+    const stageClears = b.mode === 'transition' && b.spikes.length === 0;
+    res.spikes = { cracks: crackSeen.size, firstUnder, warnGap: +gap.toFixed(2), hurt: spikeHurt, tipMiss, stageClears };
 
     // Supply pods keep coming in its fight (shared with every boss) and take
     // turns, survival then weapon.
@@ -1061,8 +1135,9 @@ for (const phone of PHONES) {
   const ok = r.shutHp === 0 && r.openHits >= 5 &&
     Object.values(w).every((v) => v >= 0.3) &&
     r.flakGap.every((n) => n === 0) && r.flakLine === 1 && r.runDown.hurt === 3 && r.runDown.thrownUp && r.behindPushedOut &&
-    r.aimMiss.every((d) => d < 3) && r.lowGapSafe && r.rockDrift >= 0 && r.rockDrift < 3 &&
+    r.aimMiss.every((d) => d < 3) && r.lowGapSafe &&
     r.pods === 'smart,weapon,smart' && r.offTop &&
+    r.spikes.cracks === 4 && r.spikes.firstUnder && r.spikes.warnGap >= 0.7 && r.spikes.hurt === 2 && r.spikes.tipMiss && r.spikes.stageClears &&
     r.trampled && r.airTouch === null && r.crawlerInRock <= 1 && r.pickupClear &&
     r.ramShut.turretAlive && r.ramShut.hurt === 2 && r.rocketSkipsJunk && r.rocketPrefersCore && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  Siege Crawler rules ${JSON.stringify(r)} ${errs.join(' ')}`);
