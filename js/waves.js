@@ -1,5 +1,5 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.14.4';
-import { MAX_SPIRE, SHORT_SPIRE } from './terrain.js?v=0.14.4';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.15.0';
+import { MAX_SPIRE, SHORT_SPIRE } from './terrain.js?v=0.15.0';
 
 // Enemy formations. Levels are built by placing these on a timeline
 // (see levels.js). Every pattern takes the game, a random-number function
@@ -12,6 +12,8 @@ const bottom = (game) => game.terrain.floorY - 16;
 // On levels with ground, cargo pods fly above the tallest possible spire
 // (their bottom, with their bob, stays clear of it).
 const skyLane = (game) => game.terrain.floorY - MAX_SPIRE - 16;
+// Open ground a mortar crawler waits for at the right edge before it comes in.
+const MORTAR_OPEN = 60;
 
 export const PATTERNS = {
   // Rock spires standing on the canyon floor (levels with ground), one every
@@ -89,14 +91,19 @@ export const PATTERNS = {
   // every spire on screen is short, then comes in above them all (and the
   // pods lift over any spire that turns up, so they never go through rock).
   ambush(game, rand, { n = 3 } = {}) {
-    const go = () => {
+    // The lowest lane that's above every spire on screen right now.
+    const low = () => {
       const terrain = game.terrain;
-      const low = terrain.floor > 0 ? terrain.floorY - terrain.tallestOnScreen() - 18 : bottom(game);
+      return Math.max(TOP, terrain.floor > 0 ? terrain.floorY - terrain.tallestOnScreen() - 18 : bottom(game));
+    };
+    const go = () => {
       for (let i = 0; i < n; i++) {
-        const y = TOP + rand() * (Math.max(TOP, low) - TOP);
+        const y = TOP + rand() * (low() - TOP);
         game.warn(7, y, 0.9, 'left');
         game.later(0.9 + i * 0.35, () => {
-          game.spawnEnemy('drifter', -12, y, { speed: -64, flip: true });
+          // (A taller spire may have come into view since the warning: still
+          // come in above it.)
+          game.spawnEnemy('drifter', -12, Math.min(y, low()), { speed: -64, flip: true });
         });
       }
     };
@@ -183,13 +190,16 @@ export const PATTERNS = {
 
   // ---- Rust Moon ----
 
-  // A convoy of supply drones, each carrying a crate, flying in one after
-  // another at roughly the same height (some crates hold loot).
-  haulers(game, rand, { n = 3, gap = 0.45, y } = {}) {
+  // A convoy of Rust Raiders flying in one after another at roughly the same
+  // height; they take turns to fire. The whole convoy flies at one speed, so
+  // its ships keep their spacing (and never merge into one, even when lifted
+  // over a spire to the same height).
+  raiders(game, rand, { n = 3, gap = 0.45, y } = {}) {
     const base = y ?? TOP + 12 + rand() * (bottom(game) - TOP - 20);
+    const vx = -(44 + rand() * 6);
     for (let i = 0; i < n; i++) {
       const yy = Math.max(TOP, base + (i % 2 ? 6 : 0) - (i % 3 === 2 ? 12 : 0));
-      game.later(i * gap, () => game.spawnEnemy('hauler', VIEW_W + 8, yy));
+      game.later(i * gap, () => game.spawnEnemy('raider', VIEW_W + 8, yy, { slot: i, vx }));
     }
   },
 
@@ -199,8 +209,23 @@ export const PATTERNS = {
   },
 
   // Mortar crawlers walking in along the floor.
+  // Each one waits (up to 10 s) for a stretch of open ground at the right
+  // edge (the newest spire well in from the edge), so it doesn't arrive in
+  // a row of spires where it could never fire.
   mortar(game, rand, { n = 1, gap = 1.4 } = {}) {
-    for (let i = 0; i < n; i++) game.later(i * gap, () => game.spawnEnemy('mortarCrawler', VIEW_W + 4, 0));
+    let left = n;
+    let waited = 0;
+    const tryNow = () => {
+      if (game.terrain.openAtEdge() >= MORTAR_OPEN || waited >= 10) {
+        game.spawnEnemy('mortarCrawler', VIEW_W + 4, 0);
+        waited = 0;
+        if (--left > 0) game.later(gap, tryNow);
+      } else {
+        waited += 0.25;
+        game.later(0.25, tryNow);
+      }
+    };
+    tryNow();
   },
 
   // A cliff turret on a low rock mound on the canyon floor. (The mound

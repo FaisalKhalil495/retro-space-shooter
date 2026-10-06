@@ -782,22 +782,96 @@ for (const phone of PHONES) {
     step(0.5);
     res.diverCrashed = diver.dead;
 
-    // Supply drones' crates hold loot about 35% of the time, and about 30%
-    // of that loot is special-weapon ammo (no rocks on this planet any more).
+    // Rust Raiders carry loot about 35% of the time, and about 30% of that
+    // loot is special-weapon ammo (no rocks on this planet).
     quiet();
     let loot = 0;
     let ammo = 0;
     const N = 2000;
     for (let i = 0; i < N; i++) {
       g.pickups = [];
-      g.killEnemy(g.spawnEnemy('hauler', 100, 60));
+      g.killEnemy(g.spawnEnemy('raider', 100, 60));
       loot += g.pickups.length;
       ammo += g.pickups.filter((pk) => pk.kind === 'ammo').length;
       g.enemies = [];
       g.enemyShots = [];
     }
-    res.crateLoot = +(loot / N).toFixed(3);
+    res.raiderLoot = +(loot / N).toFixed(3);
     res.ammoShare = +(ammo / Math.max(1, loot)).toFixed(2);
+
+    // A raider never fires at a ship behind it; in front, it blinks before
+    // each shot and fires 2 at most.
+    quiet();
+    const raider = g.spawnEnemy('raider', 150, 60);
+    let behindShots = 0;
+    let behindBlink = false;
+    for (let i = 0; i < 2 * 120; i++) {
+      g.player.x = 170;
+      g.player.y = 60;
+      g.player.invuln = 5;
+      const before = g.enemyShots.length;
+      step(1 / 120);
+      behindShots += g.enemyShots.length - before;
+      if (raider.charge) behindBlink = true;
+    }
+    quiet();
+    const raider2 = g.spawnEnemy('raider', 170, 60);
+    let frontShots = 0;
+    let blinkBefore = 0;
+    let blinkRun = 0;
+    let blinkOk = true;
+    for (let i = 0; i < 4 * 120; i++) {
+      g.player.x = 30;
+      g.player.y = 60;
+      g.player.invuln = 5;
+      const before = g.enemyShots.length;
+      step(1 / 120);
+      if (g.enemyShots.length > before) {
+        frontShots += g.enemyShots.length - before;
+        if (blinkRun < 0.25) blinkOk = false;
+        blinkRun = 0;
+      }
+      blinkRun = raider2.charge ? blinkRun + 1 / 120 : 0;
+      if (raider2.charge) blinkBefore = 1;
+    }
+    // A convoy takes turns: no two raiders' first shots at the same moment.
+    quiet();
+    PATTERNS.raiders(g, g.rand, { n: 4, y: 60 });
+    const firstShot = new Map();
+    for (let i = 0; i < 5 * 120; i++) {
+      g.player.x = 20;
+      g.player.y = 60;
+      g.player.invuln = 5;
+      step(1 / 120);
+      for (const e of g.enemies) if (e.type === 'raider' && e.shots && !firstShot.has(e)) firstShot.set(e, i / 120);
+    }
+    const times = [...firstShot.values()].sort((a, b) => a - b);
+    const minGap = Math.min(...times.slice(1).map((t, k) => t - times[k]));
+    // A convoy flies at one speed, so lifted over a tall spire (all to the
+    // same height) its ships still never merge into one.
+    quiet();
+    const tallRock = g.terrain.addSpire(70, 14, 3);
+    tallRock.x = 190;
+    PATTERNS.raiders(g, g.rand, { n: 4, y: 110 });
+    const speeds = new Set();
+    let merged = 0;
+    for (let i = 0; i < 5 * 120; i++) {
+      g.player.x = 20;
+      g.player.y = 110;
+      g.player.invuln = 5;
+      step(1 / 120);
+      const rs = g.enemies.filter((e) => e.type === 'raider' && !e.dead);
+      for (const a of rs) {
+        speeds.add(a.vx);
+        for (const c of rs) {
+          if (a === c) continue;
+          const ox = Math.min(a.x + a.w, c.x + c.w) - Math.max(a.x, c.x);
+          const oy = Math.min(a.y + a.h, c.y + c.h) - Math.max(a.y, c.y);
+          if (ox > 0 && oy > 0 && ox * oy > a.w * a.h * 0.6) merged++;
+        }
+      }
+    }
+    res.raiders = { behindShots, behindBlink, frontShots, blinkOk: blinkOk && blinkBefore === 1, convoyShooters: times.length, minGap: +minGap.toFixed(2), convoySpeeds: speeds.size, merged };
 
     const { MAX_SPIRE, SHORT_SPIRE } = await import('/js/terrain.js' + new URL(document.querySelector('script[type=module]').src).search);
     // A turret's tower is never shorter than a tower on screen in front of
@@ -824,6 +898,26 @@ for (const phone of PHONES) {
     }
     // ...and still comes once the tall spire has gone.
     res.ambushWaits = !warnedWhileTall && cameLater;
+    // A tall spire that comes into view between an ambush's warning and its
+    // pods arriving: the pods still come in above it.
+    quiet();
+    PATTERNS.ambush(g, g.rand, { n: 4 });
+    step(0.1);
+    const lateTall = g.terrain.addSpire(64, 14, 3);
+    lateTall.x = 150;
+    let lateLow = 0;
+    let lateSeen = 0;
+    const lateDone = new Set();
+    for (let i = 0; i < 3 * 120; i++) {
+      step(1 / 120);
+      for (const e of g.enemies) {
+        if (e.type !== 'drifter' || !e.flip || lateDone.has(e)) continue;
+        lateDone.add(e);
+        lateSeen++;
+        if (e.y + e.h > g.terrain.floorY - 64 - 4) lateLow++;
+      }
+    }
+    res.ambushLateSpire = { seen: lateSeen, low: lateLow };
 
     // A gunship group lifted over a tall spire (you flying low) never ends
     // up stacked, two ships looking like one.
@@ -849,22 +943,22 @@ for (const phone of PHONES) {
     }
     res.gunshipsStacked = stacked / 2 / 120; // seconds
 
-    // A supply drone flying over a turret's tower clears the turret too.
+    // A raider flying over a turret's tower clears the turret too.
     quiet();
     const perch = g.terrain.addSpire(40, 12, 3);
     perch.x = 150;
     const gun = g.spawnEnemy('cliffTurret', perch.x, 0, { spire: perch });
-    const drone = g.spawnEnemy('hauler', 200, g.terrain.floorY - 30);
+    const drone = g.spawnEnemy('raider', 200, g.terrain.floorY - 30);
     let overlapTurret = false;
     for (let i = 0; i < 4 * 120; i++) {
       step(1 / 120);
       if (!drone.dead && !gun.dead && drone.x < gun.x + gun.w && drone.x + drone.w > gun.x && drone.y + drone.h > gun.y) overlapTurret = true;
     }
-    res.droneClearsTurret = !overlapTurret;
+    res.raiderClearsTurret = !overlapTurret;
 
     // The whole level, start to boss, with the ship parked out of the way:
     // no turret is hidden behind a taller spire (a straight shot at it from
-    // the left always gets through), and no cargo pod or supply drone ever
+    // the left always gets through), and no cargo pod or flying enemy ever
     // flies into a spire.
     g.reset();
     g.banner = null;
@@ -879,6 +973,10 @@ for (const phone of PHONES) {
     const flyersInRock = new Set();
     const ambushers = [];
     const crawlerWasHidden = new Map();
+    // Per crawler: shells fired, and pointless pop-ups (came up, then dug
+    // back in without a single shot).
+    const crawlerRec = new Map();
+    let pointlessPopUps = 0;
     const intoRock = [];
     const seen = new Set();
     for (let i = 0; i < 184 * 120; i++) {
@@ -893,6 +991,14 @@ for (const phone of PHONES) {
           const y = e.y + e.h / 2;
           if (g.terrain.spires.some((sp) => sp !== e.spire && sp.x > 0 && sp.x + sp.w < e.x && y > sp.top + 3)) rec.hidden++;
           turrets.set(e, rec);
+        }
+        if (e.type === 'mortarCrawler') {
+          const rec = crawlerRec.get(e) || { shells: 0, wasUnder: e.under, upAt: -1 };
+          if (rec.wasUnder && !e.under) rec.upAt = rec.shells; // came up
+          if (!rec.wasUnder && e.under && rec.upAt === rec.shells) pointlessPopUps++; // dug in, no shot
+          if (e.under) rec.upAt = -1;
+          rec.wasUnder = e.under;
+          crawlerRec.set(e, rec);
         }
         if (e.type === 'mortarCrawler' && e.x > 30 && e.x < 196) {
           crawlerOn++;
@@ -909,6 +1015,7 @@ for (const phone of PHONES) {
           shellsFired++;
           const from = g.enemies.find((c) => c.type === 'mortarCrawler' && Math.abs(c.x + 1 - e.x0) < 3);
           if (from && crawlerWasHidden.get(from)) firedHidden++;
+          if (from && crawlerRec.has(from)) crawlerRec.get(from).shells++;
         }
         // No flying enemy ever passes through a spire (dive-bombers crash).
         if (e.T.flies && e.x > -e.w && e.x < 208 && g.terrain.hits(e.x + 1, e.y + 1, e.w - 2, e.h - 2)) {
@@ -920,8 +1027,8 @@ for (const phone of PHONES) {
           const tallest = g.terrain.tallestOnScreen();
           ambushers.push({ tallest, clear: e.y + e.h <= g.terrain.floorY - tallest - 4 });
         }
-        if (e.type === 'carrier' || e.type === 'hauler') {
-          if (e.type === 'carrier' && !seen.has(e)) {
+        if (e.type === 'carrier') {
+          if (!seen.has(e)) {
             seen.add(e);
             pods++;
             // Its lowest point (with its bob) must clear the tallest spire
@@ -937,6 +1044,9 @@ for (const phone of PHONES) {
     res.crawlerHiddenPct = Math.round(100 * crawlerHidden / Math.max(1, crawlerOn));
     res.shellsFromCover = firedHidden;
     res.shells = shellsFired;
+    res.crawlers = crawlerRec.size;
+    res.silentCrawlers = [...crawlerRec.values()].filter((c) => c.shells === 0).length;
+    res.pointlessPopUps = pointlessPopUps;
     res.flyersInRock = [...flyersInRock].slice(0, 6);
     res.ambushers = ambushers.length;
     res.ambushAmongTall = ambushers.filter((a) => a.tallest > SHORT_SPIRE).length;
@@ -953,8 +1063,8 @@ for (const phone of PHONES) {
     r.spireDamage === 2 && r.knockedClear && r.shotSpeed === 110 && r.diverCrashed &&
     r.turretReach.every((n) => n > 0) && r.turretShotGap >= 0.34 && r.pushedRight && r.solidWhileFlashing &&
     r.shellTouch.dead && r.shellTouch.hurt === 1 && r.shellTouch.fragments === 4 && r.shellTouch.points === 0 &&
-    r.crateLoot > 0.31 && r.crateLoot < 0.39 && r.ammoShare > 0.22 && r.ammoShare < 0.38 &&
-    r.perchHeight >= 56 && r.droneClearsTurret && r.ambushWaits && r.gunshipsStacked === 0 && r.hiddenTurrets.length === 0 && r.turretsSeen === 15 && r.pods === 10 && r.lowPods === 0 && r.crawlersOffGround === 0 && r.flyersInRock.length === 0 && r.ambushers === 20 && r.ambushAmongTall === 0 && r.ambushLow === 0 && r.shellsFromCover === 0 && r.crawlerHiddenPct <= 60 && r.shells >= 12 && r.intoRock.length === 0 && errs.length === 0;
+    r.raiders.behindShots === 0 && !r.raiders.behindBlink && r.raiders.frontShots === 2 && r.raiders.blinkOk && r.raiders.convoyShooters === 4 && r.raiders.minGap >= 0.3 && r.raiders.convoySpeeds === 1 && r.raiders.merged === 0 && r.raiderLoot > 0.31 && r.raiderLoot < 0.39 && r.ammoShare > 0.22 && r.ammoShare < 0.38 &&
+    r.perchHeight >= 56 && r.raiderClearsTurret && r.ambushWaits && r.ambushLateSpire.seen === 4 && r.ambushLateSpire.low === 0 && r.gunshipsStacked === 0 && r.hiddenTurrets.length === 0 && r.turretsSeen === 15 && r.pods === 10 && r.lowPods === 0 && r.crawlersOffGround === 0 && r.flyersInRock.length === 0 && r.ambushers === 20 && r.ambushAmongTall === 0 && r.ambushLow === 0 && r.shellsFromCover === 0 && r.crawlerHiddenPct <= 60 && r.shells >= 14 && r.shells <= 22 && r.crawlers === 9 && r.silentCrawlers === 0 && r.pointlessPopUps === 0 && r.intoRock.length === 0 && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  Rust Moon rules ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;
   await context.close();

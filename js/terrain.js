@@ -1,5 +1,5 @@
-import { VIEW_W, VIEW_H } from './config.js?v=0.14.4';
-import { seeded } from './util.js?v=0.14.4';
+import { VIEW_W, VIEW_H } from './config.js?v=0.15.0';
+import { seeded } from './util.js?v=0.15.0';
 
 // Solid ground for levels that have it (Rust Moon first; the Ember Mines'
 // tunnels will build on this). Two parts:
@@ -95,14 +95,23 @@ export class Terrain {
   }
 
   // The top of the ground under a strip from x to x + w: the floor, or the
-  // top of the tallest spire there. (Supply drones fly over spires; dropped
-  // items float above them.)
+  // top of the tallest spire there. (Flying enemies lift over spires;
+  // dropped items float above them.)
   groundTop(x, w) {
     let top = this.floorY;
     for (const s of this.spires) {
       if (x < s.x + s.w - 2 && x + w > s.x + 2) top = Math.min(top, s.top);
     }
     return top;
+  }
+
+  // How much open ground there is at the right edge of the screen: the gap
+  // between the newest spire and the edge (negative while one is still
+  // coming in; Infinity with no spires at all).
+  openAtEdge() {
+    let right = -Infinity;
+    for (const s of this.spires) right = Math.max(right, s.x + s.w);
+    return VIEW_W - right;
   }
 
   // The tallest spire on screen right now (0 if none).
