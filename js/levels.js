@@ -1,4 +1,4 @@
-import { PATTERNS } from './waves.js?v=0.14.2';
+import { PATTERNS } from './waves.js?v=0.14.3';
 
 // Level scripts. Each event is [seconds from the start, pattern, options].
 // The final 'boss' event waits for the screen to clear, flashes a warning
@@ -157,7 +157,6 @@ export const LEVELS = [
       [69, 'haulers', { n: 3 }],
       [71, 'spinner'],
       [73, 'gunner', { two: true }],
-      [75, 'ambush', { n: 4 }],
       [77, 'carrier', { drop: 'life' }],
       [78, 'snipers', { n: 2 }],
       [80, 'spires', { heights: [56, 34], every: 2.6, turrets: [0] }],
@@ -168,6 +167,7 @@ export const LEVELS = [
       [88, 'spinner'],
       [90, 'carrier', { drop: 'repair' }],
       [91, 'gunner', { n: 3 }],
+      [93, 'ambush', { n: 4 }], // ambushes come while the spires are short
       [93, 'dive', { n: 5 }],
       [95, 'snipers', { n: 2 }],
       [96, 'turret'],
@@ -176,12 +176,12 @@ export const LEVELS = [
       [101, 'spires', { heights: [44, 30, 60], every: 2.2, turrets: [2] }],
       [103, 'skimmers', { n: 2 }],
       [104, 'mortar'],
-      [106, 'ambush', { n: 4 }],
       [108, 'gunner', { two: true }],
       [110, 'carrier', { drop: 'rapid' }],
       [111, 'snake', { n: 8 }],
       [113, 'snipers', { n: 1 }],
       [115, 'pincer'],
+      [117, 'ambush', { n: 4 }],
       [117, 'seekers', { n: 3 }],
       // Part 3 (2:00-3:00): tall spires close together, everything at once.
       [121, 'spires', { heights: [40, 48, 64, 70], every: 1.8, turrets: [1, 3] }],
@@ -192,7 +192,6 @@ export const LEVELS = [
       [128, 'haulers', { n: 4 }],
       [130, 'snipers', { n: 2 }],
       [132, 'spinner'],
-      [134, 'ambush', { n: 5 }],
       [136, 'spires', { heights: [44, 56, 72], every: 1.8, turrets: [0, 2] }],
       [137, 'gunner', { two: true }],
       [139, 'dive', { n: 5 }],
@@ -203,6 +202,7 @@ export const LEVELS = [
       [147, 'mortar'],
       [148, 'row', { n: 7, shooter: true }],
       [150, 'snipers', { n: 2 }],
+      [151, 'ambush', { n: 5 }],
       [152, 'turret'],
       [154, 'carrier', { drop: 'wingman' }],
       [155, 'gunner', { two: true }],
@@ -212,10 +212,10 @@ export const LEVELS = [
       [163, 'mortar'],
       [164, 'pincer'],
       [166, 'spinner'],
-      [167, 'ambush', { n: 4 }],
       [169, 'gunner', { n: 3 }],
       [171, 'skimmers', { n: 2 }],
       [172, 'haulers', { n: 3 }],
+      [173, 'ambush', { n: 4 }],
       [174, 'wall', { shooter: true }],
       [176, 'seekers', { n: 3 }],
       [184, 'boss'],

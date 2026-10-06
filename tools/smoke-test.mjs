@@ -799,7 +799,7 @@ for (const phone of PHONES) {
     res.crateLoot = +(loot / N).toFixed(3);
     res.ammoShare = +(ammo / Math.max(1, loot)).toFixed(2);
 
-    const { MAX_SPIRE } = await import('/js/terrain.js' + new URL(document.querySelector('script[type=module]').src).search);
+    const { MAX_SPIRE, SHORT_SPIRE } = await import('/js/terrain.js' + new URL(document.querySelector('script[type=module]').src).search);
     // A turret's tower is never shorter than a tower on screen in front of
     // it, even one the ship had already flown past when the turret arrived.
     quiet();
@@ -810,6 +810,21 @@ for (const phone of PHONES) {
     step(0.05);
     const newest = g.terrain.spires[g.terrain.spires.length - 1];
     res.perchHeight = newest.h;
+    // An ambush called while a tall spire is on screen waits for it to go.
+    quiet();
+    const tallOne = g.terrain.addSpire(70, 14, 3);
+    tallOne.x = 100;
+    PATTERNS.ambush(g, g.rand, { n: 2 });
+    let warnedWhileTall = false;
+    let cameLater = false;
+    for (let i = 0; i < 8 * 120; i++) {
+      step(1 / 120);
+      if (g.markers.length && g.terrain.tallestOnScreen() > SHORT_SPIRE) warnedWhileTall = true;
+      if (g.enemies.some((e) => e.type === 'drifter' && e.flip)) cameLater = true;
+    }
+    // ...and still comes once the tall spire has gone.
+    res.ambushWaits = !warnedWhileTall && cameLater;
+
     // A supply drone flying over a turret's tower clears the turret too.
     quiet();
     const perch = g.terrain.addSpire(40, 12, 3);
@@ -837,6 +852,8 @@ for (const phone of PHONES) {
     let crawlersOffGround = 0;
     let firedHidden = 0;
     let shellsFired = 0;
+    const flyersInRock = new Set();
+    const ambushers = [];
     const crawlerWasHidden = new Map();
     const intoRock = [];
     const seen = new Set();
@@ -869,6 +886,16 @@ for (const phone of PHONES) {
           const from = g.enemies.find((c) => c.type === 'mortarCrawler' && Math.abs(c.x + 1 - e.x0) < 3);
           if (from && crawlerWasHidden.get(from)) firedHidden++;
         }
+        // No flying enemy ever passes through a spire (dive-bombers crash).
+        if (e.T.flies && e.x > -e.w && e.x < 208 && g.terrain.hits(e.x + 1, e.y + 1, e.w - 2, e.h - 2)) {
+          flyersInRock.add(e.type + '@' + Math.round(g.runner.t));
+        }
+        // Ambushers from behind: note the spires on screen when each arrives.
+        if (e.type === 'drifter' && e.flip && !seen.has(e)) {
+          seen.add(e);
+          const tallest = g.terrain.tallestOnScreen();
+          ambushers.push({ tallest, clear: e.y + e.h <= g.terrain.floorY - tallest - 4 });
+        }
         if (e.type === 'carrier' || e.type === 'hauler') {
           if (e.type === 'carrier' && !seen.has(e)) {
             seen.add(e);
@@ -886,6 +913,10 @@ for (const phone of PHONES) {
     res.crawlerHiddenPct = Math.round(100 * crawlerHidden / Math.max(1, crawlerOn));
     res.shellsFromCover = firedHidden;
     res.shells = shellsFired;
+    res.flyersInRock = [...flyersInRock].slice(0, 6);
+    res.ambushers = ambushers.length;
+    res.ambushAmongTall = ambushers.filter((a) => a.tallest > SHORT_SPIRE).length;
+    res.ambushLow = ambushers.filter((a) => !a.clear).length;
     res.turretsSeen = turrets.size;
     res.pods = pods;
     res.lowPods = lowPods;
@@ -899,7 +930,7 @@ for (const phone of PHONES) {
     r.turretReach.every((n) => n > 0) && r.turretShotGap >= 0.34 && r.pushedRight && r.solidWhileFlashing &&
     r.shellTouch.dead && r.shellTouch.hurt === 1 && r.shellTouch.fragments === 4 && r.shellTouch.points === 0 &&
     r.crateLoot > 0.31 && r.crateLoot < 0.39 && r.ammoShare > 0.22 && r.ammoShare < 0.38 &&
-    r.perchHeight >= 56 && r.droneClearsTurret && r.hiddenTurrets.length === 0 && r.turretsSeen === 15 && r.pods === 10 && r.lowPods === 0 && r.crawlersOffGround === 0 && r.shellsFromCover === 0 && r.crawlerHiddenPct <= 60 && r.shells >= 12 && r.intoRock.length === 0 && errs.length === 0;
+    r.perchHeight >= 56 && r.droneClearsTurret && r.ambushWaits && r.hiddenTurrets.length === 0 && r.turretsSeen === 15 && r.pods === 10 && r.lowPods === 0 && r.crawlersOffGround === 0 && r.flyersInRock.length === 0 && r.ambushers === 20 && r.ambushAmongTall === 0 && r.ambushLow === 0 && r.shellsFromCover === 0 && r.crawlerHiddenPct <= 60 && r.shells >= 12 && r.intoRock.length === 0 && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  Rust Moon rules ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;
   await context.close();

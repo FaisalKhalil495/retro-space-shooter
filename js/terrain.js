@@ -1,5 +1,5 @@
-import { VIEW_W, VIEW_H } from './config.js?v=0.14.2';
-import { seeded } from './util.js?v=0.14.2';
+import { VIEW_W, VIEW_H } from './config.js?v=0.14.3';
+import { seeded } from './util.js?v=0.14.3';
 
 // Solid ground for levels that have it (Rust Moon first; the Ember Mines'
 // tunnels will build on this). Two parts:
@@ -14,6 +14,12 @@ export const GROUND_SPEED = 20;
 // The tallest a spire can be. (On levels with ground, cargo pods fly above
 // it, so a spire can never get in the way of one.)
 export const MAX_SPIRE = 74;
+// Spires this tall or less count as "short": they only fill the bottom third
+// of the screen. Ambushes from behind wait for a stretch of short spires.
+export const SHORT_SPIRE = 44;
+// How far flying things keep above a spire's top: enough to clear a cliff
+// turret sitting on it too.
+export const ROCK_CLEARANCE = 10;
 
 const FLOOR_COLORS = ['#3a2224', '#57302a', '#7a4632', '#9a6a4a'];
 const SPIRE_COLORS = ['#2e1c1f', '#4a2a27', '#6b3d2e', '#8c5a3e', '#a8785a'];
@@ -97,6 +103,13 @@ export class Terrain {
       if (x < s.x + s.w - 2 && x + w > s.x + 2) top = Math.min(top, s.top);
     }
     return top;
+  }
+
+  // The tallest spire on screen right now (0 if none).
+  tallestOnScreen() {
+    let h = 0;
+    for (const s of this.spires) if (s.x < VIEW_W && s.x + s.w > 0) h = Math.max(h, s.h);
+    return h;
   }
 
   // How tall a spire (or mound) carrying a turret must be so that no spire
