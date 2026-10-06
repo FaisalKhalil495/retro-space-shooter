@@ -1,4 +1,5 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.14.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.14.1';
+import { MAX_SPIRE } from './terrain.js?v=0.14.1';
 
 // Enemy formations. Levels are built by placing these on a timeline
 // (see levels.js). Every pattern takes the game, a random-number function
@@ -8,9 +9,8 @@ const TOP = HUD_H + 10;
 // one, otherwise near the bottom of the screen (floorY is the screen's
 // bottom edge when there's no ground).
 const bottom = (game) => game.terrain.floorY - 16;
-// The tallest a rock spire can be. On levels with ground, cargo pods fly
-// above it (their bottom, with their bob, stays clear of it).
-export const MAX_SPIRE = 74;
+// On levels with ground, cargo pods fly above the tallest possible spire
+// (their bottom, with their bob, stays clear of it).
 const skyLane = (game) => game.terrain.floorY - MAX_SPIRE - 16;
 
 export const PATTERNS = {
@@ -23,11 +23,8 @@ export const PATTERNS = {
     heights.forEach((h, i) => {
       game.later(i * every, () => {
         const w = 10 + Math.floor(rand() * 7);
-        if (turrets.includes(i)) {
-          // (Only spires still between the ship and this one matter.)
-          for (const s of game.terrain.spires) if (s.x > game.player.x) h = Math.max(h, s.h);
-        }
-        const spire = game.terrain.addSpire(Math.min(h, MAX_SPIRE), w, 1 + Math.floor(rand() * 999));
+        if (turrets.includes(i)) h = game.terrain.turretPerch(h);
+        const spire = game.terrain.addSpire(h, w, 1 + Math.floor(rand() * 999));
         if (turrets.includes(i)) game.spawnEnemy('cliffTurret', spire.x, spire.top - 6, { spire });
       });
     });
@@ -188,8 +185,10 @@ export const PATTERNS = {
 
   // A cliff turret on a low rock mound on the canyon floor. (The mound
   // lifts it into the line of fire of a ship flying low over the ground.)
+  // (If taller spires are still on screen, the mound becomes a spire tall
+  // enough that none of them hides the turret.)
   turret(game, rand) {
-    const mound = game.terrain.addSpire(8, 14, 1 + Math.floor(rand() * 999));
+    const mound = game.terrain.addSpire(game.terrain.turretPerch(8), 14, 1 + Math.floor(rand() * 999));
     game.spawnEnemy('cliffTurret', mound.x, 0, { spire: mound });
   },
 };

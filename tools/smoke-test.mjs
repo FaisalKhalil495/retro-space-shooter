@@ -765,7 +765,30 @@ for (const phone of PHONES) {
     res.crateLoot = +(loot / N).toFixed(3);
     res.ammoShare = +(ammo / Math.max(1, loot)).toFixed(2);
 
-    const { MAX_SPIRE } = await import('/js/waves.js' + new URL(document.querySelector('script[type=module]').src).search);
+    const { MAX_SPIRE } = await import('/js/terrain.js' + new URL(document.querySelector('script[type=module]').src).search);
+    // A turret's tower is never shorter than a tower on screen in front of
+    // it, even one the ship had already flown past when the turret arrived.
+    quiet();
+    const tall = g.terrain.addSpire(56, 14, 3);
+    tall.x = 120;
+    g.player.x = 150;
+    PATTERNS.spires(g, g.rand, { heights: [34], turrets: [0] });
+    step(0.05);
+    const newest = g.terrain.spires[g.terrain.spires.length - 1];
+    res.perchHeight = newest.h;
+    // A supply drone flying over a turret's tower clears the turret too.
+    quiet();
+    const perch = g.terrain.addSpire(40, 12, 3);
+    perch.x = 150;
+    const gun = g.spawnEnemy('cliffTurret', perch.x, 0, { spire: perch });
+    const drone = g.spawnEnemy('hauler', 200, g.terrain.floorY - 30);
+    let overlapTurret = false;
+    for (let i = 0; i < 4 * 120; i++) {
+      step(1 / 120);
+      if (!drone.dead && !gun.dead && drone.x < gun.x + gun.w && drone.x + drone.w > gun.x && drone.y + drone.h > gun.y) overlapTurret = true;
+    }
+    res.droneClearsTurret = !overlapTurret;
+
     // The whole level, start to boss, with the ship parked out of the way:
     // no turret is hidden behind a taller spire (a straight shot at it from
     // the left always gets through), and no cargo pod or supply drone ever
@@ -816,7 +839,7 @@ for (const phone of PHONES) {
     r.turretReach.every((n) => n > 0) && r.turretShotGap >= 0.34 && r.pushedRight && r.solidWhileFlashing &&
     r.shellTouch.dead && r.shellTouch.hurt === 1 && r.shellTouch.fragments === 4 && r.shellTouch.points === 0 &&
     r.crateLoot > 0.31 && r.crateLoot < 0.39 && r.ammoShare > 0.22 && r.ammoShare < 0.38 &&
-    r.hiddenTurrets.length === 0 && r.turretsSeen === 15 && r.pods === 10 && r.lowPods === 0 && r.intoRock.length === 0 && errs.length === 0;
+    r.perchHeight >= 56 && r.droneClearsTurret && r.hiddenTurrets.length === 0 && r.turretsSeen === 15 && r.pods === 10 && r.lowPods === 0 && r.intoRock.length === 0 && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  Rust Moon rules ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;
   await context.close();
@@ -1074,6 +1097,33 @@ for (const phone of PHONES) {
     g.health = 5;
     g.update(1 / 120, idle);
     const spikeHurt = 5 - g.health;
+    // Cracks and spikes move with the scrolling ground.
+    b = fresh(2);
+    b.spikes.push({ x: 100, t: 0 });
+    for (let i = 0; i < 60; i++) {
+      g.player.invuln = 1;
+      g.update(1 / 120, idle);
+    }
+    const scrolled = b.spikes.length ? +(100 - b.spikes[0].x).toFixed(1) : -1;
+    // It keeps walking while its spikes play out (it never just stands).
+    b = fresh(2);
+    g.player.y = 20;
+    b.attack = { name: 'stomp', t: 0 };
+    let walked = 0;
+    let lastX = b.x;
+    while (b.attack && b.attack.t < 6) {
+      g.player.invuln = 1;
+      g.update(1 / 120, idle);
+      if (b.attack && b.attack.t > 1.7) walked += Math.abs(b.x - lastX);
+      lastX = b.x;
+    }
+    // A stage break closes waiting cracks but lets a standing spike crumble.
+    b = fresh(2);
+    b.spikes.push({ x: 60, t: 0.9 }, { x: 100, t: -0.3 });
+    b.hp = Math.floor(b.maxHp * 0.33) + 1; // stage 2 -> 3
+    b.hatch = 1;
+    g.damage(b, 2);
+    const keepsStanding = b.spikes.length === 1 && b.spikes[0].t >= 0.9;
     // Just beside a spike's thin tip is a miss (it hurts where it's drawn).
     b = fresh(2);
     b.spikes.push({ x: 60, t: 0.9 });
@@ -1090,7 +1140,7 @@ for (const phone of PHONES) {
     b.hatch = 1;
     g.damage(b, 2);
     const stageClears = b.mode === 'transition' && b.spikes.length === 0;
-    res.spikes = { cracks: crackSeen.size, firstUnder, warnGap: +gap.toFixed(2), hurt: spikeHurt, tipMiss, stageClears };
+    res.spikes = { cracks: crackSeen.size, firstUnder, warnGap: +gap.toFixed(2), hurt: spikeHurt, tipMiss, stageClears, scrolled, walked: +walked.toFixed(1), keepsStanding };
 
     // Supply pods keep coming in its fight (shared with every boss) and take
     // turns, survival then weapon.
@@ -1138,6 +1188,7 @@ for (const phone of PHONES) {
     r.aimMiss.every((d) => d < 3) && r.lowGapSafe &&
     r.pods === 'smart,weapon,smart' && r.offTop &&
     r.spikes.cracks === 4 && r.spikes.firstUnder && r.spikes.warnGap >= 0.7 && r.spikes.hurt === 2 && r.spikes.tipMiss && r.spikes.stageClears &&
+    r.spikes.scrolled > 9 && r.spikes.scrolled < 11 && r.spikes.walked > 1 && r.spikes.keepsStanding &&
     r.trampled && r.airTouch === null && r.crawlerInRock <= 1 && r.pickupClear &&
     r.ramShut.turretAlive && r.ramShut.hurt === 2 && r.rocketSkipsJunk && r.rocketPrefersCore && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  Siege Crawler rules ${JSON.stringify(r)} ${errs.join(' ')}`);

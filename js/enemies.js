@@ -1,11 +1,11 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.14.0';
-import { ROCKS } from './rockart.js?v=0.14.0';
-import { SPRITES } from './sprites.js?v=0.14.0';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.14.0';
-import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.14.0';
-import { clamp, rectHitsCircle } from './util.js?v=0.14.0';
-import { GROUND_SPEED } from './terrain.js?v=0.14.0';
-import { sfx } from './audio.js?v=0.14.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.14.1';
+import { ROCKS } from './rockart.js?v=0.14.1';
+import { SPRITES } from './sprites.js?v=0.14.1';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.14.1';
+import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.14.1';
+import { clamp, rectHitsCircle } from './util.js?v=0.14.1';
+import { GROUND_SPEED } from './terrain.js?v=0.14.1';
+import { sfx } from './audio.js?v=0.14.1';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -412,9 +412,10 @@ export const ENEMY_TYPES = {
     },
     update(e, dt, game) {
       e.x += e.vx * dt;
-      // Fly at its own height, but climb over any spire just ahead. (If a
-      // spire pops up right under it at the screen's edge, it jumps clear.)
-      const clear = game.terrain.groundTop(e.x - 30, e.w + 32) - e.h - 4;
+      // Fly at its own height, but climb over any spire just ahead, high
+      // enough to clear a turret on top of it too. (If a spire pops up right
+      // under it at the screen's edge, it jumps clear.)
+      const clear = game.terrain.groundTop(e.x - 30, e.w + 32) - e.h - 12;
       const want = Math.min(e.baseY, clear) + Math.sin(e.t * 3 + e.phase) * 2;
       if (game.terrain.hits(e.x, e.y, e.w, e.h)) e.y = Math.min(e.y, clear);
       else e.y += clamp(want - e.y, -80 * dt, 50 * dt);

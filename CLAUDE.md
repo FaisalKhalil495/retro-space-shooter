@@ -95,15 +95,17 @@ a real console controller, so you can play by feel while watching the game.
     1's asteroid field, not a planet). Instead, **supply drones**: the enemy
     keeps its turrets stocked with drones flying across in convoys of 1–4,
     each carrying a crate. They don't shoot but ram (2 blocks), 3 HP,
-    25 pts, and lift up over any spire in their way. Shoot one and its crate
+    25 pts, and lift up over any spire in their way (high enough to clear
+    a turret on it too). Shoot one and its crate
     bursts: **all crates look the same**, about **35% hold loot** (50% when
     hurt), and about 30% of that is "A" ammo, the rest power-ups — the
     owner's guessing game, about 10 items a level (as the rocks gave).
-  - **Turrets are never hidden** (owner, v0.14.0): a turret's spire is at
-    least as tall as every spire between you and it (the spires pattern
-    enforces it), so a straight shot always reaches it.
+  - **Turrets are never hidden** (owner, v0.14.0): a turret's spire (or
+    mound) is at least as tall as every spire on screen when it arrives
+    (`terrain.turretPerch`), so a straight shot always reaches it.
   - **Cargo pods fly above the towers** on levels with ground (their bottom
-    stays above the tallest possible spire, MAX_SPIRE = 74 px).
+    stays above the tallest possible spire, `MAX_SPIRE` = 74 px in
+    terrain.js; no spire is ever taller).
   - About 15 turrets, 20 skimmers, 9 mortars, 21 gunships, 10 snipers,
     6 spinners and 30 supply drones.
 - **The Siege Crawler** (boss of Rust Moon, step 3B-2, v0.13.0): a giant
@@ -131,8 +133,10 @@ a real console controller, so you can play by feel while watching the game.
     (rears up 0.6 s, a dust wave rolls along the floor both ways, 2 blocks,
     fly above it; then the ground cracks open: each crack shows with a "!"
     for 0.75 s — the first one under you — before a rock spike bursts up out
-    of the floor, 2 blocks, then crumbles; the stomp lasts until the last
-    spike has gone, and a stage break closes any cracks still waiting); stage 3: **Tread charge**
+    of the floor, 2 blocks, then crumbles; cracks and spikes scroll with
+    the ground; it keeps walking while they play out, and starts no new
+    attack until the last spike has gone; a stage break closes cracks still
+    waiting, while standing spikes crumble as normal); stage 3: **Tread charge**
     (revs 1 s with horn and smoke, runs across the screen, 3 blocks, fly
     over it) and **All guns** (flak wall + mortars together).
   - Stages at 66% and 33%: armour blows off ("YOU SCRATCHED MY FUCKING

@@ -1,12 +1,13 @@
-import { VIEW_W, HUD_H, PAL } from './config.js?v=0.14.0';
-import { sfx } from './audio.js?v=0.14.0';
-import { clamp, rectsOverlap } from './util.js?v=0.14.0';
-import { METAL, MOLTEN } from './gore.js?v=0.14.0';
-import { GROUND_SPEED } from './terrain.js?v=0.14.0';
+import { VIEW_W, HUD_H, PAL } from './config.js?v=0.14.1';
+import { sfx } from './audio.js?v=0.14.1';
+import { clamp, rectsOverlap } from './util.js?v=0.14.1';
+import { METAL, MOLTEN } from './gore.js?v=0.14.1';
+import { GROUND_SPEED } from './terrain.js?v=0.14.1';
+import { drawText } from './font.js?v=0.14.1';
 import {
   CRAWLER, CRAWLER_W, CRAWLER_H, PIVOT, CORE, MORTAR_RACK, FLAK_GUNS, DRONE_BAY, MINE_HATCH, SLIT,
   drawLegs, drawBarrel, drawCore,
-} from './crawlerart.js?v=0.14.0';
+} from './crawlerart.js?v=0.14.1';
 
 // THE SIEGE CRAWLER · THE WALKING FORTRESS — boss of Rust Moon.
 //
@@ -305,7 +306,9 @@ const ATTACKS = {
         e.spikes.push({ x: Math.round(clamp(x, 8, VIEW_W - 8)), t: -(0.1 + i * 0.3) });
       }
     }
-    // The stomp isn't over until the last spike has crumbled.
+    // It keeps walking while its spikes play out, and the stomp isn't over
+    // (so no new attack starts) until the last spike has crumbled.
+    pace(e, dt, g, 0.6);
     return a.t > rise + 1.0 && !e.spikes.length;
   },
 
@@ -593,7 +596,9 @@ export const SIEGE_CRAWLER_TYPE = {
       e.aimLine = false;
       e.flak = null;
       e.flakFiring = false;
-      e.spikes = []; // cracks still waiting to burst close up
+      // Cracks still waiting to burst close up; spikes already standing
+      // crumble as normal.
+      e.spikes = e.spikes.filter((s) => s.t >= SPIKE_WARN);
       e.lift = 0;
       const by = bodyY(e);
       // Armour plates blow off all over the hull.
@@ -719,7 +724,7 @@ function updateSpikes(e, dt, g) {
   for (const s of e.spikes) {
     const before = s.t;
     s.t += dt;
-    if (before < 0 && s.t >= 0) g.warn(s.x, floorY - SPIKE_H - 12, SPIKE_WARN);
+    if (s.t >= 0) s.x -= GROUND_SPEED * dt; // cracks and spikes are part of the ground
     if (before < SPIKE_WARN && s.t >= SPIKE_WARN) {
       sfx.crack();
       g.shake = Math.max(g.shake, 2);
@@ -758,6 +763,16 @@ function drawSpikes(e, ctx, g) {
       if (Math.floor(g.time * 12) % 2 === 0) {
         ctx.fillStyle = DUST[1];
         ctx.fillRect(s.x - 1 + Math.round(Math.sin(g.time * 30) * 2), floorY - 2, 1, 1);
+      }
+      // A blinking "!" above the crack (moving with it, like the ground).
+      if (Math.floor(s.t * 10) % 2 === 0) {
+        const mx = Math.round(s.x);
+        const my = floorY - SPIKE_H - 12;
+        ctx.fillStyle = PAL.ink;
+        ctx.fillRect(mx - 3, my - 1, 7, 9);
+        ctx.fillStyle = PAL.red;
+        ctx.fillRect(mx - 2, my, 5, 7);
+        drawText(ctx, '!', mx - 2, my + 1, PAL.cream);
       }
       continue;
     }
