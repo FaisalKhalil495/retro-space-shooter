@@ -898,6 +898,26 @@ for (const phone of PHONES) {
     }
     // ...and still comes once the tall spire has gone.
     res.ambushWaits = !warnedWhileTall && cameLater;
+    // A tall spire that comes into view between an ambush's warning and its
+    // pods arriving: the pods still come in above it.
+    quiet();
+    PATTERNS.ambush(g, g.rand, { n: 4 });
+    step(0.1);
+    const lateTall = g.terrain.addSpire(64, 14, 3);
+    lateTall.x = 150;
+    let lateLow = 0;
+    let lateSeen = 0;
+    const lateDone = new Set();
+    for (let i = 0; i < 3 * 120; i++) {
+      step(1 / 120);
+      for (const e of g.enemies) {
+        if (e.type !== 'drifter' || !e.flip || lateDone.has(e)) continue;
+        lateDone.add(e);
+        lateSeen++;
+        if (e.y + e.h > g.terrain.floorY - 64 - 4) lateLow++;
+      }
+    }
+    res.ambushLateSpire = { seen: lateSeen, low: lateLow };
 
     // A gunship group lifted over a tall spire (you flying low) never ends
     // up stacked, two ships looking like one.
@@ -1044,7 +1064,7 @@ for (const phone of PHONES) {
     r.turretReach.every((n) => n > 0) && r.turretShotGap >= 0.34 && r.pushedRight && r.solidWhileFlashing &&
     r.shellTouch.dead && r.shellTouch.hurt === 1 && r.shellTouch.fragments === 4 && r.shellTouch.points === 0 &&
     r.raiders.behindShots === 0 && !r.raiders.behindBlink && r.raiders.frontShots === 2 && r.raiders.blinkOk && r.raiders.convoyShooters === 4 && r.raiders.minGap >= 0.3 && r.raiders.convoySpeeds === 1 && r.raiders.merged === 0 && r.raiderLoot > 0.31 && r.raiderLoot < 0.39 && r.ammoShare > 0.22 && r.ammoShare < 0.38 &&
-    r.perchHeight >= 56 && r.raiderClearsTurret && r.ambushWaits && r.gunshipsStacked === 0 && r.hiddenTurrets.length === 0 && r.turretsSeen === 15 && r.pods === 10 && r.lowPods === 0 && r.crawlersOffGround === 0 && r.flyersInRock.length === 0 && r.ambushers === 20 && r.ambushAmongTall === 0 && r.ambushLow === 0 && r.shellsFromCover === 0 && r.crawlerHiddenPct <= 60 && r.shells >= 14 && r.shells <= 22 && r.crawlers === 9 && r.silentCrawlers === 0 && r.pointlessPopUps === 0 && r.intoRock.length === 0 && errs.length === 0;
+    r.perchHeight >= 56 && r.raiderClearsTurret && r.ambushWaits && r.ambushLateSpire.seen === 4 && r.ambushLateSpire.low === 0 && r.gunshipsStacked === 0 && r.hiddenTurrets.length === 0 && r.turretsSeen === 15 && r.pods === 10 && r.lowPods === 0 && r.crawlersOffGround === 0 && r.flyersInRock.length === 0 && r.ambushers === 20 && r.ambushAmongTall === 0 && r.ambushLow === 0 && r.shellsFromCover === 0 && r.crawlerHiddenPct <= 60 && r.shells >= 14 && r.shells <= 22 && r.crawlers === 9 && r.silentCrawlers === 0 && r.pointlessPopUps === 0 && r.intoRock.length === 0 && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  Rust Moon rules ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;
   await context.close();

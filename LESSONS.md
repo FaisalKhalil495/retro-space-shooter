@@ -196,6 +196,7 @@ Last updated: v0.15.0 (Stage 3, after step 3B).
 | A fair-play rule (crawlers don't fire from cover) left 3 of 9 crawlers never firing and 9 of 16 pop-ups pointless | When a rule **stops** an enemy from acting, measure how often it now does nothing at all, and fix *where it appears*, not just what it may do. |
 | A scripted edit that cut out "everything from the drone up to the dust skimmer" also deleted the cliff turret sitting between them (caught at once by a test crash, fixed before release) | After any scripted edit, read the diff's summary first: a far bigger change than expected means something else was caught in it. |
 | Raiders in a convoy each picked their own speed, so one could catch up and merge with the one ahead once both were lifted over a tower | Ships in a formation share one speed, or their spacing isn't guaranteed. Random per-ship variation belongs in looks or timing, not in spacing. |
+| A whole-level check failed about 1 run in 12 (v0.15.0 testing): ambush lanes were picked at the warning, but a taller tower could scroll in before the pods arrived | **A test that fails "sometimes" is a real bug until proven otherwise.** Loop the test to catch the failure, find the cause, then write a check that reproduces it every time. Anything decided early (at a warning) must be re-checked when it happens. |
 | LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
 
 ## 5. Our working process (what works)

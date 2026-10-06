@@ -133,7 +133,8 @@ a real console controller, so you can play by feel while watching the game.
   - **Ambushes from behind** (owner, v0.14.3) only come while the towers
     are short — every spire on screen 44 px or less (`SHORT_SPIRE`); an
     ambush waits up to 6 s for that — and their lanes are always above
-    the tallest tower on screen. Level 2 ambushes at 0:46, 1:33, 1:57,
+    the tallest tower on screen (checked again as each pod arrives, in
+    case a taller one came into view during the warning; v0.15.0). Level 2 ambushes at 0:46, 1:33, 1:57,
     2:31 and 2:53.
   - About 15 turrets, 20 skimmers, 9 mortars, 21 gunships, 10 snipers,
     6 spinners and 30 Rust Raiders.
