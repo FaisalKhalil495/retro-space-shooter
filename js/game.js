@@ -314,6 +314,13 @@ export class Game {
     if (e.T.onLift) e.T.onLift(e, d);
   }
 
+  // A level can give the enemy types it shares with others its own look
+  // (level.skin, e.g. 'rust' draws 'gunner_rust' instead of 'gunner').
+  spriteName(name) {
+    const skin = this.level.skin;
+    return skin && SPRITES[name + '_' + skin] ? name + '_' + skin : name;
+  }
+
   // The middle of the player's ship (what enemies aim at).
   playerCenter() {
     const p = this.player;
@@ -946,7 +953,7 @@ export class Game {
     }
 
     for (const e of this.enemies) {
-      const spr = e.T.sprite ? SPRITES[e.T.sprite + (e.flash > 0 ? 'Flash' : '')] : null;
+      const spr = e.T.sprite ? SPRITES[this.spriteName(e.T.sprite) + (e.flash > 0 ? 'Flash' : '')] : null;
       if (e.T.draw) e.T.draw(e, ctx, snap, this, spr);
       else if (e.flip) {
         ctx.save();

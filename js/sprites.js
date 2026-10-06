@@ -17,6 +17,10 @@ const KEY = {
   R: PAL.redDark,
   s: PAL.redSoft,
   g: PAL.grey,
+  // Rust Moon's desert garrison: sand, khaki and dark tan armour.
+  d: '#c9ab86',
+  e: '#9a7352',
+  f: '#5e4434',
 };
 
 const ART = {
@@ -200,6 +204,81 @@ const ART = {
     '.kkk...',
   ],
 };
+
+// Rust Moon's own look for the enemy types it shares with level 1: the same
+// shapes and sizes (so you know each threat at a glance), dressed as the
+// planet's desert garrison: sand and khaki armour, gunmetal frames, rust-red
+// guns and amber visors, which stand out against the dark red canyon. The
+// weaver becomes a native dust manta with a sandy, leathery hide.
+// (Cargo pods look the same on every level: their light is a signal.)
+const RUST_ART = {
+  drifter: [
+    '...kkkk...',
+    '..keddek..',
+    '.kedaadekk',
+    'kcRrrrrRfk',
+    'kcRrrrrRfk',
+    '.kedaadekk',
+    '..keefek..',
+    '...kkkk...',
+  ],
+  weaver: [
+    '.........kk',
+    '.......kkek',
+    '....kkkdefk',
+    'kkkkladdefk',
+    '.kccaedfdfk',
+    'kkkkladdefk',
+    '....kkkdefk',
+    '.......kkek',
+    '.........kk',
+  ],
+  gunner: [
+    '....kkkkkk....',
+    '...kgddddgk...',
+    '..kgdaaaddgk..',
+    'kkkkgddddddgk.',
+    'kggkRrrsrRdgkk',
+    '.kkkRrsllrRdgk',
+    'kggkRrrsrRdgkk',
+    'kkkkgeeeeeegk.',
+    '..kgeeeeeegk..',
+    '...kgeeeegk...',
+    '....kkkkkk....',
+  ],
+  seeker: [
+    '......kkk.',
+    '....kkedk.',
+    '..kkeddekk',
+    'kclRrddeek',
+    '..kkeddekk',
+    '....kkedk.',
+    '......kkk.',
+  ],
+  sniper: [
+    '......kkkkkk..',
+    '....kkddddaak.',
+    'kkkkkddrrddeak',
+    'cclccfdrsdeeek',
+    'kkkkkddrrddeak',
+    '....kkffffffk.',
+    '......kkkkkk..',
+  ],
+  spinner: [
+    '.....k.....',
+    '....kgk....',
+    '...kedek...',
+    '.kkedddekk.',
+    'kgedrrrdegk',
+    'kgedrsrdegk',
+    'kgedrrrdegk',
+    '.kkedddekk.',
+    '...kedek...',
+    '....kgk....',
+    '.....k.....',
+  ],
+};
+for (const [name, rows] of Object.entries(RUST_ART)) ART[name + '_rust'] = rows;
 
 function build(rows, colorOverride) {
   const w = Math.max(...rows.map((r) => r.length));
