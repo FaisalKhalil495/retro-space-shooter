@@ -825,6 +825,30 @@ for (const phone of PHONES) {
     // ...and still comes once the tall spire has gone.
     res.ambushWaits = !warnedWhileTall && cameLater;
 
+    // A gunship group lifted over a tall spire (you flying low) never ends
+    // up stacked, two ships looking like one.
+    quiet();
+    const under = g.terrain.addSpire(70, 14, 3);
+    under.x = 170;
+    PATTERNS.gunner(g, g.rand, { n: 3 });
+    let stacked = 0;
+    for (let i = 0; i < 4 * 120; i++) {
+      g.player.x = 40;
+      g.player.y = 100;
+      g.player.invuln = 5;
+      step(1 / 120);
+      const gs = g.enemies.filter((e) => e.type === 'gunner' && !e.dead);
+      for (const a of gs) {
+        for (const c of gs) {
+          if (a === c) continue;
+          const ox = Math.min(a.x + a.w, c.x + c.w) - Math.max(a.x, c.x);
+          const oy = Math.min(a.y + a.h, c.y + c.h) - Math.max(a.y, c.y);
+          if (ox > 0 && oy > 0 && ox * oy > a.w * a.h * 0.6) stacked++;
+        }
+      }
+    }
+    res.gunshipsStacked = stacked / 2 / 120; // seconds
+
     // A supply drone flying over a turret's tower clears the turret too.
     quiet();
     const perch = g.terrain.addSpire(40, 12, 3);
@@ -930,7 +954,7 @@ for (const phone of PHONES) {
     r.turretReach.every((n) => n > 0) && r.turretShotGap >= 0.34 && r.pushedRight && r.solidWhileFlashing &&
     r.shellTouch.dead && r.shellTouch.hurt === 1 && r.shellTouch.fragments === 4 && r.shellTouch.points === 0 &&
     r.crateLoot > 0.31 && r.crateLoot < 0.39 && r.ammoShare > 0.22 && r.ammoShare < 0.38 &&
-    r.perchHeight >= 56 && r.droneClearsTurret && r.ambushWaits && r.hiddenTurrets.length === 0 && r.turretsSeen === 15 && r.pods === 10 && r.lowPods === 0 && r.crawlersOffGround === 0 && r.flyersInRock.length === 0 && r.ambushers === 20 && r.ambushAmongTall === 0 && r.ambushLow === 0 && r.shellsFromCover === 0 && r.crawlerHiddenPct <= 60 && r.shells >= 12 && r.intoRock.length === 0 && errs.length === 0;
+    r.perchHeight >= 56 && r.droneClearsTurret && r.ambushWaits && r.gunshipsStacked === 0 && r.hiddenTurrets.length === 0 && r.turretsSeen === 15 && r.pods === 10 && r.lowPods === 0 && r.crawlersOffGround === 0 && r.flyersInRock.length === 0 && r.ambushers === 20 && r.ambushAmongTall === 0 && r.ambushLow === 0 && r.shellsFromCover === 0 && r.crawlerHiddenPct <= 60 && r.shells >= 12 && r.intoRock.length === 0 && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  Rust Moon rules ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;
   await context.close();

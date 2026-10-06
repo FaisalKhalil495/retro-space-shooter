@@ -1,5 +1,5 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.14.3';
-import { MAX_SPIRE, SHORT_SPIRE } from './terrain.js?v=0.14.3';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.14.4';
+import { MAX_SPIRE, SHORT_SPIRE } from './terrain.js?v=0.14.4';
 
 // Enemy formations. Levels are built by placing these on a timeline
 // (see levels.js). Every pattern takes the game, a random-number function

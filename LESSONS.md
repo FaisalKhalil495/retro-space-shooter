@@ -14,7 +14,7 @@ stage — and, one day, a system for building more games.
 - At the end of every stage also add a retrospective (section 7) and move
   anything reusable into section 8 ("Recipe for future games").
 
-Last updated: v0.14.3 (Stage 3, after step 3B).
+Last updated: v0.14.4 (Stage 3, after step 3B).
 
 ---
 
@@ -184,6 +184,7 @@ Last updated: v0.14.3 (Stage 3, after step 3B).
 | v0.14.1 review: v0.14.0's "turrets never hidden" rule depended on where the ship was, so a turret could still end up hidden once the ship moved; and "no spire taller than 74 px" was only a promise in the level data | "Never hidden" and "always reachable" rules must cover **where the ship can go next**, not just where it is now — make them depend on the world, not the ship. Enforce limits in code (`addSpire` clamps to `MAX_SPIRE`), not by careful data. |
 | Ambushers from behind came in low among the towers, where neither side could shoot (v0.14.2) | A random lane must be chosen **against the world at that moment** (the tallest tower on screen), and timed events must suit the layout around them (ambushes now wait for short towers). |
 | v0.14.3: the dust skimmer's "spire ahead" check looked behind it — it flies left, so "ahead" is the lower x | For anything moving right-to-left, double-check "ahead" and "behind" in the code. The whole-level check (no flyer ever inside rock) caught it; a one-enemy test wouldn't have. |
+| v0.14.3 review: lifting every flyer to the same "clear of the tower" height stacked two gunships of a group exactly on top of each other when you flew low | A rule that moves many things to the same place (a safe height, an edge, a lane) can make them **pile up**. After such a rule, check that enemies don't end up hidden behind one another (the whole-level overlap audit found it). |
 | LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
 
 ## 5. Our working process (what works)
@@ -297,6 +298,8 @@ fewer rounds are needed.
   when you can shoot back; turrets much quicker to kill.
 - v0.14.3: no flyer passes through a tower; ambushes from behind wait for
   short towers and fly above them.
+- v0.14.4 (review of v0.14.3): gunships in a group no longer stack into
+  one when lifted over a tower.
 **So far:** the owner's feedback has been about the world making sense
 (rocks on a planet, tanks on towers, enemies through towers) and about
 fairness (hidden or unreachable enemies) rather than raw difficulty.

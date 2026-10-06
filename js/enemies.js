@@ -1,11 +1,11 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.14.3';
-import { ROCKS } from './rockart.js?v=0.14.3';
-import { SPRITES } from './sprites.js?v=0.14.3';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.14.3';
-import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.14.3';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.14.3';
-import { GROUND_SPEED, ROCK_CLEARANCE } from './terrain.js?v=0.14.3';
-import { sfx } from './audio.js?v=0.14.3';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.14.4';
+import { ROCKS } from './rockart.js?v=0.14.4';
+import { SPRITES } from './sprites.js?v=0.14.4';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.14.4';
+import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.14.4';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.14.4';
+import { GROUND_SPEED, ROCK_CLEARANCE } from './terrain.js?v=0.14.4';
+import { sfx } from './audio.js?v=0.14.4';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -129,6 +129,13 @@ export const ENEMY_TYPES = {
       } else if (e.mode === 'hold') {
         const py = game.player.y + game.player.h / 2 - e.h / 2 + e.laneOff;
         e.y += clamp(py - e.y, -1, 1) * 20 * dt;
+        // Keep above a lower-lane gunship of the same group, so two never
+        // stack up looking like one (e.g. both lifted over the same spire).
+        for (const o of game.enemies) {
+          if (o.type !== 'gunner' || o === e || o.dead || o.laneOff <= e.laneOff || Math.abs(o.x - e.x) >= e.w) continue;
+          const above = o.y - e.h - 3;
+          if (e.y > above) e.y -= Math.min(e.y - above, 60 * dt);
+        }
         e.fireTimer -= dt;
         e.charge = e.fireTimer < 0.28 ? 1 : 0;
         if (e.fireTimer <= 0) {

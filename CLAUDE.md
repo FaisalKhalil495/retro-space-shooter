@@ -117,7 +117,8 @@ a real console controller, so you can play by feel while watching the game.
     pods, skimmers, gunships, seekers, snipers, spinners and weavers lift
     over any spire just ahead, keeping 10 px clear (`ROCK_CLEARANCE`); a
     sniper lifted mid-aim cancels its shot and aims again. Dive-bombers
-    crash instead.
+    crash instead. Gunships in a group never stack up looking like one
+    ship: the upper-lane one keeps above the lower one (v0.14.4).
   - **Ambushes from behind** (owner, v0.14.3) only come while the towers
     are short — every spire on screen 44 px or less (`SHORT_SPIRE`); an
     ambush waits up to 6 s for that — and their lanes are always above
