@@ -1,12 +1,12 @@
-import { VIEW_W, HUD_H, PAL } from './config.js?v=0.13.2';
-import { sfx } from './audio.js?v=0.13.2';
-import { clamp, rectsOverlap } from './util.js?v=0.13.2';
-import { METAL, MOLTEN } from './gore.js?v=0.13.2';
-import { GROUND_SPEED } from './terrain.js?v=0.13.2';
+import { VIEW_W, HUD_H, PAL } from './config.js?v=0.14.0';
+import { sfx } from './audio.js?v=0.14.0';
+import { clamp, rectsOverlap } from './util.js?v=0.14.0';
+import { METAL, MOLTEN } from './gore.js?v=0.14.0';
+import { GROUND_SPEED } from './terrain.js?v=0.14.0';
 import {
   CRAWLER, CRAWLER_W, CRAWLER_H, PIVOT, CORE, MORTAR_RACK, FLAK_GUNS, DRONE_BAY, MINE_HATCH, SLIT,
   drawLegs, drawBarrel, drawCore,
-} from './crawlerart.js?v=0.13.2';
+} from './crawlerart.js?v=0.14.0';
 
 // THE SIEGE CRAWLER · THE WALKING FORTRESS — boss of Rust Moon.
 //
@@ -274,8 +274,9 @@ const ATTACKS = {
   },
 
   // Rears up with a rumble, then slams down: a wave of dust rolls along the
-  // floor both ways (fly above it), and rocks shaken loose fall from above,
-  // each marked with a "!" first.
+  // floor both ways (fly above it), and the ground cracks open — at each
+  // crack (marked with a "!" first, the first one under you) a rock spike
+  // bursts up out of the canyon floor, then crumbles.
   stomp(e, a, dt, g) {
     const rise = 0.6;
     if (!a.started) {
@@ -298,20 +299,14 @@ const ATTACKS = {
       const speed = e.phase === 3 ? 130 : 110;
       e.waves.push({ x: e.x + 2, vx: -speed }, { x: e.x + CRAWLER_W - 2, vx: speed });
       const n = e.phase === 3 ? 6 : 4;
+      const under = g.playerCenter().x;
       for (let i = 0; i < n; i++) {
-        const x = 16 + g.rand() * (VIEW_W - 40);
-        g.later(0.1 + i * 0.35, () => g.warn(x, HUD_H + 3, 0.75));
-        g.later(0.85 + i * 0.35, () => {
-          if (g.boss !== e || e.mode === 'dying') return;
-          // Straight down on its marker; it only starts rolling once it lands.
-          const rock = g.spawnEnemy(i % 3 === 0 ? 'rockBig' : 'rockSmall', x, -14, {
-            vx: 0, vy: 40, rust: true, ground: true, byBoss: true, landVx: -10 - g.rand() * 10,
-          });
-          rock.x = x - rock.w / 2;
-        });
+        const x = i === 0 ? under : 10 + g.rand() * (VIEW_W - 20);
+        e.spikes.push({ x: Math.round(clamp(x, 8, VIEW_W - 8)), t: -(0.1 + i * 0.3) });
       }
     }
-    return a.t > rise + 1.0;
+    // The stomp isn't over until the last spike has crumbled.
+    return a.t > rise + 1.0 && !e.spikes.length;
   },
 
   // Revs its engines (smoke, a blast of its horn, flashing lights), then
@@ -412,6 +407,7 @@ export const SIEGE_CRAWLER_TYPE = {
     e.wobble = 0;
     e.targetX = null;
     e.waves = [];
+    e.spikes = [];
     e.flak = null;
     e.attack = null;
     e.last = null;
@@ -434,6 +430,7 @@ export const SIEGE_CRAWLER_TYPE = {
     };
 
     updateWaves(e, dt, g);
+    updateSpikes(e, dt, g);
     if (e.phase === 3 && e.mode !== 'dying') burning(e, g);
 
     switch (e.mode) {
@@ -596,6 +593,7 @@ export const SIEGE_CRAWLER_TYPE = {
       e.aimLine = false;
       e.flak = null;
       e.flakFiring = false;
+      e.spikes = []; // cracks still waiting to burst close up
       e.lift = 0;
       const by = bodyY(e);
       // Armour plates blow off all over the hull.
@@ -622,6 +620,7 @@ export const SIEGE_CRAWLER_TYPE = {
     const x = snap(e.x) + wx;
     const y = snap(bodyY(e));
     drawWaves(e, ctx, g);
+    drawSpikes(e, ctx, g);
     drawLegs(ctx, x, y, e.step, Math.min(1, e.walk), false);
     if (e.turretGone) {
       ctx.drawImage(CRAWLER.bodies[2], 0, 17, CRAWLER_W, 23, x, y + 17, CRAWLER_W, 23);
@@ -703,6 +702,79 @@ function drawWaves(e, ctx, g) {
   }
 }
 
+// The stomp's ground eruptions. Each crack in the floor shows for
+// SPIKE_WARN seconds with a "!" above it, then a rock spike shoots up
+// (2 blocks if it catches you), holds a moment and crumbles.
+const SPIKE_WARN = 0.75;
+const SPIKE_UP = 0.1;
+const SPIKE_HOLD = 0.45;
+const SPIKE_H = 26;
+const SPIKE_W = 8;
+const SPIKE_ROCK = ['#2e1c1f', '#6b3d2e', '#8c5a3e', '#a8785a'];
+const spikeHeight = (s) => (s.t < SPIKE_WARN ? 0 : SPIKE_H * Math.min(1, (s.t - SPIKE_WARN) / SPIKE_UP));
+function updateSpikes(e, dt, g) {
+  if (!e.spikes.length) return;
+  const floorY = g.terrain.floorY;
+  let finished = false;
+  for (const s of e.spikes) {
+    const before = s.t;
+    s.t += dt;
+    if (before < 0 && s.t >= 0) g.warn(s.x, floorY - SPIKE_H - 12, SPIKE_WARN);
+    if (before < SPIKE_WARN && s.t >= SPIKE_WARN) {
+      sfx.crack();
+      g.shake = Math.max(g.shake, 2);
+      g.burst(s.x, floorY - 2, 8, 70, DUST);
+    }
+    const h = spikeHeight(s);
+    // It hurts where it's drawn: wide at the base, a thin point on top.
+    const base = h / 2;
+    if (h > 4 && g.playerVulnerable() &&
+        (g.touchesPlayer(s.x - SPIKE_W / 2 + 1, floorY - base, SPIKE_W - 2, base) ||
+         g.touchesPlayer(s.x - 1, floorY - h, 2, h - base))) {
+      g.hurtPlayer(2, e);
+    }
+    if (s.t > SPIKE_WARN + SPIKE_UP + SPIKE_HOLD) {
+      s.done = true;
+      finished = true;
+      g.burst(s.x, floorY - SPIKE_H / 2, 10, 50, DUST); // crumbles to dust
+    }
+  }
+  if (finished) e.spikes = e.spikes.filter((s) => !s.done);
+}
+
+function drawSpikes(e, ctx, g) {
+  const floorY = g.terrain.floorY;
+  for (const s of e.spikes) {
+    if (s.t < 0) continue;
+    const h = Math.round(spikeHeight(s));
+    if (!h) {
+      // The crack: a jagged dark split in the ground, opening up.
+      const open = Math.min(1, s.t / SPIKE_WARN);
+      ctx.fillStyle = SPIKE_ROCK[0];
+      for (let i = -4; i <= 4; i++) {
+        if (Math.abs(i) > 1 + open * 3) continue;
+        ctx.fillRect(s.x + i, floorY + ((i + 4) % 3), 1, 2);
+      }
+      if (Math.floor(g.time * 12) % 2 === 0) {
+        ctx.fillStyle = DUST[1];
+        ctx.fillRect(s.x - 1 + Math.round(Math.sin(g.time * 30) * 2), floorY - 2, 1, 1);
+      }
+      continue;
+    }
+    // The spike: a jagged column of rock, wide at the base, pointed on top.
+    for (let y = 0; y < h; y++) {
+      const half = Math.max(0.5, (SPIKE_W / 2) * (y / h)) + ((y * 7) % 3 === 0 ? 0.6 : 0);
+      const py = floorY - h + y;
+      ctx.fillStyle = SPIKE_ROCK[0];
+      ctx.fillRect(Math.round(s.x - half - 1), py, Math.round(half * 2) + 2, 1);
+      ctx.fillStyle = SPIKE_ROCK[y < 3 ? 3 : 2];
+      ctx.fillRect(Math.round(s.x - half), py, Math.max(1, Math.round(half)), 1);
+      ctx.fillStyle = SPIKE_ROCK[1];
+      ctx.fillRect(Math.round(s.x), py, Math.max(1, Math.round(half)), 1);
+    }
+  }
+}
+
 // Stage 3: fires and smoke pour out of the holes in its hull.
 function burning(e, g) {
   if (g.rand() > 0.35) return;
@@ -721,6 +793,7 @@ function burning(e, g) {
 // and the wreck collapses.
 function dying(e, dt, g) {
   e.waves = [];
+  e.spikes = [];
   e.flak = null;
   e.aimLine = false;
   e.hatchTarget = 1;

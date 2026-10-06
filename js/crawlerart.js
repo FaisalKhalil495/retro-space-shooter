@@ -1,5 +1,5 @@
-import { PAL } from './config.js?v=0.13.2';
-import { seeded } from './util.js?v=0.13.2';
+import { PAL } from './config.js?v=0.14.0';
+import { seeded } from './util.js?v=0.14.0';
 
 // THE SIEGE CRAWLER, painted by code: a rusty iron war machine on six legs.
 // The hull (with its turret, flak guns and mortar rack) is painted once for

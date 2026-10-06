@@ -1,5 +1,5 @@
-import { PAL } from './config.js?v=0.13.2';
-import { seeded } from './util.js?v=0.13.2';
+import { PAL } from './config.js?v=0.14.0';
+import { seeded } from './util.js?v=0.14.0';
 
 // Asteroids and Rockjaw are drawn by code rather than by hand: a lumpy
 // circle, shaded from the top-left with a pixel-art checkerboard "dither"
@@ -139,12 +139,6 @@ export const ROCKS = {
 };
 ROCKS.bigFlash = ROCKS.big.map((_, i) => paintRock(9, [101, 202, 303][i], { flash: true }));
 ROCKS.smallFlash = ROCKS.small.map((_, i) => paintRock(5, [11, 22, 33, 44][i], { flash: true }));
-// Rust Moon boulders: the same shapes in rusty reds.
-const RUST_SHADES = ['#5a3428', '#7a4632', '#9a6a4a', '#c09070'];
-ROCKS.bigRust = [101, 202, 303].map((s) => paintRock(9, s, { craters: 3, shades: RUST_SHADES }));
-ROCKS.smallRust = [11, 22, 33, 44].map((s) => paintRock(5, s, { craters: 1, shades: RUST_SHADES }));
-ROCKS.bigRustFlash = ROCKS.bigFlash;
-ROCKS.smallRustFlash = ROCKS.smallFlash;
 
 // ROCKJAW, painted by code. 4 jaw positions (shut .. wide open) for each of
 // 3 damage stages (healthy, cracked, wrecked), plus pale hit-flash copies.

@@ -1,4 +1,4 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.13.2';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.14.0';
 
 // Enemy formations. Levels are built by placing these on a timeline
 // (see levels.js). Every pattern takes the game, a random-number function
@@ -8,16 +8,26 @@ const TOP = HUD_H + 10;
 // one, otherwise near the bottom of the screen (floorY is the screen's
 // bottom edge when there's no ground).
 const bottom = (game) => game.terrain.floorY - 16;
+// The tallest a rock spire can be. On levels with ground, cargo pods fly
+// above it (their bottom, with their bob, stays clear of it).
+export const MAX_SPIRE = 74;
+const skyLane = (game) => game.terrain.floorY - MAX_SPIRE - 16;
 
 export const PATTERNS = {
   // Rock spires standing on the canyon floor (levels with ground), one every
-  // `every` seconds. heights: list of heights in game pixels (one per spire).
-  // turrets: indexes of spires that get a cliff turret on top.
+  // `every` seconds. heights: list of heights in game pixels (one per spire,
+  // at most MAX_SPIRE). turrets: indexes of spires that get a cliff turret.
+  // A turret's spire is always at least as tall as every spire already in
+  // front of it, so another spire never hides the turret from your gun.
   spires(game, rand, { heights = [24, 36], every = 1.6, turrets = [] } = {}) {
     heights.forEach((h, i) => {
       game.later(i * every, () => {
         const w = 10 + Math.floor(rand() * 7);
-        const spire = game.terrain.addSpire(h, w, 1 + Math.floor(rand() * 999));
+        if (turrets.includes(i)) {
+          // (Only spires still between the ship and this one matter.)
+          for (const s of game.terrain.spires) if (s.x > game.player.x) h = Math.max(h, s.h);
+        }
+        const spire = game.terrain.addSpire(Math.min(h, MAX_SPIRE), w, 1 + Math.floor(rand() * 999));
         if (turrets.includes(i)) game.spawnEnemy('cliffTurret', spire.x, spire.top - 6, { spire });
       });
     });
@@ -135,9 +145,11 @@ export const PATTERNS = {
     }
   },
 
-  // A cargo pod carrying a pickup.
+  // A cargo pod carrying a pickup. On levels with ground it flies high,
+  // above the tallest rock spire, so spires never get in the way.
   carrier(game, rand, { drop, y } = {}) {
-    game.spawnEnemy('carrier', VIEW_W + 8, y ?? TOP + 10 + rand() * (bottom(game) - TOP - 20), { drop });
+    const [high, low] = game.terrain.floor > 0 ? [TOP, skyLane(game)] : [TOP + 10, bottom(game) - 10];
+    game.spawnEnemy('carrier', VIEW_W + 8, y ?? high + rand() * (low - high), { drop });
   },
 
   // Asteroids, either all at once or spread over a few seconds.
@@ -154,21 +166,14 @@ export const PATTERNS = {
 
   // ---- Rust Moon ----
 
-  // Rusty boulders bouncing along the canyon floor, spread over a few
-  // seconds. With cliff: true some tumble in from high up and drop.
-  boulders(game, rand, { big = 2, small = 2, spread = 4, cliff = false } = {}) {
-    const list = [...Array(big).fill('rockBig'), ...Array(small).fill('rockSmall')];
-    list.forEach((type, i) => {
-      game.later((spread * i) / list.length + rand() * 0.4, () => {
-        const vx = -(28 + rand() * 16);
-        if (cliff && i % 2 === 0) {
-          game.spawnEnemy(type, VIEW_W + 4, TOP + rand() * 30, { rust: true, ground: true, vx, vy: 10 });
-        } else {
-          const e = game.spawnEnemy(type, VIEW_W + 4, 0, { rust: true, ground: true, vx, vy: -(20 + rand() * 40) });
-          e.y = game.terrain.floorY - e.h;
-        }
-      });
-    });
+  // A convoy of supply drones, each carrying a crate, flying in one after
+  // another at roughly the same height (some crates hold loot).
+  haulers(game, rand, { n = 3, gap = 0.45, y } = {}) {
+    const base = y ?? TOP + 12 + rand() * (bottom(game) - TOP - 20);
+    for (let i = 0; i < n; i++) {
+      const yy = Math.max(TOP, base + (i % 2 ? 6 : 0) - (i % 3 === 2 ? 12 : 0));
+      game.later(i * gap, () => game.spawnEnemy('hauler', VIEW_W + 8, yy));
+    }
   },
 
   // Dust skimmers racing in low along the floor, one after another.

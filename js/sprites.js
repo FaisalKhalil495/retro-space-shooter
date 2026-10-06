@@ -1,4 +1,4 @@
-import { PAL } from './config.js?v=0.13.2';
+import { PAL } from './config.js?v=0.14.0';
 
 // Pixel art is written as text grids: each character is one pixel and maps
 // to a palette colour ('.' is transparent). Each sprite is drawn once onto
@@ -159,6 +159,22 @@ const ART = {
     '..kRRRRRRRRRk.',
     '..k.k.k.k.k.k.',
     '.k.k.k...k.k.k',
+  ],
+  // Rust Moon supply drone, a crate slung underneath (every crate looks the
+  // same: you can't tell which ones hold anything).
+  hauler: [
+    'kkkk....kkkk',
+    '.kgk....kgk.',
+    '..kkkkkkkk..',
+    '.kBBpBBBBBk.',
+    'klBBBBBBBbk.',
+    '..kkkkkkkk..',
+    '.....kk.....',
+    '...kkkkkk...',
+    '...kgRRgk...',
+    '...kRgRgk...',
+    '...kgRRgk...',
+    '...kkkkkk...',
   ],
   // Siege Crawler's floating mine (its light blinks, see crawler.js).
   mine: [
