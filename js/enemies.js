@@ -1,11 +1,11 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.16.0';
-import { ROCKS } from './rockart.js?v=0.16.0';
-import { SPRITES } from './sprites.js?v=0.16.0';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.16.0';
-import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.16.0';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.16.0';
-import { GROUND_SPEED, ROCK_CLEARANCE } from './terrain.js?v=0.16.0';
-import { sfx } from './audio.js?v=0.16.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.17.0';
+import { ROCKS } from './rockart.js?v=0.17.0';
+import { SPRITES } from './sprites.js?v=0.17.0';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.17.0';
+import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.17.0';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.17.0';
+import { GROUND_SPEED, ROCK_CLEARANCE } from './terrain.js?v=0.17.0';
+import { sfx } from './audio.js?v=0.17.0';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -33,12 +33,14 @@ export const ENEMY_TYPES = {
     update(e, dt, game) {
       e.x += e.vx * dt;
       e.y += e.vy * dt;
-      // A dive-bomber that reaches solid ground (or a spire) crashes into it
-      // (no points).
+      // A dive-bomber that reaches solid ground (or a spire, or a slab of
+      // ice) crashes into it (no points).
       const diving = Math.abs(e.vy) > DIVE_VY;
-      if (game.terrain.floor && (e.y + e.h > game.terrain.floorY + 2 || (diving && game.terrain.hits(e.x, e.y, e.w, e.h)))) {
+      const rock = diving && game.terrain.hits(e.x, e.y, e.w, e.h);
+      if ((game.terrain.floor && e.y + e.h > game.terrain.floorY + 2) || rock) {
         e.dead = true;
-        game.blasts.blast(e.x + e.w / 2, Math.min(e.y + e.h, game.terrain.floorY - 2), 0.4);
+        const by = rock && rock.ty !== undefined ? e.y + e.h / 2 : Math.min(e.y + e.h, game.terrain.floorY - 2);
+        game.blasts.blast(e.x + e.w / 2, by, 0.4);
         sfx.explode(0.3);
         return;
       }
@@ -325,6 +327,10 @@ export const ENEMY_TYPES = {
     score: 40,
     harmless: true,
     gore: { metal: 10 },
+    avoidsIce: true, // steers around slabs of ice (see Game.keepClearOfIce)
+    onLift(e, d) {
+      e.baseY -= d;
+    },
     init(e) {
       e.baseY = e.y;
     },

@@ -15,6 +15,15 @@ The owner plays on an Android phone (Chrome). A friend plays on an iPhone 16 Pro
 looking down at, which covers the action. Ember Drift's controls must feel like
 a real console controller, so you can play by feel while watching the game.
 
+**The story** (owner, after v0.16.0): the player is the **defender**. The
+enemies are **the invaders**, who have spread across many worlds; each level
+is a world they've taken (their force there looks like it belongs to that
+world, e.g. Rust Moon's Dust Pirates are raiders who joined them). The
+player fights through world after world, beating each occupying force and
+its boss, until level 8: **their homeworld** (the Hive World) and the Hive
+Mother. Levels, looks, boss taunts and the ending screen should all fit
+this story. (Frostring's looks: the invaders moving into the ice ring.)
+
 ## Out of scope (agreed)
 
 - Nokia's name, logo, original sprites, original graphics, or original music
@@ -185,6 +194,60 @@ a real console controller, so you can play by feel while watching the game.
     edge) up over its turret.
   - Death: chain explosions, the turret blows off and spins away, a huge
     blast, and the burnt-out hull drops onto the floor.
+- **Frostring (level 3), step 3C** (plan approved by the owner after
+  v0.16.0). Steps: 3C-0 looks (done) → 3C-1 the level, in two releases:
+  the world (v0.17.0, built) then the three new enemies → 3C-2 the boss;
+  the owner tests each. Until the Glacier Warden exists the level ends
+  with an `'end'` event at 3:02 (cleared once the last wave has gone);
+  after Rust Moon's boss, "TAP TO CONTINUE" goes on into Frostring.
+  - **Its look: the "Ice Harvesters"** (owner, chosen from eight sets): the
+    invaders' mining crews strip-mining the ring, in yellow-and-black
+    hazard paint with drills and saw blades: pod → drill pod, weaver →
+    tunnel grub (a creature), gunship → ice cutter, seeker → rivet dart,
+    sniper → core drill, spinner → saw disc, and the new Rime Guard,
+    Cryo Layer (an ore hauler dropping mines) and Prism in the same style
+    (all designs in `tools/frostring-look.json`; the six shared types are
+    built into `js/sprites.js` as `FROST_ART`, skin 'frost', v0.17.0).
+  - Open space in a frozen comet ring (no ground): deep blue space, a pale
+    ringed giant planet far off, a band of ice dust, drifting snow (all
+    dim). About 3 min in three parts with no calm breaks: slabs alone first
+    (0:05), from above (0:17) and below (0:24); fields of ice and the first
+    wall (1:10); corridors of ice walls (2:01, 2:33). Enemy shots 20%
+    faster (`shotSpeed: 1.2`). Same cargo-pod schedule as levels 1–2.
+  - **Drifting ice slabs** (v0.17.0, `Terrain.addSlab`): small (14–22 x
+    10–16 px) or big (26–44 x 24–44), drifting left at 16–30 px/s; some
+    slide in from above or below after a red "!" (0.9 s) that marks
+    exactly where they'll appear (they drift along unseen meanwhile).
+    Crashing costs 2 blocks and knocks you clear (back the way you came,
+    or to the nearer open side). They stop shots both ways (enemy shots
+    can't reach you through ice), but **your shots crack them** (cracks
+    spread; 4–14 hits by size, about 6 small / 12 big) and a slab
+    **shatters into harmless snow** (+10 points); a bomb shatters every
+    slab it reaches; the laser cuts through; rockets ignore ice. **There's
+    always a way through**: across any 44-px-wide stretch of the screen
+    there's an open band at least 30 px tall (`SLAB_GAP`), checked before
+    a slab is placed (or it waits and tries again) and kept while they
+    drift (a faster slab slows behind a slower one rather than close a
+    gap); ice never drifts through ice. Flyers and cargo pods steer
+    around slabs (`flies`/`avoidsIce`, `Game.keepClearOfIce`); dive-bombers
+    crash into them; dropped items are never inside ice (nudged out).
+    Ice walls (`iceWall`) leave a gap (38–44 px) to fly through; walls in
+    a corridor shift their gap only a little. Not level 1's rocks: no
+    loot inside.
+  - New enemies (next release), each shown alone first: **Rime Guard**
+    (gunship in an ice shell; **harmless while frozen** (owner's choice):
+    shoot the shell off (about 4 hits), or it thaws itself free in about
+    5 s; exposed, it fires aimed 3-shot bursts after a blink; 3 HP;
+    carries the loot gamble, about 1 in 3, like the Rust Raiders),
+    **Cryo Layer** (flies high, drops frost mines that blink when you get
+    close and burst into icicles; shootable), **Prism** (ice crystal that
+    splits into two smaller shooting crystals when hit).
+  - Boss **The Glacier Warden** ("GLACIER WARDEN / KEEPER OF THE RING"):
+    ice armour plates over a core, shoot plates off to open a path; from
+    stage 2 it refreezes plates; 6+ warned attacks (icicle fans, sweeping
+    frost beam with a guide line, hailstorm with shadow markers, ice wall
+    with a gap, boomerang shards, stage 3 blizzard wind pushing you back);
+    a machine (explosions); fight about 1.2x the Siege Crawler's.
 - **Moving between levels** (Stage 3A, v0.11.0): after the level-clear
   screen, "TAP TO CONTINUE" flies you into the next level with your **score,
   lives and special weapon**; health refills to 5 blocks; timed power-ups
@@ -435,7 +498,7 @@ Approved by the owner. Keep the status column up to date.
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
-| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0) |
+| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C in progress (Frostring world v0.17.0) |
 | 4 | **Levels 5–8** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |
@@ -471,9 +534,12 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   A level ends with a `'boss'` event or an `'end'` event (no boss: cleared
   once every enemy, including ones still due to arrive, has gone; 8 s max).
 - `js/background.js` — starfield, sun, dust band, distant rocks, Rust Moon
-  canyon (sky bands, mesas, walls, dust devils) (per-level theme).
-- `js/terrain.js` — solid ground: floor strip, rock spires, `solid()` for shots,
-  `tallestOnScreen()`, `openAtEdge()`, `turretPerch()`.
+  canyon (sky bands, mesas, walls, dust devils), Frostring (ringed planet,
+  drifting snow) (per-level theme).
+- `js/terrain.js` — solid things in the way: floor strip, rock spires
+  (Rust Moon), drifting breakable ice slabs (Frostring: `addSlab`,
+  `canPlace`, `freeBand`, `slabAt`, `freeY`/`clearOfIce`); `solid()` for
+  shots, `tallestOnScreen()`, `openAtEdge()`, `turretPerch()`.
 - `js/sprites.js` — pixel art as text grids (plus each level's own look
   for shared enemy types, e.g. Rust Moon's `RUST_ART`). `js/rockart.js` — asteroids and
   Rockjaw drawn by code. `js/font.js` — 5×5 pixel font.
@@ -490,7 +556,7 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   release so phones fetch fresh files).
 - `tools/smoke-test.mjs` — simulated-phone test (Android + iPhone sizes):
   `PLAYWRIGHT_PATH=/opt/node22/lib/node_modules/playwright node tools/smoke-test.mjs <screenshot-dir>`
-- `tools/level-test.mjs` — invincible autopilot plays level 1 then level 2
+- `tools/level-test.mjs` — invincible autopilot plays levels 1, 2 and 3
   (with both bosses) at high speed; checks pickups, specials, bosses,
   talking, stage bonuses, new enemies and level clears (same command
   style).
@@ -501,7 +567,9 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - Testing aids: add `?safe=62` to the URL to fake an iPhone camera cutout;
   `?start=boss` jumps straight to the boss with a laser loaded;
   `?start=60` starts 60 seconds into the level; `?level=2` starts on level 2
-  (combine them: `?level=2&start=boss`).
+  (combine them: `?level=2&start=boss`); `?level=3` is Frostring.
+- `tools/frostring-look.json` — the owner's chosen Frostring designs (all
+  nine, incl. the three new enemies still to be built).
 
 ## HOW TO WORK WITH ME — these rules apply for the whole project, every session
 - I'm not an experienced coder. Assume I don't know the technical details, but work at full strength. Just keep me in the loop in language I can follow.

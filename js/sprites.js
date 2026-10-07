@@ -1,4 +1,4 @@
-import { PAL } from './config.js?v=0.16.0';
+import { PAL } from './config.js?v=0.17.0';
 
 // Pixel art is written as text grids: each character is one pixel and maps
 // to a palette colour ('.' is transparent). Each sprite is drawn once onto
@@ -22,6 +22,12 @@ const KEY = {
   e: '#9a7352',
   f: '#5e4434',
   h: '#a7a4ad', // steel (gun barrels)
+  n: '#46444d', // dark gunmetal
+  // Frostring: ice, from frost-white to deep blue.
+  i: '#e6eef7',
+  j: '#b8cde3',
+  m: '#7f9cc0',
+  q: '#4d6890',
 };
 
 const ART = {
@@ -287,7 +293,86 @@ const RUST_ART = {
     '..kkcck....',
   ],
 };
+// Frostring's own versions of the shared enemy types, chosen by the owner
+// from eight sets: the "Ice Harvesters", the invaders' mining crews
+// strip-mining the comet ring, in yellow-and-black hazard paint with drills
+// and saw blades. Same sizes and behaviour as level 1 (cargo pods unchanged).
+const FROST_ART = {
+  // Pod -> drill pod: a hazard-striped pod with a drill for a nose.
+  drifter: [
+    '..kkkkkk..',
+    '.kAaAaAak.',
+    'kakAkAkAak',
+    'hhkgggggak',
+    'hhkgggggak',
+    'kAkAkAkAak',
+    '.kkkkkkkk.',
+    '..........',
+  ],
+  // Weaver -> tunnel grub: a fat, ridged creature that bores through ice
+  // (it still bleeds lightly, like the weaver).
+  weaver: [
+    '...........',
+    '..kkkkkkk..',
+    '.kcdcdcdck.',
+    'kscdcdcdcek',
+    'kccdcdcdcek',
+    'kscdcdcdcek',
+    '.kcdcdcdck.',
+    '..kkkkkkk..',
+    '...........',
+  ],
+  // Gunship -> ice cutter: a hauler with a saw blade out front and a cab.
+  gunner: [
+    '....kkkkkk....',
+    '...kaaaaaak...',
+    '..kaAkAkAak...',
+    '.khkkkkkkkkk..',
+    'hhhkgggggggak.',
+    'hlhkgnnngggak.',
+    'hhhkgggggggak.',
+    '.khkkkkkkkkk..',
+    '..kaAkAkAak...',
+    '...kaaaaaak...',
+    '....kkkkkk....',
+  ],
+  // Seeker -> rivet dart: a riveted, striped dart.
+  seeker: [
+    '..........',
+    '...kkkkk..',
+    '.kkaAaAak.',
+    'hhkgggggak',
+    '.kkaAaAak.',
+    '...kkkkk..',
+    '..........',
+  ],
+  // Sniper -> core drill: a long drill bit on a striped housing.
+  sniper: [
+    '........kkkk..',
+    '.......kaAaak.',
+    'kkkkkkkkgggak.',
+    'hlhlhlhkgnnggk',
+    'kkkkkkkkgggak.',
+    '.......kaAaak.',
+    '........kkkk..',
+  ],
+  // Spinner -> saw disc: a toothed saw blade (drawn spinning).
+  spinner: [
+    '...kkhhkk..',
+    '.kkhkhkkhk.',
+    'khkhhhhhkk.',
+    'kkhhhahgghk',
+    'hkhhanaggkk',
+    'hhhannnaggh',
+    'kkhhanaggkh',
+    'khhggagggkk',
+    '.kkgggggkhk',
+    '.khkkgkhkk.',
+    '..kkhhkk...',
+  ],
+};
 for (const [name, rows] of Object.entries(RUST_ART)) ART[name + '_rust'] = rows;
+for (const [name, rows] of Object.entries(FROST_ART)) ART[name + '_frost'] = rows;
 
 function build(rows, colorOverride) {
   const w = Math.max(...rows.map((r) => r.length));

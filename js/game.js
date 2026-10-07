@@ -1,19 +1,19 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.16.0';
-import { SPRITES } from './sprites.js?v=0.16.0';
-import { ENEMY_TYPES } from './enemies.js?v=0.16.0';
-import { LEVELS, LevelRunner } from './levels.js?v=0.16.0';
-import { Background } from './background.js?v=0.16.0';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.16.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.16.0';
-import { buzz, HAPTIC } from './feedback.js?v=0.16.0';
-import { sfx } from './audio.js?v=0.16.0';
-import { clamp, rectsOverlap } from './util.js?v=0.16.0';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.16.0';
-import { Blasts } from './blasts.js?v=0.16.0';
-import { Speech } from './speech.js?v=0.16.0';
-import { Terrain, ROCK_CLEARANCE } from './terrain.js?v=0.16.0';
-import { startBossMusic, stopMusic } from './music.js?v=0.16.0';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.16.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.17.0';
+import { SPRITES } from './sprites.js?v=0.17.0';
+import { ENEMY_TYPES } from './enemies.js?v=0.17.0';
+import { LEVELS, LevelRunner } from './levels.js?v=0.17.0';
+import { Background } from './background.js?v=0.17.0';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.17.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.17.0';
+import { buzz, HAPTIC } from './feedback.js?v=0.17.0';
+import { sfx } from './audio.js?v=0.17.0';
+import { clamp, rectsOverlap } from './util.js?v=0.17.0';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.17.0';
+import { Blasts } from './blasts.js?v=0.17.0';
+import { Speech } from './speech.js?v=0.17.0';
+import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.17.0';
+import { startBossMusic, stopMusic } from './music.js?v=0.17.0';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.17.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -24,7 +24,9 @@ const WING = { rows: ['aab', 'abbc', '.bcc'], colors: { a: PAL.bluePale, b: PAL.
 const LIFE_BONUS = 500;
 const TITLE_TIME = 3.3; // seconds a boss name card stays up
 const SUPPLY_EVERY = 20; // seconds between supply pods in a boss fight
-const LIFT_LOOK = 48; // how far ahead (either way) flying enemies look for spires
+const LIFT_LOOK = 48; // how far ahead (either way) flying enemies look for spires (and ice)
+const ICE_CLEARANCE = 4; // how far flying enemies keep from a slab of ice
+const SLAB_SCORE = 10;
 const FIRST_SUPPLY = 3; // the first one comes early
 const SMART_POD = { color: PAL.cream, light: '#ffffff' }; // white light on a survival supply pod
 
@@ -156,6 +158,7 @@ export class Game {
   // magnet: the pickup floats towards the ship so it can't be missed.
   spawnPickup(kind, x, y, magnet = false) {
     y = Math.min(y, this.terrain.groundTop(x, 9) - 12); // never inside the ground or a spire
+    y = this.terrain.clearOfIce(x - 1, 11, y - 1, 11) + 1; // ...or a slab of ice
     if (kind) this.pickups.push({ kind, x, y, baseY: y, t: 0, magnet });
   }
 
@@ -319,6 +322,44 @@ export class Game {
   spriteName(name) {
     const skin = this.level.skin;
     return skin && SPRITES[name + '_' + skin] ? name + '_' + skin : name;
+  }
+
+  // Flying enemies never pass through a slab of ice either: they steer up or
+  // down (whichever is nearer and on screen) around any slab near them. A
+  // type can opt out at times (liftsOver(e) false: a dive-bomber crashes into
+  // ice instead) and react to being moved (onLift(e, d), d > 0 when moved up).
+  keepClearOfIce(e, dt) {
+    if (e.T.liftsOver && !e.T.liftsOver(e)) return;
+    // Look well ahead (and behind) so it turns early; if ice fills every
+    // height across that whole stretch, just keep clear of what's right here
+    // (there's always room there).
+    const t = this.terrain;
+    const want = t.freeY(e.x - LIFT_LOOK, e.w + LIFT_LOOK * 2, e.y, e.h, ICE_CLEARANCE) ?? t.freeY(e.x - 2, e.w + 4, e.y, e.h, 1) ?? e.y;
+    if (want === e.y) return;
+    const inIce = this.terrain.slabAt(e.x, e.y, e.w, e.h);
+    const d = inIce ? e.y - want : clamp(e.y - want, -120 * dt, 120 * dt);
+    e.y -= d;
+    if (e.T.onLift) e.T.onLift(e, d);
+  }
+
+  // A shot (or a weapon) hitting a slab of ice: it cracks, and shatters into
+  // harmless snow once it's taken enough.
+  chipSlab(s, dmg, x, y) {
+    if (s.dead) return;
+    s.hp -= dmg;
+    s.flash = 0.06;
+    this.burst(x, y, 2, 30, ICE_COLORS.slice(2));
+    if (s.hp > 0) {
+      sfx.iceChip();
+      return;
+    }
+    s.dead = true;
+    this.score += SLAB_SCORE;
+    sfx.shatter();
+    const n = Math.min(40, Math.round((s.w * s.h) / 18));
+    for (let i = 0; i < n; i++) {
+      this.burst(s.x + this.rand() * s.w, s.y + this.rand() * s.h, 1, 40, ICE_COLORS.slice(1));
+    }
   }
 
   // The middle of the player's ship (what enemies aim at).
@@ -590,8 +631,12 @@ export class Game {
     for (const b of this.bullets) {
       b.x += PLAYER.bulletSpeed * dt;
       b.y += (b.vy || 0) * dt;
-      // Shots stop against solid rock with a puff of dust.
-      if (this.terrain.solid(b.x, b.y, 7, 2)) {
+      // Shots crack ice, and stop against solid rock with a puff of dust.
+      const slab = this.terrain.slabAt(b.x, b.y, 7, 2);
+      if (slab) {
+        b.dead = true;
+        this.chipSlab(slab, 1, b.x + 6, b.y + 1);
+      } else if (this.terrain.solid(b.x, b.y, 7, 2)) {
         b.dead = true;
         this.burst(b.x + 6, b.y + 1, 3, 30, DUST_COLORS);
       }
@@ -604,6 +649,7 @@ export class Game {
       e.flashCd = (e.flashCd || 0) - dt;
       e.T.update(e, dt, this);
       if (e.T.flies && this.terrain.floor && !e.dead) this.keepAboveRock(e, dt);
+      if ((e.T.flies || e.T.avoidsIce) && this.terrain.slabs.length && !e.dead) this.keepClearOfIce(e, dt);
     }
     this.updateSupplies(dt);
     this.enemies = this.enemies.filter(
@@ -616,7 +662,7 @@ export class Game {
       s.y += s.vy * dt;
       if (this.terrain.solid(s.x - 1, s.y - 1, 2, 2)) {
         s.dead = true;
-        this.burst(s.x, s.y, 2, 25, DUST_COLORS);
+        this.burst(s.x, s.y, 2, 25, this.terrain.slabAt(s.x - 1, s.y - 1, 2, 2) ? ICE_COLORS.slice(2) : DUST_COLORS);
       }
     }
     this.enemyShots = this.enemyShots.filter(
@@ -634,6 +680,8 @@ export class Game {
         pk.x += (dx / d) * 90 * dt;
         pk.baseY += (dy / d) * 90 * dt;
       }
+      // A slab drifting into an item nudges it out of the way.
+      if (!pk.magnet && this.terrain.slabs.length) pk.baseY = this.terrain.clearOfIce(pk.x - 1, 11, pk.baseY - 5, 19) + 5;
       pk.y = pk.baseY + Math.sin(pk.t * 3) * (pk.magnet ? 1 : 4);
     }
     // Homing bonus items never scroll away; everything else does.
@@ -693,22 +741,28 @@ export class Game {
 
     // Anything hitting the player (see playerHitbox).
     const { x: hx, y: hy, w: hw, h: hh } = this.playerHitbox();
-    // Crashing into a rock spire: 2 blocks, and you're knocked clear of it,
-    // back the way you came (or up and over if that's blocked, so a spire
-    // can never pin you against the screen edge). Spires stay solid while
-    // you're flashing after a hit or a respawn; they just don't hurt then.
-    const spire = this.terrain.hits(hx, hy, hw, hh);
-    if (spire) {
-      const onTop = p.y + p.h / 2 < spire.top + 4;
-      const fromRight = p.x + p.w / 2 > spire.x + spire.w / 2;
-      if (!onTop) {
-        p.x = fromRight ? Math.min(VIEW_W - p.w - 2, spire.x + spire.w + 2) : Math.max(2, spire.x - p.w - 4);
+    // Crashing into a rock spire or a slab of ice: 2 blocks, and you're
+    // knocked clear of it, back the way you came (or up and over a spire, or
+    // to the nearer open side of a slab, if that's blocked, so it can never
+    // pin you against the screen edge). They stay solid while you're
+    // flashing after a hit or a respawn; they just don't hurt then.
+    const rock = this.terrain.hits(hx, hy, hw, hh);
+    if (rock) {
+      const ice = rock.ty !== undefined;
+      const top = ice ? rock.y : rock.top;
+      const bottom = ice ? rock.y + rock.h : this.terrain.floorY;
+      const onTop = p.y + p.h / 2 < top + 4;
+      const below = ice && p.y + p.h / 2 > bottom - 4;
+      const fromRight = p.x + p.w / 2 > rock.x + rock.w / 2;
+      if (!onTop && !below) {
+        p.x = fromRight ? Math.min(VIEW_W - p.w - 2, rock.x + rock.w + 2) : Math.max(2, rock.x - p.w - 4);
       }
-      if (onTop || this.terrain.hits(p.x + 5, hy, hw, hh)) {
-        p.y = Math.max(HUD_H + 1, spire.top - p.h - 2); // up and over
+      if (onTop || below || this.terrain.hits(p.x + 5, hy, hw, hh)) {
+        if (ice) p.y = this.terrain.clearOfIce(p.x, p.w, p.y, p.h, 2);
+        else p.y = Math.max(HUD_H + 1, top - p.h - 2); // up and over
       }
       if (p.invuln > 0) return;
-      this.hurtPlayer(2, spire);
+      this.hurtPlayer(2, rock);
       return;
     }
     if (p.invuln > 0) return;

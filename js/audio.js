@@ -330,6 +330,19 @@ export const sfx = {
     noise({ dur: 0.5, vol: 0.5, f0: 4000, f1: 300, q: 0.7, type: 'highpass' });
     noise({ dur: 0.7, vol: 0.4, f0: 600, f1: 80 });
   },
+  iceChip() {
+    // A shot chipping ice: a short, glassy tick.
+    if (!ready() || ac.currentTime - lastBlock < 0.05) return;
+    lastBlock = ac.currentTime;
+    tone({ type: 'triangle', f0: 2100, f1: 1500, dur: 0.04, vol: 0.05, cutoff: 4000 });
+  },
+  shatter() {
+    // A slab of ice bursting: a bright crash and falling tinkles.
+    if (!ready()) return;
+    noise({ dur: 0.35, vol: 0.3, f0: 6000, f1: 900, q: 0.8, type: 'highpass' });
+    [1900, 1500, 2300, 1250].forEach((f, i) =>
+      tone({ type: 'triangle', f0: f, f1: f * 0.8, dur: 0.09, vol: 0.05, when: 0.04 + i * 0.05, cutoff: 5000 }));
+  },
   mortar() {
     // Hollow "thoomp" of a mortar shell leaving its tube.
     if (!ready()) return;

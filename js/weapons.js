@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.16.0';
-import { drawText } from './font.js?v=0.16.0';
-import { sfx } from './audio.js?v=0.16.0';
-import { buzz } from './feedback.js?v=0.16.0';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.17.0';
+import { drawText } from './font.js?v=0.17.0';
+import { sfx } from './audio.js?v=0.17.0';
+import { buzz } from './feedback.js?v=0.17.0';
 
 // Special weapons and pickups.
 // The player carries ONE special at a time. A pickup gives some shots;
@@ -124,6 +124,12 @@ export class Weapons {
       for (const s of g.enemyShots) {
         if (Math.hypot(s.x - b.x, s.y - b.y) < b.r) s.dead = true;
       }
+      // ...and shatters every slab of ice it reaches.
+      for (const s of g.terrain.slabs) {
+        if (!s.dead && Math.hypot(s.x + s.w / 2 - b.x, s.y + s.h / 2 - b.y) < b.r + Math.max(s.w, s.h) / 2) {
+          g.chipSlab(s, s.hp, s.x + s.w / 2, s.y + s.h / 2);
+        }
+      }
     }
     this.bombs = this.bombs.filter((b) => b.r < VIEW_W * 1.3);
 
@@ -190,6 +196,15 @@ export class Weapons {
         }
         for (const s of g.enemyShots) {
           if (s.x > x0 && Math.abs(s.y - y) < 4) s.dead = true;
+        }
+        // It cuts straight through ice, breaking it as it goes.
+        for (const s of g.terrain.slabs) {
+          if (s.dead || s.x + s.w < x0 || y + 2 < s.y || y - 2 > s.y + s.h) continue;
+          s.laserAcc = (s.laserAcc || 0) + LASER_DPS * dt;
+          while (s.laserAcc >= 1 && !s.dead) {
+            s.laserAcc -= 1;
+            g.chipSlab(s, 1, Math.max(x0, s.x), y);
+          }
         }
       }
     }

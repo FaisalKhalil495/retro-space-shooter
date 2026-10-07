@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.16.0';
-import { FAR_ROCKS } from './rockart.js?v=0.16.0';
-import { fillDisc, seeded } from './util.js?v=0.16.0';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.17.0';
+import { FAR_ROCKS } from './rockart.js?v=0.17.0';
+import { fillDisc, seeded } from './util.js?v=0.17.0';
 
 // Deep-space backdrop: a slow distant amber sun, a band of dust, distant
 // asteroids and three layers of stars moving at different speeds, which
@@ -98,6 +98,53 @@ function makeRidge(key, w, h, seed, { flat, color, strata, rough }) {
   return cv;
 }
 
+// ---- Frostring scenery ----
+
+// The pale giant planet the comet ring circles, with its own thin ring: drawn
+// once, kept dim (it's far away) so it never hides anything.
+let ringedPlanet = null;
+function makeRingedPlanet() {
+  if (ringedPlanet) return ringedPlanet;
+  const W = 96;
+  const H = 64;
+  const cx = 48;
+  const cy = 32;
+  const R = 22;
+  const cv = document.createElement('canvas');
+  cv.width = W;
+  cv.height = H;
+  const c = cv.getContext('2d');
+  const bands = ['#26334f', '#2b3a58', '#314262', '#2b3a58', '#3a4d70'];
+  const ring = (x, y) => {
+    const d = ((x - cx) / 44) ** 2 + ((y - cy) / 7) ** 2;
+    return d < 1 && d > 0.62;
+  };
+  const px = (x, y, col) => {
+    c.fillStyle = col;
+    c.fillRect(x, y, 1, 1);
+  };
+  // The back half of the ring (behind the planet)...
+  for (let y = 0; y < cy; y++) for (let x = 0; x < W; x++) if (ring(x, y) && (x + y) % 2 === 0) px(x, y, '#2e3d5c');
+  // ...the planet, in soft bands, lit from the upper left...
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const dx = x - cx;
+      const dy = y - cy;
+      const d = Math.hypot(dx, dy);
+      if (d > R) continue;
+      let col = bands[Math.floor((y + Math.sin(x / 7) * 1.5) / 5) % bands.length];
+      if (dx + dy > R * 0.9) col = '#1e2942'; // the shadowed side
+      else if (d > R - 1.2) col = '#3a4d70'; // the rim
+      if (dx + dy < -R * 0.75 && (x + y) % 2 === 0) col = '#4d6890'; // a soft highlight
+      px(x, y, col);
+    }
+  }
+  // ...and the front half of the ring across it.
+  for (let y = cy; y < H; y++) for (let x = 0; x < W; x++) if (ring(x, y)) px(x, y, (x + y) % 3 ? '#4a5f86' : '#5d74a0');
+  ringedPlanet = cv;
+  return cv;
+}
+
 export class Background {
   constructor(rand, theme = {}) {
     this.rand = rand;
@@ -128,8 +175,26 @@ export class Background {
       this.devils = [];
       this.devilT = 2;
     }
+    if (this.theme.frost) {
+      // Snow drifting past: a few tiny flakes at three depths.
+      this.planetX = VIEW_W - 70;
+      this.snow = [];
+      for (let i = 0; i < 26; i++) this.snow.push(this.newFlake(rand() * VIEW_W));
+    }
     this.dustX = 0;
     this.t = 0;
+  }
+
+  newFlake(x) {
+    const depth = this.rand();
+    return {
+      x,
+      y: this.rand() * VIEW_H,
+      vx: 8 + depth * 22,
+      vy: 2 + depth * 5,
+      color: depth > 0.8 ? '#9fb0d0' : depth > 0.4 ? '#5a6a9a' : '#34406a',
+      phase: this.rand() * 6,
+    };
   }
 
   newFarRock(x) {
@@ -154,6 +219,16 @@ export class Background {
     this.sunX -= 0.6 * dt;
     if (this.sunX < -40) this.sunX = VIEW_W + 40;
     this.dustX = (this.dustX + 3 * dt) % VIEW_W;
+    if (this.theme.frost) {
+      this.planetX -= 0.5 * dt;
+      if (this.planetX < -100) this.planetX = VIEW_W + 10;
+      for (let i = 0; i < this.snow.length; i++) {
+        const f = this.snow[i];
+        f.x -= f.vx * dt;
+        f.y += (f.vy + Math.sin(this.t * 1.5 + f.phase) * 3) * dt;
+        if (f.x < -2 || f.y > VIEW_H + 2) this.snow[i] = { ...this.newFlake(VIEW_W + 2), y: this.rand() * VIEW_H * 0.8 };
+      }
+    }
     if (this.theme.canyon) {
       this.mesaX = (this.mesaX + 3 * dt) % VIEW_W;
       this.wallX = (this.wallX + 9 * dt) % VIEW_W;
@@ -177,6 +252,8 @@ export class Background {
     ctx.fillRect(0, 0, VIEW_W, VIEW_H);
 
     if (this.theme.canyon) ctx.drawImage(makeCanyonSky(), 0, 0);
+
+    if (this.theme.frost) ctx.drawImage(makeRingedPlanet(), snap(this.planetX), 14);
 
     if (this.dust) ctx.drawImage(this.dust, -snap(this.dustX), Math.round(VIEW_H * 0.6));
 
@@ -203,6 +280,13 @@ export class Background {
     }
 
     for (const r of this.farRocks) ctx.drawImage(r.img, snap(r.x), snap(r.y));
+
+    if (this.theme.frost) {
+      for (const f of this.snow) {
+        ctx.fillStyle = f.color;
+        ctx.fillRect(snap(f.x), snap(f.y), 1, 1);
+      }
+    }
 
     if (this.theme.canyon) {
       const ground = VIEW_H - (this.theme.floor || 0);

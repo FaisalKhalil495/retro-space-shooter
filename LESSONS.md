@@ -14,7 +14,7 @@ stage — and, one day, a system for building more games.
 - At the end of every stage also add a retrospective (section 7) and move
   anything reusable into section 8 ("Recipe for future games").
 
-Last updated: v0.16.0 (Stage 3, after step 3B).
+Last updated: v0.17.0 (Stage 3, step 3C: the Frostring world).
 
 ---
 
@@ -124,6 +124,13 @@ Last updated: v0.16.0 (Stage 3, after step 3B).
   tallest possible tower; drops always appear above rock.
 - **Ambushes from behind come only while the towers are short**, and fly
   above them — a threat you can't fight back against is just unfair.
+- **Wants a story that holds together** (after v0.16.0). Asked "am I
+  invading their world or are they invading?" and liked: **you defend
+  the worlds; the enemies are the invaders**, ending at their homeworld.
+  Check every new level's looks and boss against that story.
+- **Likes choosing from many options.** Asked to see more Frostring looks
+  ("generate more options"): eight sets, shown as two detailed pictures
+  plus one overview of all eight, worked well.
 - **Every level must look like its own world** (v0.16.0). Level 2 reused
   level 1's enemies unchanged; the owner wanted them to look different.
   A recolour wasn't enough ("change the shapes as well"), and a first
@@ -204,6 +211,9 @@ Last updated: v0.16.0 (Stage 3, after step 3B).
 | Raiders in a convoy each picked their own speed, so one could catch up and merge with the one ahead once both were lifted over a tower | Ships in a formation share one speed, or their spacing isn't guaranteed. Random per-ship variation belongs in looks or timing, not in spacing. |
 | A whole-level check failed about 1 run in 12 (v0.15.0 testing): ambush lanes were picked at the warning, but a taller tower could scroll in before the pods arrived | **A test that fails "sometimes" is a real bug until proven otherwise.** Loop the test to catch the failure, find the cause, then write a check that reproduces it every time. Anything decided early (at a warning) must be re-checked when it happens. |
 | Two rounds of enemy redesigns were rejected (a recolour, then new shapes in one style) before the owner chose from four different sets | For anything visual and subjective, **show several clearly different directions at once, in one picture**, with a recommendation, instead of one design at a time. Draft them in a scratch tool first (cheap to iterate), self-critique and redraw the weak ones before showing. |
+| v0.17.0 (before release): enemies looking 48 px either way for ice saw no free height inside a corridor of ice walls and just held still, sitting inside a slab | A look-ahead wider than the stretch your fairness rule covers can find "no way" where there is one. When a wide search fails, fall back to the narrow one the rule guarantees. |
+| v0.17.0: slabs drifted through each other (different speeds), and slid in from above onto slabs that had drifted under them during the warning | When adding a new kind of obstacle, check it against **itself** too, not just against the player and enemies. Things that wait (behind a warning) must keep moving with the world, or the world moves into them. |
+| v0.17.0: a test kept a reference to the level's terrain from before a reset (the same trap as in 3B-1) | In tests, never keep game objects in a variable across a reset; read them fresh each time (`g.terrain`, not a saved `t`). |
 | LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
 
 ## 5. Our working process (what works)
@@ -325,6 +335,15 @@ fewer rounds are needed.
 - v0.16.0: Rust Moon's own look, the **Dust Pirates** (sail skiffs, dust
   bats, sand galleons, kite gliders, harpoon guns, windmills), chosen by
   the owner from four sets.
+- Story chosen: you defend the worlds; the enemies are the invaders.
+- 3C-0: Frostring's look, the **Ice Harvesters**, chosen from eight sets
+  (asked for more options after the first four).
+- v0.17.0: the Frostring world: breakable drifting ice slabs (always a
+  way through, never ice through ice, enemies steer round, items never
+  inside), the ringed-planet backdrop, the Harvester look and a 3-minute
+  timeline with the existing enemies. Built fairness rules in from the
+  start (Rust Moon's lessons) and checked the whole level 26 times
+  before the first hand-over.
 **So far:** the owner's feedback has been about the world making sense
 (rocks on a planet, tanks on towers, enemies through towers) and about
 fairness (hidden or unreachable enemies) rather than raw difficulty.

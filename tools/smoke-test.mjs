@@ -470,9 +470,10 @@ for (const phone of PHONES) {
   await page.waitForTimeout(300);
   await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
   await page.waitForTimeout(300);
-  const flow = await page.evaluate(() => {
+  const flow = await page.evaluate(async () => {
     window.__ember.frozen = true;
     const g = window.__ember.game;
+    const { LEVELS } = await import('/js/levels.js' + new URL(document.querySelector('script[type=module]').src).search);
     const startedOn = g.level.number;
     const idle = { dx: 0, dy: 0, fire: true, special: false, tap: false };
     const tap = { ...idle, tap: true };
@@ -494,7 +495,15 @@ for (const phone of PHONES) {
       t += 1 / 120;
     }
     const level2Cleared = killed && g.state === 'clear';
-    // Tap on: no level 3 yet, so back to level 1, fresh.
+    // Tap on: into level 3 (Frostring), with the score carried over.
+    const scoreAfter2 = g.score;
+    g.stateTimer = 4;
+    g.update(1 / 120, tap);
+    const toLevel3 = { level: g.level.number, scoreKept: g.score === scoreAfter2 && scoreAfter2 > 0 };
+    // After the last level there is: back to level 1, fresh.
+    g.levelIndex = LEVELS.length - 1;
+    g.reset();
+    g.levelClear();
     g.stateTimer = 4;
     g.update(1 / 120, tap);
     const afterLast = { level: g.level.number, score: g.score, lives: g.lives };
@@ -540,11 +549,11 @@ for (const phone of PHONES) {
     g.startAt = 0;
     return {
       clearAfterRespawn, skippedEndStillEnds,
-      startedOn, level2Cleared, afterLast,
+      startedOn, level2Cleared, toLevel3, afterLast,
       next,
     };
   });
-  const flowOk = flow.startedOn === 2 && flow.level2Cleared && flow.clearAfterRespawn && flow.skippedEndStillEnds &&
+  const flowOk = flow.startedOn === 2 && flow.level2Cleared && flow.toLevel3.level === 3 && flow.toLevel3.scoreKept && flow.clearAfterRespawn && flow.skippedEndStillEnds &&
     flow.afterLast.level === 1 && flow.afterLast.score === 0 && flow.afterLast.lives === 3 &&
     flow.next.level === 2 && flow.next.score === flow.next.expected && flow.next.lives === 2 &&
     flow.next.health === 5 && flow.next.weapon === 'laser' && flow.next.ammo === 2 && flow.next.state === 'playing' &&
@@ -1454,6 +1463,192 @@ for (const phone of PHONES) {
     r.rocketIgnoresUnder && r.noSparksUnder && r.pickupClear &&
     r.ramShut.turretAlive && r.ramShut.hurt === 2 && r.rocketSkipsJunk && r.rocketPrefersCore && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  Siege Crawler rules ${JSON.stringify(r)} ${errs.join(' ')}`);
+  if (!ok) failures++;
+  await context.close();
+}
+
+// Stage 3C-1: Frostring's slabs of ice and its look follow the rules.
+{
+  const context = await browser.newContext({ viewport: { width: 915, height: 412 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  const errs = [];
+  page.on('pageerror', (e) => errs.push(String(e)));
+  await page.goto(base + '?level=3');
+  await page.waitForTimeout(300);
+  await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  await page.waitForTimeout(300);
+  const r = await page.evaluate(async () => {
+    window.__ember.frozen = true;
+    const g = window.__ember.game;
+    const v = new URL(document.querySelector('script[type=module]').src).search;
+    const { PATTERNS } = await import('/js/waves.js' + v);
+    const { SPRITES } = await import('/js/sprites.js' + v);
+    const fire = { dx: 0, dy: 0, fire: true, special: false, tap: false };
+    const idle = { ...fire, fire: false };
+    const step = (sec, input = idle, keepSafe = true) => {
+      for (let i = 0; i < sec * 120; i++) {
+        if (keepSafe) g.player.invuln = 1;
+        g.update(1 / 120, input);
+      }
+    };
+    const quiet = () => {
+      g.reset();
+      g.runner.next = g.level.events.length;
+      g.banner = null;
+      g.player.entering = 0;
+      g.player.x = 20;
+      g.player.y = 40;
+    };
+    const res = {};
+    const hb = () => { const h = g.playerHitbox(); return g.terrain.slabAt(h.x, h.y, h.w, h.h); };
+
+    // Your shots crack a slab, one hit at a time, until it shatters (+10).
+    quiet();
+    const slab = g.terrain.addSlab({ w: 20, h: 16, x: 120, y: 60, speed: 0 });
+    g.player.y = 61;
+    const hp0 = slab.hp;
+    let firstHit = null;
+    const score0 = g.score;
+    for (let i = 0; i < 4 * 120 && !slab.dead; i++) {
+      g.player.invuln = 1;
+      g.update(1 / 120, fire);
+      if (firstHit === null && slab.hp < hp0) firstHit = hp0 - slab.hp;
+    }
+    step(1 / 120); // (a shattered slab is cleared away on the next frame)
+    res.chip = { hp0, firstHit, shattered: !!slab.dead, score: g.score - score0, gone: !g.terrain.slabs.includes(slab) };
+
+    // Crashing into one costs 2 blocks and knocks you clear.
+    quiet();
+    g.terrain.addSlab({ w: 30, h: 30, x: 60, y: 40, speed: 0 });
+    g.player.x = 52;
+    g.player.y = 48;
+    g.player.invuln = 0;
+    const health0 = g.health;
+    g.update(1 / 120, idle);
+    res.crash = { hurt: health0 - g.health, clear: !hb() };
+
+    // Enemy shots stop on ice (nobody shoots you through it).
+    quiet();
+    g.terrain.addSlab({ w: 20, h: 40, x: 100, y: 50, speed: 0 });
+    g.player.y = 64;
+    g.player.invuln = 0;
+    const health1 = g.health;
+    g.fireShot(190, 70, Math.PI, 100);
+    step(2.5, idle, false);
+    res.shotStops = g.health === health1 && g.enemyShots.length === 0;
+
+    // A bomb shatters every slab on screen; the laser cuts through one.
+    quiet();
+    const three = [g.terrain.addSlab({ w: 20, h: 20, x: 60, y: 20, speed: 0 }), g.terrain.addSlab({ w: 30, h: 30, x: 150, y: 90, speed: 0 }), g.terrain.addSlab({ w: 18, h: 14, x: 180, y: 30, speed: 0 })];
+    g.weapons.kind = 'bomb';
+    g.weapons.ammo = 1;
+    g.weapons.fire();
+    step(2);
+    res.bomb = three.filter((s) => s.dead).length;
+    quiet();
+    const lasered = g.terrain.addSlab({ w: 24, h: 24, x: 130, y: 54, speed: 0 });
+    g.player.y = 60;
+    g.weapons.kind = 'laser';
+    g.weapons.ammo = 1;
+    g.weapons.fire();
+    step(1);
+    res.laser = !!lasered.dead;
+
+    // A dropped item never appears inside ice.
+    quiet();
+    g.terrain.addSlab({ w: 30, h: 30, x: 100, y: 50, speed: 0 });
+    g.spawnPickup('shield', 110, 60);
+    const pk = g.pickups[0];
+    res.itemClear = !g.terrain.slabAt(pk.x, pk.y, 9, 9);
+
+    // A slab that would wall off the way through isn't placed.
+    quiet();
+    const a = g.terrain.addSlab({ w: 20, h: 60, x: 150, y: 10, speed: 0 });
+    const b = g.terrain.addSlab({ w: 20, h: 44, x: 150 + 0, y: 100, speed: 0 });
+    const c = g.terrain.addSlab({ w: 20, h: 20, x: 175, y: 74, speed: 0 });
+    res.wallOff = { placed: !!a && !!b, refused: c === null };
+
+    // A dive-bomber crashes into ice (no points).
+    quiet();
+    g.terrain.addSlab({ w: 30, h: 20, x: 100, y: 80, speed: 0 });
+    const diver = g.spawnEnemy('drifter', 105, 40, { speed: 4, vy: 62 });
+    const score1 = g.score;
+    step(1);
+    res.diveCrash = !!diver.dead && g.score === score1;
+
+    // A slab from above: its "!" shows first, then it slides in right there.
+    quiet();
+    PATTERNS.ice(g, g.rand, { n: 1, from: 'top', size: 'small' });
+    step(0.05);
+    const warned = g.markers.length === 1 && g.terrain.slabs.every((s) => s.y + s.h <= 10);
+    const mx = g.markers[0] ? g.markers[0].x : -99;
+    let atMarker = null;
+    for (let i = 0; i < 3 * 120 && atMarker === null; i++) {
+      step(1 / 120);
+      const s = g.terrain.slabs.find((q) => q.y + q.h > 10);
+      if (s) atMarker = Math.abs(s.x + s.w / 2 - mx);
+    }
+    res.fromTop = { warned, atMarker };
+
+    // Frostring's own look: the Ice Harvesters, at level 1's sizes.
+    const shared = ['drifter', 'weaver', 'gunner', 'seeker', 'sniper', 'spinner'];
+    res.frostLook = {
+      own: shared.filter((n) => g.spriteName(n) === n + '_frost').length,
+      sameSize: shared.filter((n) => SPRITES[n + '_frost'].width === SPRITES[n].width && SPRITES[n + '_frost'].height === SPRITES[n].height).length,
+      cargoSame: g.spriteName('carrier') === 'carrier',
+    };
+
+    // The whole level, start to end, with the ship parked out of the way:
+    // there's always a way through (an open stretch at least 30 pixels tall
+    // across every 44-pixel-wide part of the screen), ice never overlaps ice,
+    // no enemy is ever inside ice, and no item either.
+    g.reset();
+    g.banner = null;
+    let minGap = 999;
+    let overlaps = 0;
+    const inIce = new Set();
+    let pkInIce = 0;
+    const seen = new Set();
+    let fromEdges = 0;
+    for (let i = 0; i < 190 * 120 && g.state !== 'clear'; i++) {
+      g.player.invuln = 5;
+      g.player.x = 4;
+      g.player.y = 12;
+      g.update(1 / 120, idle);
+      const sl = g.terrain.slabs.filter((s) => !s.dead && s.x < 208 && s.x + s.w > 0 && s.y + s.h > 10 && s.y < 144);
+      for (const s of g.terrain.slabs) if (!seen.has(s)) { seen.add(s); if (s.from !== 'right') fromEdges++; }
+      if (i % 30 === 0) {
+        for (let x0 = -20; x0 < 208; x0 += 4) {
+          const spans = sl.filter((s) => s.x < x0 + 44 && s.x + s.w > x0).map((s) => [s.y, s.y + s.h]).sort((p, q) => p[0] - q[0]);
+          let best = 0;
+          let y = 10;
+          for (const [p, q] of spans) { best = Math.max(best, p - y); y = Math.max(y, q); }
+          minGap = Math.min(minGap, Math.max(best, 144 - y));
+        }
+      }
+      for (let p = 0; p < sl.length; p++) {
+        for (let q = p + 1; q < sl.length; q++) {
+          const A = sl[p];
+          const C = sl[q];
+          if (A.x < C.x + C.w - 1 && A.x + A.w > C.x + 1 && A.y < C.y + C.h - 1 && A.y + A.h > C.y + 1) overlaps++;
+        }
+      }
+      for (const e of g.enemies) {
+        if (!(e.T.flies || e.T.avoidsIce) || e.dead || e.x > 208 || e.x + e.w < 0) continue;
+        if (g.terrain.slabAt(e.x + 1, e.y + 1, e.w - 2, e.h - 2)) inIce.add(e.type + '@' + Math.round(g.runner.t));
+      }
+      for (const p of g.pickups) if (!p.magnet && g.terrain.slabAt(p.x, p.y, 9, 9)) pkInIce++;
+    }
+    res.level = { cleared: g.state === 'clear', slabs: seen.size, fromEdges, minGap: Math.floor(minGap), overlaps, inIce: [...inIce].slice(0, 6), pkInIce };
+    return res;
+  });
+  const ok = r.chip.firstHit === 1 && r.chip.shattered && r.chip.gone && r.chip.score >= 10 &&
+    r.crash.hurt === 2 && r.crash.clear && r.shotStops && r.bomb === 3 && r.laser && r.itemClear &&
+    r.wallOff.placed && r.wallOff.refused && r.diveCrash && r.fromTop.warned && r.fromTop.atMarker !== null && r.fromTop.atMarker < 3 &&
+    r.frostLook.own === 6 && r.frostLook.sameSize === 6 && r.frostLook.cargoSame &&
+    r.level.cleared && r.level.slabs >= 40 && r.level.fromEdges >= 6 && r.level.minGap >= 30 && r.level.overlaps === 0 &&
+    r.level.inIce.length === 0 && r.level.pkInIce === 0 && errs.length === 0;
+  console.log(`${ok ? 'PASS' : 'FAIL'}  Frostring rules ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;
   await context.close();
 }
