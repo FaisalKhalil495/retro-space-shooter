@@ -214,6 +214,8 @@ Last updated: v0.17.0 (Stage 3, step 3C: the Frostring world).
 | v0.17.0 (before release): enemies looking 48 px either way for ice saw no free height inside a corridor of ice walls and just held still, sitting inside a slab | A look-ahead wider than the stretch your fairness rule covers can find "no way" where there is one. When a wide search fails, fall back to the narrow one the rule guarantees. |
 | v0.17.0: slabs drifted through each other (different speeds), and slid in from above onto slabs that had drifted under them during the warning | When adding a new kind of obstacle, check it against **itself** too, not just against the player and enemies. Things that wait (behind a warning) must keep moving with the world, or the world moves into them. |
 | v0.17.0: a test kept a reference to the level's terrain from before a reset (the same trap as in 3B-1) | In tests, never keep game objects in a variable across a reset; read them fresh each time (`g.terrain`, not a saved `t`). |
+| v0.18.0 (before release): Rime Guards stacked into one ship — a group's lanes squashed together at the top or bottom of the screen, back-to-back groups shared lanes, and the ice-dodging rule (faster) pushed two guards into the same gap | Every enemy type that hovers needs its own **keep-apart rule**, and it must work *alongside* the other rules that move it (ice dodging, edges): separating sideways as well as up/down. Run the whole-level overlap audit for every new type, not just the first one that stacked. |
+| v0.18.0: the "about to thaw" flicker reused the hit-flash picture, so the guard turned into a solid cream blob | Don't reuse one signal for two meanings. A warning needs its own look (here: flicking between the ice shell and the gunship inside). Look at screenshots of every new effect, not just the test results. |
 | LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
 
 ## 5. Our working process (what works)
@@ -344,6 +346,12 @@ fewer rounds are needed.
   timeline with the existing enemies. Built fairness rules in from the
   start (Rust Moon's lessons) and checked the whole level 26 times
   before the first hand-over.
+- v0.18.0: Frostring's own enemies (Rime Guard, Cryo Layer with frost
+  mines, Prism with shards), from the chosen designs. Every one fights
+  back and every shot is warned; checks for each rule were broken on
+  purpose to prove they catch it. Screenshots and the whole-level audit
+  found two problems (stacking guards, a blob-like flicker) before
+  hand-over.
 **So far:** the owner's feedback has been about the world making sense
 (rocks on a planet, tanks on towers, enemies through towers) and about
 fairness (hidden or unreachable enemies) rather than raw difficulty.

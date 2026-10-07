@@ -196,7 +196,8 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
     blast, and the burnt-out hull drops onto the floor.
 - **Frostring (level 3), step 3C** (plan approved by the owner after
   v0.16.0). Steps: 3C-0 looks (done) → 3C-1 the level, in two releases:
-  the world (v0.17.0, built) then the three new enemies → 3C-2 the boss;
+  the world (v0.17.0, built) then the three new enemies (v0.18.0,
+  built) → 3C-2 the boss;
   the owner tests each. Until the Glacier Warden exists the level ends
   with an `'end'` event at 3:02 (cleared once the last wave has gone);
   after Rust Moon's boss, "TAP TO CONTINUE" goes on into Frostring.
@@ -234,14 +235,35 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
     Ice walls (`iceWall`) leave a gap (38–44 px) to fly through; walls in
     a corridor shift their gap only a little. Not level 1's rocks: no
     loot inside.
-  - New enemies (next release), each shown alone first: **Rime Guard**
-    (gunship in an ice shell; **harmless while frozen** (owner's choice):
-    shoot the shell off (about 4 hits), or it thaws itself free in about
-    5 s; exposed, it fires aimed 3-shot bursts after a blink; 3 HP;
-    carries the loot gamble, about 1 in 3, like the Rust Raiders),
-    **Cryo Layer** (flies high, drops frost mines that blink when you get
-    close and burst into icicles; shootable), **Prism** (ice crystal that
-    splits into two smaller shooting crystals when hit).
+  - **Its own enemies** (v0.18.0), each shown alone first (Rime Guard
+    0:12, Prism 0:28, Cryo Layer 0:40); they replace most of the gunships
+    (3 left) and some pods:
+    - **Rime Guard** (about 30): a gunship frozen in an ice shell, drifting
+      in to hover. **Harmless while frozen** (owner's choice; ramming it
+      still costs 2): your shots crack the shell (4 hits, +10 points; a
+      bomb or the laser breaks it at once, rockets treat it as armour), or
+      it thaws itself free after 5 s on screen (its last second: drips and
+      flickers between ice and gunship). Free: tracks your height slowly,
+      blinks 0.4 s, fires an aimed 3-shot burst every 1.8 s, only while
+      you're in front (a burst stops if you slip behind it); leaves after
+      3 bursts, or after 6 s with you behind it. 3 HP, 50 pts, ram 2; the loot gamble like the Rust
+      Raiders (35%, 50% when hurt, 30% of it "A" ammo). Groups hover in
+      separate lanes, and guards **never stack up** (one overlapping
+      another moves away up/down and sideways, even when ice leaves one
+      gap).
+    - **Cryo Layer** (about 10): an ore hauler crossing high up, dropping
+      3–4 **frost mines** as it goes (about 34 a level). 5 HP, 60 pts,
+      ram 2, 15% drop. A mine falls a little, then drifts left; come
+      within 26 px and it blinks 0.5 s, then bursts into 6 icicles
+      (1 block each); touch it and it bursts at once; shoot it and it
+      breaks harmlessly (10 pts); it fizzles after 8 s, or at once inside
+      ice. Rockets ignore mines.
+    - **Prism** (about 14): an ice crystal drifting in. The first ordinary
+      hit splits it into **two shards** that fly apart, blink 0.4 s, fire
+      one aimed shot each (only if you're in front), then flee; the
+      laser, a bomb or a rocket shatters it whole. 30 pts, +15 a shard;
+      shards ram 1. Ice things shatter into ice dust (`gore.ice`), no
+      explosion.
   - Boss **The Glacier Warden** ("GLACIER WARDEN / KEEPER OF THE RING"):
     ice armour plates over a core, shoot plates off to open a path; from
     stage 2 it refreezes plates; 6+ warned attacks (icicle fans, sweeping
@@ -381,6 +403,10 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
   over spires (`Game.keepAboveRock`); `liftsOver(e)` can say "not now"
   (a diving pod; a skimmer hopping spires itself); `onLift(e, d)` lets a
   type shift its own planned path when lifted by `d` pixels.
+  More hooks (v0.18.0): `shield(e, amount, game, hx, hy)` soaks up damage
+  first (return true when it did: a frozen Rime Guard's shell);
+  `gore: { ice: n }` makes it shatter into n ice chips instead of
+  exploding; the shot kind `'icicle'` draws an ice spike.
 
 ### The 8 levels and bosses (in order)
 1. **The Outer Belt** — asteroid field in deep blue space, distant amber sun.
@@ -498,7 +524,7 @@ Approved by the owner. Keep the status column up to date.
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
-| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C in progress (Frostring world v0.17.0) |
+| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C in progress (Frostring world v0.17.0, its enemies v0.18.0) |
 | 4 | **Levels 5–8** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |
@@ -520,7 +546,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   damage/armour, lives, score, HUD, banners, level clear.
 - `js/enemies.js` — enemy types (incl. asteroids, seekers, snipers, spinners,
   cargo pods; Rust Moon's cliff turrets, dust skimmers, mortar crawlers and
-  shells, Rust Raiders) and how they move/shoot.
+  shells, Rust Raiders; Frostring's Rime Guards, Cryo Layers and frost
+  mines, Prisms and their shards) and how they move/shoot.
 - `js/bosses.js` — Rockjaw (3 phases, 8 attacks, entrance, transitions,
   gory death).
 - `js/crawler.js` — the Siege Crawler (3 stages, 7 attacks + paired attacks,

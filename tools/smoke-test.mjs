@@ -1601,7 +1601,8 @@ for (const phone of PHONES) {
     // The whole level, start to end, with the ship parked out of the way:
     // there's always a way through (an open stretch at least 30 pixels tall
     // across every 44-pixel-wide part of the screen), ice never overlaps ice,
-    // no enemy is ever inside ice, and no item either.
+    // no enemy is ever inside ice, and no item either; Rime Guards don't
+    // stack up.
     g.reset();
     g.banner = null;
     let minGap = 999;
@@ -1610,6 +1611,8 @@ for (const phone of PHONES) {
     let pkInIce = 0;
     const seen = new Set();
     let fromEdges = 0;
+    let stack = 0;
+    let longestStack = 0;
     for (let i = 0; i < 190 * 120 && g.state !== 'clear'; i++) {
       g.player.invuln = 5;
       g.player.x = 4;
@@ -1638,8 +1641,18 @@ for (const phone of PHONES) {
         if (g.terrain.slabAt(e.x + 1, e.y + 1, e.w - 2, e.h - 2)) inIce.add(e.type + '@' + Math.round(g.runner.t));
       }
       for (const p of g.pickups) if (!p.magnet && g.terrain.slabAt(p.x, p.y, 9, 9)) pkInIce++;
+      // Rime Guards never sit on top of one another (more than half hidden)
+      // for longer than a moment (one flying past another).
+      const rg = g.enemies.filter((e) => e.type === 'rimeGuard' && !e.dead && e.x < 208);
+      const stacked = rg.some((A, p) => rg.slice(p + 1).some((C) => {
+        const ox = Math.min(A.x + A.w, C.x + C.w) - Math.max(A.x, C.x);
+        const oy = Math.min(A.y + A.h, C.y + C.h) - Math.max(A.y, C.y);
+        return ox > 0 && oy > 0 && ox * oy > 0.5 * Math.min(A.w * A.h, C.w * C.h);
+      }));
+      stack = stacked ? stack + 1 : 0;
+      longestStack = Math.max(longestStack, stack / 120);
     }
-    res.level = { cleared: g.state === 'clear', slabs: seen.size, fromEdges, minGap: Math.floor(minGap), overlaps, inIce: [...inIce].slice(0, 6), pkInIce };
+    res.level = { cleared: g.state === 'clear', slabs: seen.size, fromEdges, minGap: Math.floor(minGap), overlaps, inIce: [...inIce].slice(0, 6), pkInIce, longestStack: +longestStack.toFixed(2) };
     return res;
   });
   const ok = r.chip.firstHit === 1 && r.chip.shattered && r.chip.gone && r.chip.score >= 10 &&
@@ -1647,8 +1660,212 @@ for (const phone of PHONES) {
     r.wallOff.placed && r.wallOff.refused && r.diveCrash && r.fromTop.warned && r.fromTop.atMarker !== null && r.fromTop.atMarker < 3 &&
     r.frostLook.own === 6 && r.frostLook.sameSize === 6 && r.frostLook.cargoSame &&
     r.level.cleared && r.level.slabs >= 40 && r.level.fromEdges >= 6 && r.level.minGap >= 30 && r.level.overlaps === 0 &&
-    r.level.inIce.length === 0 && r.level.pkInIce === 0 && errs.length === 0;
+    r.level.inIce.length === 0 && r.level.pkInIce === 0 && r.level.longestStack < 0.6 && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  Frostring rules ${JSON.stringify(r)} ${errs.join(' ')}`);
+  if (!ok) failures++;
+  await context.close();
+}
+
+// Stage 3C-1 (part 2): Frostring's three new enemies follow the rules.
+{
+  const context = await browser.newContext({ viewport: { width: 915, height: 412 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  const errs = [];
+  page.on('pageerror', (e) => errs.push(String(e)));
+  await page.goto(base + '?level=3');
+  await page.waitForTimeout(300);
+  await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  await page.waitForTimeout(300);
+  const r = await page.evaluate(async () => {
+    window.__ember.frozen = true;
+    const g = window.__ember.game;
+    const fire = { dx: 0, dy: 0, fire: true, special: false, tap: false };
+    const idle = { ...fire, fire: false };
+    const step = (sec, input = idle) => {
+      for (let i = 0; i < sec * 120; i++) {
+        g.player.invuln = 1;
+        g.update(1 / 120, input);
+      }
+    };
+    const quiet = () => {
+      g.reset();
+      g.runner.next = g.level.events.length;
+      g.banner = null;
+      g.player.entering = 0;
+      g.player.x = 20;
+      g.player.y = 60;
+    };
+    const res = {};
+    // Shots fired since the last clear (by anyone).
+    let shots = 0;
+    const fireShot = g.fireShot.bind(g);
+    g.fireShot = (...a) => { shots++; return fireShot(...a); };
+    // Watch something until a shot is fired: was it blinking (charge) in the
+    // last moment before, how many shots came in that burst?
+    const watchFire = (e, sec) => {
+      let lastCharge = -99;
+      let firstShot = null;
+      let t = 0;
+      shots = 0;
+      for (let i = 0; i < sec * 120; i++) {
+        g.player.invuln = 1;
+        g.update(1 / 120, idle);
+        t += 1 / 120;
+        if (e.charge) lastCharge = t;
+        if (shots && firstShot === null) firstShot = t;
+      }
+      return { blinkedFirst: firstShot !== null && firstShot - lastCharge < 0.1 && lastCharge > 0, firstShot, shots };
+    };
+
+    // Rime Guard. Frozen, it's harmless (never fires), even with you right
+    // in front of it, until it thaws free after about 5 s.
+    quiet();
+    let rg = g.spawnEnemy('rimeGuard', 150, 56, { targetX: 150 });
+    shots = 0;
+    step(4.8);
+    res.rimeFrozen = { shots, frozen: rg.frozen, armoured: !rg.T.isVulnerable(rg) };
+    step(0.4);
+    res.rimeThawed = !rg.frozen;
+    // Free, it blinks, then fires a 3-shot burst at you.
+    res.rimeFires = watchFire(rg, 1.6);
+    // ...and never while you're behind it (after a while it gives up and
+    // leaves).
+    quiet();
+    rg = g.spawnEnemy('rimeGuard', 100, 56, { targetX: 100 });
+    g.player.x = 160;
+    shots = 0;
+    step(8);
+    res.rimeBehind = { shots, free: !rg.frozen };
+    step(6);
+    res.rimeBehind.leaves = rg.mode === 'leave';
+    // A burst stops if you slip behind it after its first shot.
+    quiet();
+    rg = g.spawnEnemy('rimeGuard', 100, 56, { targetX: 100 });
+    g.damage(rg, 9);
+    shots = 0;
+    for (let i = 0; i < 3 * 120 && !shots; i++) step(1 / 120);
+    g.player.x = 160;
+    step(1);
+    res.rimeBurstStops = shots;
+    // Its shell takes 4 hits (no damage to the gunship inside); breaking it
+    // open is worth 10 points.
+    quiet();
+    rg = g.spawnEnemy('rimeGuard', 150, 56, { targetX: 150 });
+    const s0 = g.score;
+    for (let i = 0; i < 3; i++) g.damage(rg, 1);
+    const after3 = rg.frozen;
+    g.damage(rg, 1);
+    res.rimeShell = { after3, after4: rg.frozen, hp: rg.hp, points: g.score - s0 };
+    // About a third carry loot (some of it "A" ammo).
+    let drops = 0;
+    let ammo = 0;
+    for (let i = 0; i < 400; i++) {
+      quiet();
+      const e = g.spawnEnemy('rimeGuard', 120, 50, { targetX: 120 });
+      g.damage(e, 9);
+      for (let k = 0; k < 3; k++) g.damage(e, 1);
+      if (g.pickups.length) drops++;
+      if (g.pickups.some((p) => p.kind === 'ammo')) ammo++;
+    }
+    res.rimeLoot = { drops, ammo };
+    // Two in the same spot move apart rather than stack up as one ship.
+    quiet();
+    const twins = [g.spawnEnemy('rimeGuard', 150, 56, { targetX: 150 }), g.spawnEnemy('rimeGuard', 150, 56, { targetX: 150 })];
+    step(1.5);
+    const [A, B] = twins;
+    res.rimeApart = A.y + A.h <= B.y || B.y + B.h <= A.y || A.x + A.w <= B.x || B.x + B.w <= A.x;
+
+    // Cryo Layer: crosses the top dropping 3-4 frost mines.
+    quiet();
+    g.player.x = 4;
+    g.player.y = 125;
+    const seen = new Set();
+    const layer = g.spawnEnemy('cryoLayer', 216, 14);
+    for (let i = 0; i < 7 * 120; i++) {
+      g.player.invuln = 1;
+      g.update(1 / 120, idle);
+      for (const e of g.enemies) if (e.type === 'frostMine') seen.add(e);
+    }
+    res.cryo = { mines: seen.size, high: layer.y < 40 };
+    // A mine you come near blinks for half a second, then bursts into 6
+    // icicles.
+    quiet();
+    let mine = g.spawnEnemy('frostMine', 60, 60, { vy: 0 });
+    g.player.x = 40;
+    const fuse = watchFire(mine, 0.8);
+    res.mineBurst = { ...fuse, icicles: g.enemyShots.filter((s) => s.kind === 'icicle').length };
+    // ...touch one and it bursts at once.
+    quiet();
+    g.player.x = 40;
+    g.player.invuln = 0;
+    g.player.y = 60;
+    mine = g.spawnEnemy('frostMine', g.player.x + 2, g.player.y + 1, { vy: 0 });
+    g.update(1 / 120, idle);
+    res.mineTouch = g.enemyShots.filter((s) => s.kind === 'icicle').length === 6;
+    // A mine you shoot breaks harmlessly.
+    quiet();
+    mine = g.spawnEnemy('frostMine', 120, 60, { vy: 0 });
+    shots = 0;
+    g.damage(mine, 1);
+    step(0.5);
+    res.mineShot = mine.dead && shots === 0;
+    // Left alone (you far away) it fizzles out after 8 s.
+    quiet();
+    g.player.y = 125;
+    g.player.x = 4;
+    mine = g.spawnEnemy('frostMine', 205, 20, { vy: 0 });
+    shots = 0;
+    step(7.5);
+    const alive75 = !mine.dead;
+    step(0.7);
+    res.mineFizzle = alive75 && mine.dead && shots === 0;
+    // One that ends up inside ice just fizzles.
+    quiet();
+    g.terrain.addSlab({ w: 30, h: 30, x: 100, y: 50, speed: 0 });
+    mine = g.spawnEnemy('frostMine', 110, 60, { vy: 0 });
+    shots = 0;
+    step(0.2);
+    res.mineIce = mine.dead && shots === 0;
+
+    // Prism: an ordinary hit splits it into two shards; the laser (or a
+    // bomb) breaks it whole.
+    const shardsAfter = (hit) => {
+      quiet();
+      const pr = g.spawnEnemy('prism', 120, 56);
+      g.player.y = 56;
+      hit(pr);
+      step(0.05);
+      return { dead: !!pr.dead, shards: g.enemies.filter((e) => e.type === 'prismShard').length };
+    };
+    res.prismShot = shardsAfter((pr) => { for (let i = 0; i < 120 && !pr.dead; i++) step(1 / 120, fire); }); // (stops firing once it breaks)
+    res.prismLaser = shardsAfter(() => { g.weapons.kind = 'laser'; g.weapons.ammo = 1; g.weapons.fire(); step(0.3); });
+    res.prismBomb = shardsAfter(() => { g.weapons.kind = 'bomb'; g.weapons.ammo = 1; g.weapons.fire(); step(0.5); });
+    // A shard blinks before it fires its one shot...
+    quiet();
+    const shard = g.spawnEnemy('prismShard', 140, 50, { vx: -14, vy: 0 });
+    res.shardFires = watchFire(shard, 1.2);
+    // ...and never fires at a ship behind it.
+    quiet();
+    g.player.x = 170;
+    g.spawnEnemy('prismShard', 100, 50, { vx: -14, vy: 0 });
+    shots = 0;
+    step(1.5);
+    res.shardBehind = shots === 0;
+    g.fireShot = fireShot;
+    return res;
+  });
+  const between = (v, a, b) => v >= a && v <= b;
+  const ok = r.rimeFrozen.shots === 0 && r.rimeFrozen.frozen && r.rimeFrozen.armoured && r.rimeThawed &&
+    r.rimeFires.blinkedFirst && r.rimeFires.shots === 3 && r.rimeBehind.free && r.rimeBehind.shots === 0 && r.rimeBehind.leaves && r.rimeBurstStops === 1 &&
+    r.rimeShell.after3 && !r.rimeShell.after4 && r.rimeShell.hp === 3 && r.rimeShell.points === 10 &&
+    between(r.rimeLoot.drops, 100, 180) && between(r.rimeLoot.ammo, 15, 60) && r.rimeApart &&
+    between(r.cryo.mines, 3, 4) && r.cryo.high &&
+    r.mineBurst.blinkedFirst && between(r.mineBurst.firstShot, 0.45, 0.6) && r.mineBurst.icicles === 6 &&
+    r.mineTouch && r.mineShot && r.mineFizzle && r.mineIce &&
+    r.prismShot.dead && r.prismShot.shards === 2 && r.prismLaser.dead && r.prismLaser.shards === 0 &&
+    r.prismBomb.dead && r.prismBomb.shards === 0 &&
+    r.shardFires.blinkedFirst && r.shardFires.shots === 1 && r.shardBehind && errs.length === 0;
+  console.log(`${ok ? 'PASS' : 'FAIL'}  Frostring enemies ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;
   await context.close();
 }

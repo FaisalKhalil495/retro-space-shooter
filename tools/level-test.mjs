@@ -207,6 +207,8 @@ const checks = {
   'level 3 (Frostring) follows level 2': level3.level === 3 && level3.state === 'playing',
   'Frostring cargo pods all collected': pickups2.every((k) => r3.collected.includes(k)),
   'slabs of ice broken by your shots': r3.shattered >= 10,
+  'Frostring enemies appeared': ['rimeGuard', 'cryoLayer', 'frostMine', 'prism', 'prismShard', 'gunner', 'sniper', 'spinner']
+    .every((t) => r3.types.includes(t)),
   'Frostring cleared': r3.state === 'clear',
   'no script errors': errors.length === 0,
 };
