@@ -1,19 +1,19 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.17.0';
-import { SPRITES } from './sprites.js?v=0.17.0';
-import { ENEMY_TYPES } from './enemies.js?v=0.17.0';
-import { LEVELS, LevelRunner } from './levels.js?v=0.17.0';
-import { Background } from './background.js?v=0.17.0';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.17.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.17.0';
-import { buzz, HAPTIC } from './feedback.js?v=0.17.0';
-import { sfx } from './audio.js?v=0.17.0';
-import { clamp, rectsOverlap } from './util.js?v=0.17.0';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.17.0';
-import { Blasts } from './blasts.js?v=0.17.0';
-import { Speech } from './speech.js?v=0.17.0';
-import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.17.0';
-import { startBossMusic, stopMusic } from './music.js?v=0.17.0';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.17.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.18.0';
+import { SPRITES } from './sprites.js?v=0.18.0';
+import { ENEMY_TYPES } from './enemies.js?v=0.18.0';
+import { LEVELS, LevelRunner } from './levels.js?v=0.18.0';
+import { Background } from './background.js?v=0.18.0';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.18.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.18.0';
+import { buzz, HAPTIC } from './feedback.js?v=0.18.0';
+import { sfx } from './audio.js?v=0.18.0';
+import { clamp, rectsOverlap } from './util.js?v=0.18.0';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.18.0';
+import { Blasts } from './blasts.js?v=0.18.0';
+import { Speech } from './speech.js?v=0.18.0';
+import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.18.0';
+import { startBossMusic, stopMusic } from './music.js?v=0.18.0';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.18.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -481,9 +481,12 @@ export class Game {
     return res;
   }
 
-  // Damage an enemy. Bosses ignore damage while armoured.
+  // Damage an enemy. Bosses ignore damage while armoured. An enemy with a
+  // shell that soaks up hits (shield: a frozen Rime Guard's ice) takes them
+  // there first.
   damage(e, amount, hx = e.x + e.w / 2, hy = e.y + e.h / 2) {
     if (e.dead || e.mode === 'dying' || e.under) return; // (underground: out of reach, no sparks)
+    if (e.T.shield && e.T.shield(e, amount, this, hx, hy)) return;
     if (e.T.isVulnerable && !e.T.isVulnerable(e)) {
       this.blocked(e.x + e.w / 3, e.y + e.h / 2);
       return;
@@ -801,11 +804,16 @@ export class Game {
     const cx = e.x + e.w / 2;
     const cy = e.y + e.h / 2;
     const gore = e.T.gore || {};
-    // Rocks crumble into dust; everything else explodes.
-    if (gore.rock) this.blasts.dust(cx, cy, size);
-    else this.blasts.blast(cx, cy, size);
-    this.burst(cx, cy, Math.round(6 + size * 10), 60 + size * 20);
-    sfx.explode(size);
+    // Ice shatters, rocks crumble into dust; everything else explodes.
+    if (gore.ice) {
+      this.burst(cx, cy, gore.ice, 55, ICE_COLORS.slice(1));
+      sfx.shatter();
+    } else {
+      if (gore.rock) this.blasts.dust(cx, cy, size);
+      else this.blasts.blast(cx, cy, size);
+      this.burst(cx, cy, Math.round(6 + size * 10), 60 + size * 20);
+      sfx.explode(size);
+    }
     if (gore.blood) {
       // Only living creatures bleed (lightly; no stains left behind).
       this.gore.blood(cx, cy, gore.blood, 70, null, Math.PI, false);
@@ -1055,6 +1063,24 @@ export class Game {
         ctx.fillRect(x - 2, y - 2, 4, 4);
         ctx.fillStyle = Math.floor(s.t * 12) % 2 ? PAL.amberLight : PAL.cream;
         ctx.fillRect(x - 1, y - 1, 2, 2);
+        continue;
+      }
+      if (s.kind === 'icicle') {
+        // A shard of ice: a dark-edged pale spike pointing the way it flies
+        // (dark edges so it shows on ice as well as on space).
+        const sp = Math.hypot(s.vx, s.vy) || 1;
+        const dx = s.vx / sp;
+        const dy = s.vy / sp;
+        for (let i = 3; i >= 0; i--) {
+          const px = snap(s.x - dx * i * 1.5);
+          const py = snap(s.y - dy * i * 1.5);
+          ctx.fillStyle = PAL.ink;
+          ctx.fillRect(px - 1, py - 1, 3, 3);
+        }
+        for (let i = 3; i >= 0; i--) {
+          ctx.fillStyle = i === 0 ? ICE_COLORS[4] : i < 2 ? ICE_COLORS[3] : ICE_COLORS[2];
+          ctx.fillRect(snap(s.x - dx * i * 1.5), snap(s.y - dy * i * 1.5), 1, 1);
+        }
         continue;
       }
       if (s.kind === 'fast') {

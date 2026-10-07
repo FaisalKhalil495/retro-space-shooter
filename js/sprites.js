@@ -1,4 +1,4 @@
-import { PAL } from './config.js?v=0.17.0';
+import { PAL } from './config.js?v=0.18.0';
 
 // Pixel art is written as text grids: each character is one pixel and maps
 // to a palette colour ('.' is transparent). Each sprite is drawn once onto
@@ -373,6 +373,75 @@ const FROST_ART = {
 };
 for (const [name, rows] of Object.entries(RUST_ART)) ART[name + '_rust'] = rows;
 for (const [name, rows] of Object.entries(FROST_ART)) ART[name + '_frost'] = rows;
+
+// Frostring's own enemies (Ice Harvester style).
+// Rime Guard, frozen in its ice shell (harmless until it breaks free)...
+ART.rimeIced = [
+    '...kkkkkkkk...',
+    '..kiiiiijjjk..',
+    '.kiiimmmmjjjk.',
+    'kiiiqqqqqqmjjk',
+    'kiiqaAaAaqmjmk',
+    'kihhqgnngaqmmk',
+    'kihhqgggggaqmk',
+    'kijqqqqqqqimmk',
+    'kjjmmmmmmimmmk',
+    '.kjjjmmmmmmmk.',
+    '..kjjjmmmmmk..',
+    '...kkkkkkkk...',
+];
+// ...and once free: a striped gunship with twin guns in front.
+ART.rimeGuard = [
+    '...kkkkkk...',
+    '..kaAaAaAak.',
+    '.kkgggggggkk',
+    'hhkgnlaangak',
+    'hhkgnaalngak',
+    '.kkgggggggkk',
+    '..kaAaAaAak.',
+    '...kkkkkk...',
+];
+// Cryo Layer: an ore hauler with a frost mine slung in its belly.
+ART.cryoLayer = [
+    '....kkkkkkkk....',
+    '...kaAaAaAaAk...',
+    'kkkkgggggggggkk.',
+    'kahgnnnnnnnngggk',
+    'kkkkgggggggggkk.',
+    '....kkkkkkkkk...',
+    '.....kjmjk......',
+    '.....kmqmk......',
+    '......kkk.......',
+];
+// A frost mine (its amber heart blinks when it's about to burst).
+ART.frostMine = [
+    '.kkkk.',
+    'kjiimk',
+    'kiaqmk',
+    'kmqamk',
+    'kmmqqk',
+    '.kkkk.',
+];
+// Prism: an ice crystal that splits in two when it's hit...
+ART.prism = [
+    '...kjk...',
+    '..kjijk..',
+    '.kjiijmk.',
+    'kjiiajmqk',
+    'jijaaamqm',
+    'kjmmamqqk',
+    '.kmmmqqk.',
+    '..kmqqk..',
+    '...kqk...',
+];
+// ...into two small shards that each fire once.
+ART.prismShard = [
+    '..k..',
+    '.kjk.',
+    'kiamk',
+    '.kqk.',
+    '..k..',
+];
 
 function build(rows, colorOverride) {
   const w = Math.max(...rows.map((r) => r.length));

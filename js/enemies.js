@@ -1,11 +1,11 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.17.0';
-import { ROCKS } from './rockart.js?v=0.17.0';
-import { SPRITES } from './sprites.js?v=0.17.0';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.17.0';
-import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.17.0';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.17.0';
-import { GROUND_SPEED, ROCK_CLEARANCE } from './terrain.js?v=0.17.0';
-import { sfx } from './audio.js?v=0.17.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.18.0';
+import { ROCKS } from './rockart.js?v=0.18.0';
+import { SPRITES } from './sprites.js?v=0.18.0';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.18.0';
+import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.18.0';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.18.0';
+import { GROUND_SPEED, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.18.0';
+import { sfx } from './audio.js?v=0.18.0';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -776,7 +776,356 @@ export const ENEMY_TYPES = {
   rockjaw: ROCKJAW_TYPE,
   siegeCrawler: SIEGE_CRAWLER_TYPE,
   ...CRAWLER_MINIONS,
+
+  // ---- Frostring ----
+
+  // Rime Guard: a gunship frozen inside an ice shell. While frozen it's
+  // harmless: your shots crack the shell (4 hits; a bomb or the laser breaks
+  // it at once), or it thaws itself free after 5 s on screen (its ice
+  // flickers and drips for the last second). Free, it tracks your height
+  // and, while you're in front of it, blinks and fires an aimed 3-shot burst
+  // every 1.8 s; after 3 bursts it leaves (or after 6 s with you behind
+  // it). All Rime Guards look alike, and
+  // about a third carry loot (like the Rust Raiders).
+  rimeGuard: {
+    flies: true, // steers round ice (see Game.keepClearOfIce)
+    sprite: 'rimeIced',
+    hp: 3,
+    score: 50,
+    ram: 2,
+    dropChance: 0.35,
+    hurtDropChance: 0.5,
+    ammoLoot: true,
+    explodeSize: 0.6,
+    gore: { metal: 8 },
+    init(e) {
+      e.frozen = true;
+      e.shell = RIME_SHELL;
+      e.thaw = RIME_THAW;
+      e.mode = 'enter';
+      e.targetX = e.targetX ?? VIEW_W - 44;
+      e.bursts = 0;
+      e.burstLeft = 0;
+      e.fireTimer = 0.8;
+      e.charge = 0;
+    },
+    // (Frozen counts as armour, so rockets go for something else first.)
+    isVulnerable: (e) => !e.frozen,
+    // Hits on a frozen Rime Guard crack its shell instead.
+    shield(e, amount, game, hx, hy) {
+      if (!e.frozen) return false;
+      e.shell -= amount;
+      e.flash = 0.06;
+      game.burst(hx, hy, 3, 40, ICE_COLORS.slice(2));
+      if (e.shell <= 0) breakFree(e, game, true);
+      else sfx.iceChip();
+      return true;
+    },
+    update(e, dt, game) {
+      const p = game.player;
+      if (e.mode === 'enter') {
+        e.x += (e.targetX - e.x) * Math.min(1, dt * 2.2) - 6 * dt;
+        if (e.x - e.targetX < 2) e.mode = 'hold';
+      } else if (e.mode === 'leave') {
+        e.charge = 0;
+        e.x -= 55 * dt;
+        keepApart(e, dt, game);
+        return;
+      }
+      if (e.frozen) {
+        keepApart(e, dt, game);
+        if (e.x < VIEW_W - e.w) e.thaw -= dt; // (it only thaws once it's on screen)
+        if (e.thaw <= 0) breakFree(e, game, false);
+        return;
+      }
+      // Free: track your height (slowly; one in a group keeps to its own
+      // lane above or below).
+      e.y += clamp(p.y + p.h / 2 - e.h / 2 + (e.laneOff || 0) - e.y, -1, 1) * 22 * dt;
+      e.y = clamp(e.y, HUD_H + 2, game.terrain.floorY - e.h - 2);
+      keepApart(e, dt, game);
+      if (e.mode !== 'hold') return;
+      const inFront = p.x + p.w < e.x - 6;
+      if (e.burstLeft > 0) {
+        // Mid-burst: the next shot (only while you're still in front).
+        if (!inFront) {
+          e.burstLeft = 0;
+          return;
+        }
+        e.burstGap -= dt;
+        if (e.burstGap <= 0) {
+          game.fireAtPlayer(e.x - 1, e.y + e.h / 2, 84);
+          e.burstGap = 0.13;
+          if (--e.burstLeft === 0 && ++e.bursts >= 3) e.mode = 'leave';
+        }
+        return;
+      }
+      if (!inFront) {
+        e.fireTimer = Math.max(e.fireTimer, RIME_BLINK);
+        e.charge = 0;
+        // (You've flown past it: after a while it gives up and leaves.)
+        if ((e.idle = (e.idle || 0) + dt) > RIME_IDLE) e.mode = 'leave';
+        return;
+      }
+      e.idle = 0;
+      e.fireTimer -= dt;
+      e.charge = e.fireTimer < RIME_BLINK ? 1 : 0;
+      if (e.fireTimer <= 0) {
+        e.charge = 0;
+        e.burstLeft = 3;
+        e.burstGap = 0;
+        e.fireTimer = 1.8;
+      }
+    },
+    draw(e, ctx, snap, game) {
+      const x = snap(e.x);
+      const y = snap(e.y);
+      if (!e.frozen) {
+        ctx.drawImage(SPRITES['rimeGuard' + (e.flash > 0 ? 'Flash' : '')], x, y);
+        return;
+      }
+      // Frozen: the shell, cracking as it's hit; in its last second it
+      // drips and flickers (the ice and the gunship inside it in turn:
+      // about to break free).
+      if (e.thaw < 1 && Math.floor(e.thaw * 12) % 2 === 0 && !(e.flash > 0)) {
+        const g = SPRITES.rimeGuard;
+        ctx.drawImage(g, x + Math.floor((e.w - g.width) / 2), y + Math.floor((e.h - g.height) / 2));
+      } else {
+        ctx.drawImage(SPRITES['rimeIced' + (e.flash > 0 ? 'Flash' : '')], x, y);
+        ctx.fillStyle = ICE_COLORS[0];
+        for (const [cx, cy, k] of RIME_CRACKS) if (k < RIME_SHELL - e.shell) ctx.fillRect(x + cx, y + cy, 1, 1);
+      }
+      if (e.thaw < 1) {
+        ctx.fillStyle = ICE_COLORS[3];
+        for (let i = 0; i < 3; i++) ctx.fillRect(x + 3 + i * 4, y + e.h + ((Math.floor(game.time * 10) + i * 2) % 4), 1, 1);
+      }
+    },
+  },
+
+  // Cryo Layer: an ore hauler crossing the top of the screen, dropping 3-4
+  // frost mines behind it as it goes.
+  cryoLayer: {
+    flies: true, // steers round ice
+    onLift(e, d) {
+      e.baseY -= d;
+    },
+    sprite: 'cryoLayer',
+    hp: 5,
+    score: 60,
+    ram: 2,
+    dropChance: 0.15,
+    explodeSize: 0.7,
+    gore: { metal: 10 },
+    init(e, game) {
+      e.vx = -(36 + game.rand() * 8);
+      e.baseY = e.y;
+      e.dropTimer = 0.3;
+      e.dropped = 0;
+      e.mines = e.mines ?? 3 + (game.rand() < 0.5 ? 1 : 0);
+    },
+    update(e, dt, game) {
+      e.x += e.vx * dt;
+      e.y = e.baseY + Math.sin(e.t * 2) * 2;
+      if (e.dropped < e.mines && e.x < VIEW_W - 24 && e.x > 40) {
+        e.dropTimer -= dt;
+        if (e.dropTimer <= 0) {
+          e.dropTimer = 0.85;
+          e.dropped++;
+          game.spawnEnemy('frostMine', e.x + 5, e.y + 6, { vy: 40 + game.rand() * 110 });
+        }
+      }
+    },
+  },
+
+  // A frost mine: drifts slowly with the ice. Come close and it blinks for
+  // half a second, then bursts into 6 icicles (1 block each); touch it and it
+  // bursts at once. Shoot it and it breaks harmlessly. Left alone it fizzles
+  // out after 8 s, and one that drifts into a slab of ice just fizzles.
+  frostMine: {
+    sprite: 'frostMine',
+    hp: 1,
+    score: 10,
+    harmless: true, // (it hurts by bursting, not by ramming)
+    noDrop: true,
+    inset: 0,
+    gore: { ice: 6 },
+    init(e) {
+      e.vy = e.vy ?? 26; // (how far it falls before it settles: about vy / 2.5 pixels)
+      e.life = MINE_LIFE;
+      e.fuse = 0;
+    },
+    muzzle(e) {
+      return { x: e.x + 2, y: e.y + 2 };
+    },
+    update(e, dt, game) {
+      e.x -= MINE_DRIFT * dt;
+      e.vy *= 1 - Math.min(1, dt * 2.5);
+      e.y += e.vy * dt;
+      e.life -= dt;
+      if (e.life <= 0 || game.terrain.slabAt(e.x, e.y, e.w, e.h)) {
+        fizzle(e, game);
+        return;
+      }
+      if (game.playerVulnerable() && game.touchesPlayer(e.x, e.y, e.w, e.h)) {
+        burstMine(e, game);
+        return;
+      }
+      if (e.fuse > 0) {
+        e.fuse -= dt;
+        e.charge = 1;
+        if (e.fuse <= 0) burstMine(e, game);
+        return;
+      }
+      const c = game.playerCenter();
+      if (game.state === 'playing' && Math.hypot(c.x - (e.x + e.w / 2), c.y - (e.y + e.h / 2)) < MINE_RANGE) e.fuse = MINE_FUSE;
+    },
+    draw(e, ctx, snap) {
+      // Armed: it flashes, fast.
+      const lit = e.fuse > 0 && Math.floor(e.fuse * 16) % 2 === 0;
+      ctx.drawImage(SPRITES['frostMine' + (lit || e.flash > 0 ? 'Flash' : '')], snap(e.x), snap(e.y));
+    },
+  },
+
+  // Prism: an ice crystal drifting in. The first ordinary hit splits it into
+  // two small shards; a powerful hit (a bomb, a rocket, the laser) shatters
+  // it whole first.
+  prism: {
+    flies: true, // steers round ice
+    onLift(e, d) {
+      e.baseY -= d;
+    },
+    sprite: 'prism',
+    hp: 3,
+    score: 30,
+    ram: 2,
+    dropChance: 0.1,
+    gore: { ice: 14 },
+    init(e, game) {
+      e.vx = -(22 + game.rand() * 8);
+      e.baseY = e.y;
+      e.phase = game.rand() * 6;
+    },
+    update(e, dt) {
+      e.x += e.vx * dt;
+      e.y = e.baseY + Math.sin(e.t * 1.8 + e.phase) * 4;
+    },
+    onHit(e, game, hx, hy, amount) {
+      const powerful = amount >= 3 || e.laserAcc !== undefined;
+      if (!powerful) e.split = true;
+      e.hp = 0; // either way, it breaks now
+    },
+    onDeath(e, game) {
+      if (!e.split) return;
+      for (const side of [-1, 1]) game.spawnEnemy('prismShard', e.x + 2, e.y + 2, { vy: side * 55, vx: -14 });
+    },
+  },
+
+  // A small shard of a Prism: it flies apart from its twin, blinks, fires
+  // one aimed shot (only while you're in front of it), and flees.
+  prismShard: {
+    flies: true, // steers round ice
+    sprite: 'prismShard',
+    hp: 1,
+    score: 15,
+    ram: 1,
+    noDrop: true,
+    gore: { ice: 6 },
+    init(e) {
+      e.timer = SHARD_AIM + SHARD_BLINK;
+      e.fired = false;
+      e.charge = 0;
+    },
+    update(e, dt, game) {
+      e.x += e.vx * dt;
+      e.vy *= 1 - Math.min(1, dt * 3);
+      e.y = clamp(e.y + e.vy * dt, HUD_H + 1, game.terrain.floorY - e.h - 1);
+      if (e.fired) {
+        e.vx = Math.max(-90, e.vx - 160 * dt); // flee
+        return;
+      }
+      const p = game.player;
+      const inFront = p.x + p.w < e.x - 4;
+      e.timer -= dt;
+      e.charge = inFront && e.timer < SHARD_BLINK ? 1 : 0;
+      if (e.timer <= 0) {
+        e.charge = 0;
+        e.fired = true;
+        if (inFront) game.fireAtPlayer(e.x - 1, e.y + e.h / 2, 84);
+      }
+    },
+  },
 };
+
+const RIME_SHELL = 4; // hits to crack a frozen Rime Guard's shell
+const RIME_THAW = 5; // seconds on screen before it thaws itself free
+const RIME_BLINK = 0.4; // its warning blink before each burst
+const RIME_IDLE = 6; // seconds free with you behind it before it leaves
+// Where cracks show in its shell: [x, y, shown after this many hits].
+const RIME_CRACKS = [[5, 3, 0], [6, 4, 0], [7, 4, 0], [9, 7, 1], [8, 8, 1], [4, 8, 2], [3, 7, 2], [10, 3, 2], [11, 4, 3], [6, 9, 3]];
+const MINE_LIFE = 8; // seconds before an untouched frost mine fizzles out
+const MINE_DRIFT = 22; // how fast mines drift left
+const MINE_RANGE = 26; // how close your ship sets one off...
+const MINE_FUSE = 0.5; // ...and how long it blinks before it bursts
+const SHARD_AIM = 0.35; // a Prism shard flies apart this long...
+const SHARD_BLINK = 0.4; // ...then blinks this long before it fires
+
+// A Rime Guard breaking out of its shell (shot open: +10 points), and now
+// a smaller, uncovered gunship in the middle of where the shell was.
+function breakFree(e, game, shotOpen) {
+  e.frozen = false;
+  const cx = e.x + e.w / 2;
+  const cy = e.y + e.h / 2;
+  e.w = SPRITES.rimeGuard.width;
+  e.h = SPRITES.rimeGuard.height;
+  e.x = cx - e.w / 2;
+  e.y = cy - e.h / 2;
+  e.fireTimer = Math.max(e.fireTimer, 0.8); // a moment (and a blink) before its first burst
+  for (let i = 0; i < 10; i++) game.burst(cx + (game.rand() - 0.5) * 12, cy + (game.rand() - 0.5) * 10, 1, 45, ICE_COLORS.slice(1));
+  sfx.shatter();
+  if (shotOpen) game.score += 10;
+}
+
+// Rime Guards never stack up looking like one ship: one that overlaps
+// another (or nearly) moves out of its way, the upper one up and the lower
+// one down (one pinned at the top or bottom edge stays, and the other
+// moves), and the right-hand one also edges right (the left-hand one left),
+// for when ice leaves only one gap for both of them.
+function keepApart(e, dt, game) {
+  const top = HUD_H + 2;
+  const low = game.terrain.floorY - e.h - 2;
+  for (const o of game.enemies) {
+    if (o === e || o.type !== 'rimeGuard' || o.dead) continue;
+    if (e.x >= o.x + o.w + 2 || o.x >= e.x + e.w + 2) continue;
+    if (e.y >= o.y + o.h + 2 || o.y >= e.y + e.h + 2) continue;
+    const first = game.enemies.indexOf(e) < game.enemies.indexOf(o);
+    const ey = e.y + e.h / 2;
+    const oy = o.y + o.h / 2;
+    const above = ey < oy || (ey === oy && first);
+    const want = above ? o.y - e.h - 2 : o.y + o.h + 2;
+    e.y = clamp(e.y + clamp(want - e.y, -60 * dt, 60 * dt), top, low);
+    if (e.mode === 'leave') continue; // (one leaving is just passing by)
+    const ex = e.x + e.w / 2;
+    const ox = o.x + o.w / 2;
+    const right = ex > ox || (ex === ox && !first);
+    e.x = clamp(e.x + (right ? 30 : -30) * dt, Math.min(e.x, VIEW_W * 0.45), Math.max(e.x, VIEW_W - e.w - 2));
+  }
+}
+
+// A frost mine bursting into 6 icicles.
+function burstMine(e, game) {
+  e.dead = true;
+  const cx = e.x + e.w / 2;
+  const cy = e.y + e.h / 2;
+  const a0 = game.rand() * Math.PI;
+  for (let k = 0; k < 6; k++) game.fireShot(cx, cy, a0 + (k * Math.PI) / 3, 70, 'icicle');
+  game.burst(cx, cy, 8, 50, ICE_COLORS.slice(1));
+  sfx.shatter();
+}
+
+// A frost mine fizzling out harmlessly.
+function fizzle(e, game) {
+  e.dead = true;
+  game.burst(e.x + e.w / 2, e.y + e.h / 2, 4, 25, ICE_COLORS.slice(2));
+}
 
 const SHELL_TIME = 0.9; // seconds from launch to burst
 const DIVE_VY = 30; // a pod falling faster than this is dive-bombing

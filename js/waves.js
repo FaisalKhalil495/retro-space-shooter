@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.17.0';
-import { MAX_SPIRE, SHORT_SPIRE } from './terrain.js?v=0.17.0';
-import { clamp } from './util.js?v=0.17.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.18.0';
+import { MAX_SPIRE, SHORT_SPIRE } from './terrain.js?v=0.18.0';
+import { clamp } from './util.js?v=0.18.0';
 
 // Enemy formations. Levels are built by placing these on a timeline
 // (see levels.js). Every pattern takes the game, a random-number function
@@ -298,6 +298,28 @@ export const PATTERNS = {
       }
     };
     tryNow();
+  },
+
+  // Rime Guards (Frostring): gunships frozen in ice drift in and hover,
+  // each in its own lane (and a little apart), until shot open or thawed.
+  rime(game, rand, { n = 1, gap = 0.5 } = {}) {
+    const span = bottom(game) - TOP - 12;
+    for (let i = 0; i < n; i++) {
+      const y = n === 1 ? TOP + rand() * span : TOP + (span * i) / (n - 1) + (rand() - 0.5) * 6;
+      const laneOff = n === 1 ? 0 : (i - (n - 1) / 2) * (n === 2 ? 28 : 22);
+      game.later(i * gap, () => game.spawnEnemy('rimeGuard', VIEW_W + 8, y, { targetX: VIEW_W - 44 - (i % 2) * 20, laneOff }));
+    }
+  },
+
+  // Cryo Layers (Frostring): ore haulers crossing high up, dropping frost
+  // mines as they go, one after another.
+  cryo(game, rand, { n = 1, gap = 3 } = {}) {
+    for (let i = 0; i < n; i++) game.later(i * gap, () => game.spawnEnemy('cryoLayer', VIEW_W + 8, HUD_H + 3 + rand() * 14));
+  },
+
+  // Prisms (Frostring): ice crystals drifting in, one after another.
+  prism(game, rand, { n = 1, gap = 0.9 } = {}) {
+    for (let i = 0; i < n; i++) game.later(i * gap, () => game.spawnEnemy('prism', VIEW_W + 8, TOP + rand() * (bottom(game) - TOP - 10)));
   },
 
   // A cliff turret on a low rock mound on the canyon floor. (The mound
