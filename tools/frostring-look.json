@@ -1,0 +1,140 @@
+{
+ "note": "Frostring \"Ice Harvesters\" look chosen by the owner (3C-0). Pixel rows use the sprites.js palette letters, plus i/j/m/q (ice blues). To be built into js/sprites.js in 3C-1.",
+ "extraColors": {
+  "i": "#e6eef7",
+  "j": "#b8cde3",
+  "m": "#7f9cc0",
+  "q": "#4d6890",
+  "u": "#4a2230"
+ },
+ "sprites": {
+  "drifter": {
+   "label": "drill pod",
+   "rows": [
+    "..kkkkkk..",
+    ".kAaAaAak.",
+    "kakAkAkAak",
+    "hhkgggggak",
+    "hhkgggggak",
+    "kAkAkAkAak",
+    ".kkkkkkkk.",
+    ".........."
+   ]
+  },
+  "weaver": {
+   "label": "tunnel grub (creature)",
+   "rows": [
+    "...........",
+    "..kkkkkkk..",
+    ".kcdcdcdck.",
+    "kscdcdcdcek",
+    "kccdcdcdcek",
+    "kscdcdcdcek",
+    ".kcdcdcdck.",
+    "..kkkkkkk..",
+    "..........."
+   ]
+  },
+  "gunner": {
+   "label": "ice cutter",
+   "rows": [
+    "....kkkkkk....",
+    "...kaaaaaak...",
+    "..kaAkAkAak...",
+    ".khkkkkkkkkk..",
+    "hhhkgggggggak.",
+    "hlhkgnnngggak.",
+    "hhhkgggggggak.",
+    ".khkkkkkkkkk..",
+    "..kaAkAkAak...",
+    "...kaaaaaak...",
+    "....kkkkkk...."
+   ]
+  },
+  "seeker": {
+   "label": "rivet dart",
+   "rows": [
+    "..........",
+    "...kkkkk..",
+    ".kkaAaAak.",
+    "hhkgggggak",
+    ".kkaAaAak.",
+    "...kkkkk..",
+    ".........."
+   ]
+  },
+  "sniper": {
+   "label": "core drill",
+   "rows": [
+    "........kkkk..",
+    ".......kaAaak.",
+    "kkkkkkkkgggak.",
+    "hlhlhlhkgnnggk",
+    "kkkkkkkkgggak.",
+    ".......kaAaak.",
+    "........kkkk.."
+   ]
+  },
+  "cryo": {
+   "label": "ore hauler",
+   "rows": [
+    "....kkkkkkkk....",
+    "...kaAaAaAaAk...",
+    "kkkkgggggggggkk.",
+    "kahgnnnnnnnngggk",
+    "kkkkgggggggggkk.",
+    "....kkkkkkkkk...",
+    ".....kjmjk......",
+    ".....kmqmk......",
+    "......kkk......."
+   ]
+  },
+  "spinner": {
+   "label": "saw disc",
+   "rows": [
+    "...kkhhkk..",
+    ".kkhkhkkhk.",
+    "khkhhhhhkk.",
+    "kkhhhahgghk",
+    "hkhhanaggkk",
+    "hhhannnaggh",
+    "kkhhanaggkh",
+    "khhggagggkk",
+    ".kkgggggkhk",
+    ".khkkgkhkk.",
+    "..kkhhkk..."
+   ]
+  },
+  "rime": {
+   "label": "rime guard (iced)",
+   "rows": [
+    "...kkkkkkkk...",
+    "..kiiiiijjjk..",
+    ".kiiimmmmjjjk.",
+    "kiiiqqqqqqmjjk",
+    "kiiqaAaAaqmjmk",
+    "kihhqgnngaqmmk",
+    "kihhqgggggaqmk",
+    "kijqqqqqqqimmk",
+    "kjjmmmmmmimmmk",
+    ".kjjjmmmmmmmk.",
+    "..kjjjmmmmmk..",
+    "...kkkkkkkk..."
+   ]
+  },
+  "prism": {
+   "label": "prism",
+   "rows": [
+    "...kjk...",
+    "..kjijk..",
+    ".kjiijmk.",
+    "kjiiajmqk",
+    "jijaaamqm",
+    "kjmmamqqk",
+    ".kmmmqqk.",
+    "..kmqqk..",
+    "...kqk..."
+   ]
+  }
+ }
+}

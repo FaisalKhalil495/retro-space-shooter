@@ -203,7 +203,7 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
     tunnel grub (a creature), gunship → ice cutter, seeker → rivet dart,
     sniper → core drill, spinner → saw disc, and the new Rime Guard,
     Cryo Layer (an ore hauler dropping mines) and Prism in the same style
-    (designs kept in the scratchpad tool, `frost2.json` set 6).
+    (designs saved in `tools/frostring-look.json` until built).
   - Open space in a frozen comet ring (no ground), about 3 min in three
     parts, enemy shots 20% faster (`shotSpeed: 1.2`).
   - **Drifting ice slabs**: big slabs moving across at different speeds
