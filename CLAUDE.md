@@ -185,6 +185,28 @@ a real console controller, so you can play by feel while watching the game.
     edge) up over its turret.
   - Death: chain explosions, the turret blows off and spins away, a huge
     blast, and the burnt-out hull drops onto the floor.
+- **Frostring (level 3), step 3C — plan approved (owner, after v0.16.0)**,
+  not built yet. Steps: 3C-0 looks (owner picks from four sets shown
+  side by side: Furnace Fleet, Ice Hunters, Crystal Swarm, Polar Armada)
+  → 3C-1 the level → 3C-2 the boss; the owner tests each.
+  - Open space in a frozen comet ring (no ground), about 3 min in three
+    parts, enemy shots 20% faster (`shotSpeed: 1.2`).
+  - **Drifting ice slabs**: big slabs moving across at different speeds
+    and heights, from above and below; crashing costs 2 + knockback;
+    flyers never pass through them; **breakable** (owner's choice): shoot
+    through one to clear a path. Not level 1's rocks: no loot inside.
+  - New enemies, each shown alone first: **Rime Guard** (gunship in an
+    ice shell: shoot the shell off, then it's exposed and fires aimed
+    bursts; carries the loot gamble, about 1 in 3, like the Rust Raiders),
+    **Cryo Layer** (flies high, drops frost mines that blink when you get
+    close and burst into icicles; shootable), **Prism** (ice crystal that
+    splits into two smaller shooting crystals when hit).
+  - Boss **The Glacier Warden** ("GLACIER WARDEN / KEEPER OF THE RING"):
+    ice armour plates over a core, shoot plates off to open a path; from
+    stage 2 it refreezes plates; 6+ warned attacks (icicle fans, sweeping
+    frost beam with a guide line, hailstorm with shadow markers, ice wall
+    with a gap, boomerang shards, stage 3 blizzard wind pushing you back);
+    a machine (explosions); fight about 1.2x the Siege Crawler's.
 - **Moving between levels** (Stage 3A, v0.11.0): after the level-clear
   screen, "TAP TO CONTINUE" flies you into the next level with your **score,
   lives and special weapon**; health refills to 5 blocks; timed power-ups
