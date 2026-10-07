@@ -1,5 +1,6 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.16.0';
-import { MAX_SPIRE, SHORT_SPIRE } from './terrain.js?v=0.16.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.17.0';
+import { MAX_SPIRE, SHORT_SPIRE } from './terrain.js?v=0.17.0';
+import { clamp } from './util.js?v=0.17.0';
 
 // Enemy formations. Levels are built by placing these on a timeline
 // (see levels.js). Every pattern takes the game, a random-number function
@@ -14,6 +15,13 @@ const bottom = (game) => game.terrain.floorY - 16;
 const skyLane = (game) => game.terrain.floorY - MAX_SPIRE - 16;
 // Open ground a mortar crawler waits for at the right edge before it comes in.
 const MORTAR_OPEN = 60;
+
+// Frostring: how big its slabs of ice come.
+const SLAB_SIZES = {
+  small: (rand) => [14 + Math.floor(rand() * 9), 10 + Math.floor(rand() * 7)],
+  big: (rand) => [26 + Math.floor(rand() * 19), 24 + Math.floor(rand() * 21)],
+};
+const SLAB_WARN = 0.9; // seconds a "!" shows before a slab drifts in from above or below
 
 export const PATTERNS = {
   // Rock spires standing on the canyon floor (levels with ground), one every
@@ -186,6 +194,70 @@ export const PATTERNS = {
         game.spawnEnemy(type, VIEW_W + 4, y);
       });
     });
+  },
+
+  // ---- Frostring ----
+
+  // Slabs of ice, one every `every` seconds. size: 'small', 'big' or 'mixed'.
+  // from: 'right' (drift in from the right), 'top' / 'bottom' (slide in from
+  // that edge after a red "!" shows where), or 'mixed'. A slab that would
+  // wall off the way through tries another spot, or waits a moment.
+  ice(game, rand, { n = 2, every = 1.8, size = 'mixed', from = 'right', speed } = {}) {
+    for (let i = 0; i < n; i++) {
+      let tries = 0;
+      const place = () => {
+        const terrain = game.terrain;
+        const lo = TOP - 10;
+        for (let k = 0; k < 8; k++) {
+          const sz = size === 'mixed' ? (rand() < 0.5 ? 'small' : 'big') : size;
+          const [w, h] = SLAB_SIZES[sz](rand);
+          const dir = from === 'mixed' ? ['right', 'top', 'bottom'][Math.floor(rand() * 3)] : from;
+          const v = speed ?? 16 + rand() * 14;
+          const seed = 1 + Math.floor(rand() * 999);
+          if (dir === 'right') {
+            const y = lo + rand() * (terrain.floorY - h - lo);
+            if (terrain.addSlab({ w, h, y, speed: v, seed })) return;
+          } else {
+            // Slides in over the right half of the screen and settles near its
+            // edge, then drifts on.
+            const x = Math.round(VIEW_W * 0.45 + rand() * (VIEW_W * 0.5 - w));
+            const y = dir === 'top' ? lo + rand() * 30 : terrain.floorY - h - rand() * 30;
+            if (terrain.addSlab({ w, h, y, x, from: dir, speed: v, seed, wait: SLAB_WARN })) {
+              // (The "!" marks where it will come in: it drifts along with
+              // everything else while the warning shows.)
+              game.warn(x - v * SLAB_WARN + w / 2, dir === 'top' ? HUD_H + 3 : VIEW_H - 11, SLAB_WARN, dir === 'top' ? 'down' : 'up');
+              return;
+            }
+          }
+        }
+        if (++tries < 6) game.later(0.5, place);
+      };
+      game.later(i * every, place);
+    }
+  },
+
+  // Walls of ice with one gap to fly through (or shoot your own way). n
+  // walls in a row make a corridor whose gap drifts a little each time.
+  iceWall(game, rand, { n = 1, every = 2.4, gap = 40, speed = 20 } = {}) {
+    const terrain = game.terrain;
+    let mid = TOP + gap / 2 + rand() * (terrain.floorY - TOP - gap);
+    for (let i = 0; i < n; i++) {
+      let tries = 0;
+      const place = () => {
+        const w = 16 + Math.floor(rand() * 5);
+        const g0 = clamp(mid - gap / 2, HUD_H, terrain.floorY - gap);
+        const pieces = [];
+        if (g0 - HUD_H >= 8) pieces.push({ x: VIEW_W + 4, w, y: HUD_H, h: g0 - HUD_H, from: 'right' });
+        if (terrain.floorY - (g0 + gap) >= 8) pieces.push({ x: VIEW_W + 4, w, y: g0 + gap, h: terrain.floorY - g0 - gap, from: 'right' });
+        if (pieces.every((p) => terrain.canPlace(p, pieces.filter((q) => q !== p)))) {
+          for (const p of pieces) terrain.addSlab({ ...p, speed, seed: 1 + Math.floor(rand() * 999) });
+          // The next wall's gap shifts, but always overlaps this one enough
+          // to fly straight on through.
+          mid = clamp(mid + (rand() - 0.5) * 2 * (gap - 32), TOP + gap / 2, terrain.floorY - gap / 2);
+        } else if (++tries < 8) game.later(0.4, place);
+      };
+      game.later(i * every, place);
+    }
   },
 
   // ---- Rust Moon ----

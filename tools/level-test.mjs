@@ -1,4 +1,4 @@
-// Plays level 1 and then level 2 automatically at high speed (an
+// Plays levels 1, 2 and 3 automatically at high speed (an
 // invincible autopilot that lines up with enemies and holds Fire) to check
 // the level scripts, pickups, special weapons and the boss all work and each
 // level can be finished.
@@ -37,6 +37,9 @@ const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
     const bonus = g.stageBonus.bind(g);
     log.bonuses = 0;
     g.stageBonus = (e, stage) => { log.bonuses++; bonus(e, stage); };
+    const chip = g.chipSlab.bind(g);
+    log.shattered = 0;
+    g.chipSlab = (s, ...rest) => { chip(s, ...rest); if (s.dead && !s.counted) { s.counted = true; log.shattered++; } };
     g.__wrapped = true;
   }
   const step = 1 / 120;
@@ -152,9 +155,26 @@ results.rust = await run(560, { invincible: true, useSpecials: true });
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/lvl2-clear.png` });
 
+// On to level 3 (Frostring).
+const level3 = await page.evaluate(() => {
+  const g = window.__ember.game;
+  g.stateTimer = 4;
+  g.update(1 / 120, { dx: 0, dy: 0, fire: false, special: false, tap: true });
+  const log = window.__log;
+  log.collected = [];
+  log.types = [];
+  log.maxEnemies = 0;
+  log.shattered = 0;
+  return { level: g.level.number, state: g.state };
+});
+results.frost = await run(200, { invincible: true, useSpecials: true });
+await page.waitForTimeout(400);
+await page.screenshot({ path: `${out}/lvl3-clear.png` });
+
 console.log(JSON.stringify(results, null, 1));
 const r = results.boss;
 const r2 = results.rust;
+const r3 = results.frost;
 const pickups2 = ['rockets', 'shield', 'bomb', 'spread', 'life', 'rapid', 'laser', 'wingman'];
 const checks = {
   'enemies appeared': results.early.maxEnemies > 3,
@@ -184,6 +204,10 @@ const checks = {
   'a Siege Crawler stage bonus for each broken stage': r2.bonuses === 2,
   'Siege Crawler never attacks while talking': !r2.talkAttacks,
   'Rust Moon cleared': r2.state === 'clear',
+  'level 3 (Frostring) follows level 2': level3.level === 3 && level3.state === 'playing',
+  'Frostring cargo pods all collected': pickups2.every((k) => r3.collected.includes(k)),
+  'slabs of ice broken by your shots': r3.shattered >= 10,
+  'Frostring cleared': r3.state === 'clear',
   'no script errors': errors.length === 0,
 };
 let failures = 0;

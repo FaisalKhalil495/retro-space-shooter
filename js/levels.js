@@ -1,4 +1,4 @@
-import { PATTERNS } from './waves.js?v=0.16.0';
+import { PATTERNS } from './waves.js?v=0.17.0';
 
 // Level scripts. Each event is [seconds from the start, pattern, options].
 // The final 'boss' event waits for the screen to clear, flashes a warning
@@ -220,6 +220,102 @@ export const LEVELS = [
       [174, 'wall', { shooter: true }],
       [176, 'seekers', { n: 3 }],
       [184, 'boss'],
+    ],
+  },
+  {
+    // Frostring: open space inside a frozen comet ring. Slabs of ice drift
+    // across (they block you and stop shots both ways, but your shots break
+    // them), and enemy shots fly 20% faster. The invaders' mining crews (the
+    // "Ice Harvesters") are stripping the ring. Boss (step 3C-2): the Glacier
+    // Warden; until it's built the level ends when the last wave has gone.
+    number: 3,
+    name: 'FROSTRING',
+    shotSpeed: 1.2,
+    skin: 'frost', // its own look for the enemy types it shares with level 1
+    background: { frost: true, space: '#111829', sun: false, dust: true, dustColor: '#1a2640', farRocks: false },
+    events: [
+      // Part 1 (0:00-1:00): slabs of ice, shown alone first, then from above
+      // and below.
+      [2, 'row', { n: 5, shooter: true }],
+      [5, 'ice', { n: 2, size: 'small', every: 2.5 }], // first slabs of ice
+      [9, 'snake', { n: 6 }],
+      [12, 'ice', { n: 1, size: 'big' }],
+      [14, 'gunner'],
+      [17, 'ice', { n: 2, from: 'top', every: 2 }], // first slabs from above
+      [20, 'carrier', { drop: 'rockets' }],
+      [22, 'seekers', { n: 2 }],
+      [24, 'ice', { n: 2, from: 'bottom', every: 2 }], // ...and from below
+      [27, 'slant'],
+      [30, 'gunner', { two: true }],
+      [32, 'ice', { n: 3, every: 1.8 }],
+      [34, 'dive', { n: 4 }],
+      [36, 'carrier', { drop: 'shield' }],
+      [38, 'snake', { n: 7 }],
+      [41, 'ice', { n: 2, size: 'big', every: 2.6 }],
+      [43, 'row', { n: 6, shooter: true }],
+      [46, 'ambush', { n: 3 }],
+      [49, 'carrier', { drop: 'bomb' }],
+      [51, 'seekers', { n: 3 }],
+      [53, 'ice', { n: 2, from: 'top', every: 1.6 }],
+      [55, 'gunner'],
+      [57, 'pincer'],
+      // Part 2 (1:00-2:00): fields of ice, the first walls, snipers, spinners.
+      [61, 'ice', { n: 4, every: 1.6 }],
+      [62, 'snipers', { n: 1 }],
+      [64, 'carrier', { drop: 'spread' }],
+      [66, 'snake', { n: 7 }],
+      [68, 'spinner'],
+      [70, 'iceWall', { gap: 44 }], // first wall of ice
+      [72, 'gunner', { two: true }],
+      [75, 'ice', { n: 2, from: 'bottom', every: 1.5 }],
+      [77, 'carrier', { drop: 'life' }],
+      [78, 'snipers', { n: 2 }],
+      [81, 'seekers', { n: 3 }],
+      [83, 'ice', { n: 3, size: 'big', every: 2.2 }],
+      [86, 'spinner'],
+      [88, 'dive', { n: 5 }],
+      [90, 'carrier', { drop: 'repair' }],
+      [91, 'gunner', { n: 3 }],
+      [94, 'ambush', { n: 4 }],
+      [96, 'iceWall', { gap: 42, n: 2 }],
+      [98, 'row', { n: 6, shooter: true }],
+      [101, 'ice', { n: 2, from: 'top', every: 1.5 }],
+      [103, 'snipers', { n: 2 }],
+      [106, 'snake', { n: 8 }],
+      [108, 'gunner', { two: true }],
+      [110, 'carrier', { drop: 'rapid' }],
+      [112, 'ice', { n: 3, every: 1.6 }],
+      [114, 'pincer'],
+      [117, 'seekers', { n: 3 }],
+      // Part 3 (2:00-3:00): corridors of ice, everything at once.
+      [121, 'iceWall', { gap: 40, n: 3, every: 2.4 }],
+      [122, 'gunner', { n: 3 }],
+      [126, 'carrier', { drop: 'laser' }],
+      [128, 'snipers', { n: 2 }],
+      [130, 'ice', { n: 3, from: 'mixed', every: 1.4 }],
+      [132, 'spinner'],
+      [135, 'dive', { n: 5 }],
+      [137, 'gunner', { two: true }],
+      [140, 'carrier', { drop: 'repair' }],
+      [141, 'ice', { n: 4, every: 1.4 }],
+      [143, 'snake', { n: 8 }],
+      [145, 'spinner', { n: 2 }],
+      [148, 'row', { n: 7, shooter: true }],
+      [150, 'snipers', { n: 2 }],
+      [151, 'ambush', { n: 5 }],
+      [153, 'iceWall', { gap: 38, n: 3, every: 2.2 }],
+      [154, 'carrier', { drop: 'wingman' }],
+      [155, 'gunner', { two: true }],
+      [159, 'seekers', { n: 4 }],
+      [162, 'ice', { n: 3, from: 'mixed', every: 1.3 }],
+      [164, 'pincer'],
+      [166, 'spinner'],
+      [169, 'gunner', { n: 3 }],
+      [172, 'ice', { n: 3, size: 'big', every: 1.6 }],
+      [173, 'ambush', { n: 4 }],
+      [174, 'wall', { shooter: true }],
+      [176, 'seekers', { n: 3 }],
+      [182, 'end'],
     ],
   },
 ];
