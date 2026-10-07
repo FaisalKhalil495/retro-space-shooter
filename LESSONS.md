@@ -124,6 +124,13 @@ Last updated: v0.16.0 (Stage 3, after step 3B).
   tallest possible tower; drops always appear above rock.
 - **Ambushes from behind come only while the towers are short**, and fly
   above them — a threat you can't fight back against is just unfair.
+- **Wants a story that holds together** (after v0.16.0). Asked "am I
+  invading their world or are they invading?" and liked: **you defend
+  the worlds; the enemies are the invaders**, ending at their homeworld.
+  Check every new level's looks and boss against that story.
+- **Likes choosing from many options.** Asked to see more Frostring looks
+  ("generate more options"): eight sets, shown as two detailed pictures
+  plus one overview of all eight, worked well.
 - **Every level must look like its own world** (v0.16.0). Level 2 reused
   level 1's enemies unchanged; the owner wanted them to look different.
   A recolour wasn't enough ("change the shapes as well"), and a first

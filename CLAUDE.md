@@ -15,6 +15,15 @@ The owner plays on an Android phone (Chrome). A friend plays on an iPhone 16 Pro
 looking down at, which covers the action. Ember Drift's controls must feel like
 a real console controller, so you can play by feel while watching the game.
 
+**The story** (owner, after v0.16.0): the player is the **defender**. The
+enemies are **the invaders**, who have spread across many worlds; each level
+is a world they've taken (their force there looks like it belongs to that
+world, e.g. Rust Moon's Dust Pirates are raiders who joined them). The
+player fights through world after world, beating each occupying force and
+its boss, until level 8: **their homeworld** (the Hive World) and the Hive
+Mother. Levels, looks, boss taunts and the ending screen should all fit
+this story. (Frostring's looks: the invaders moving into the ice ring.)
+
 ## Out of scope (agreed)
 
 - Nokia's name, logo, original sprites, original graphics, or original music
