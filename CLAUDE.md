@@ -195,9 +195,15 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
   - Death: chain explosions, the turret blows off and spins away, a huge
     blast, and the burnt-out hull drops onto the floor.
 - **Frostring (level 3), step 3C — plan approved (owner, after v0.16.0)**,
-  not built yet. Steps: 3C-0 looks (owner picks from four sets shown
-  side by side: Furnace Fleet, Ice Hunters, Crystal Swarm, Polar Armada)
-  → 3C-1 the level → 3C-2 the boss; the owner tests each.
+  not built yet. Steps: 3C-0 looks → 3C-1 the level → 3C-2 the boss; the
+  owner tests each.
+  - **Its look: the "Ice Harvesters"** (owner, chosen from eight sets): the
+    invaders' mining crews strip-mining the ring, in yellow-and-black
+    hazard paint with drills and saw blades: pod → drill pod, weaver →
+    tunnel grub (a creature), gunship → ice cutter, seeker → rivet dart,
+    sniper → core drill, spinner → saw disc, and the new Rime Guard,
+    Cryo Layer (an ore hauler dropping mines) and Prism in the same style
+    (designs kept in the scratchpad tool, `frost2.json` set 6).
   - Open space in a frozen comet ring (no ground), about 3 min in three
     parts, enemy shots 20% faster (`shotSpeed: 1.2`).
   - **Drifting ice slabs**: big slabs moving across at different speeds
