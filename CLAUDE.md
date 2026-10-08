@@ -20,7 +20,7 @@ enemies are **the invaders**, who have spread across many worlds; each level
 is a world they've taken (their force there looks like it belongs to that
 world, e.g. Rust Moon's Dust Pirates are raiders who joined them). The
 player fights through world after world, beating each occupying force and
-its boss, until level 8: **their homeworld** (the Hive World) and the Hive
+its boss, until level 9: **their homeworld** (the Hive World) and the Hive
 Mother. Levels, looks, boss taunts and the ending screen should all fit
 this story. (Frostring's looks: the invaders moving into the ice ring.)
 
@@ -38,7 +38,8 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
 - Follows the original 3310 version: free movement in all directions, an
   auto-scrolling screen the player can't speed up, and enemies that follow
   fixed paths, chase the ship, or shoot at it.
-- 8 levels, each in a different setting, with a boss at the end of each.
+- **9 levels** (8 until the owner added the ice planet as level 4, after
+  v0.18.0), each in a different setting, with a boss at the end of each.
 - Pickups give extra lives or special weapons: bombs, rockets, and a
   long-range laser. Rockets (v0.13.2) go for a boss's open weak spot first,
   prefer unarmoured targets, and never chase cargo pods, mines or mortar
@@ -51,7 +52,7 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
   sound or wind-up), the ship's hitbox stays smaller than its drawing, nothing
   hits from off-screen without warning. Level 1 is still the easiest level;
   each level after steps up.
-- **Boss rule (all 8):** at least 3 phases, at least 5 different attacks, its
+- **Boss rule (all 9):** at least 3 phases, at least 5 different attacks, its
   own entrance with a title card, a roar, boss music, and real movement —
   never a target that just sits there. Standing still in front of a boss
   should be the most dangerous thing you can do.
@@ -408,7 +409,7 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
   `gore: { ice: n }` makes it shatter into n ice chips instead of
   exploding; the shot kind `'icicle'` draws an ice spike.
 
-### The 8 levels and bosses (in order)
+### The 9 levels and bosses (in order)
 1. **The Outer Belt** — asteroid field in deep blue space, distant amber sun.
    Easy opener. Boss: **Rockjaw**, a living asteroid; its mouth opens to spit
    rocks, and that's when it's vulnerable.
@@ -417,18 +418,28 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
 3. **Frostring** — frozen comet ring, pale blues and whites, drifting ice.
    Boss: **The Glacier Warden**, an ice-armoured ship; chip armour off to
    expose the core.
-4. **The Ember Mines** — underground tunnels lit by soft amber crystals;
+4. **The ice planet** (name to be chosen; owner, after v0.18.0) — the
+   frozen planet below Frostring's ring, where the invaders are fighting
+   their way across the surface: daylight snowfields and a battle going on
+   around you (the owner's picture: a Hoth-style ground battle, but every
+   design our own — no Star Wars walkers, snowspeeders or tow cables). You
+   fly down to it after beating the Glacier Warden. Must feel clearly
+   different from Frostring (space) and Rust Moon (the other ground
+   level). Its own new enemies and its own boss (not a walking machine:
+   that's the Siege Crawler). Plan, looks and boss to be agreed with the
+   owner when we reach it.
+5. **The Ember Mines** — underground tunnels lit by soft amber crystals;
    ceiling and floor squeeze the space. Boss: **The Drill Worm**, a mechanical
    worm bursting from walls above and below.
-5. **Stormveil** — inside a gas giant's cloud layers, dusty-orange storm bands,
+6. **Stormveil** — inside a gas giant's cloud layers, dusty-orange storm bands,
    lightning. Boss: **The Tempest Ray**, hides in clouds and calls lightning
    strikes (with warning flashes first).
-6. **The Shipwreck Graveyard** — drifting wrecks; enemies ambush from behind
+7. **The Shipwreck Graveyard** — drifting wrecks; enemies ambush from behind
    debris. Boss: **The Scrap King**, built from salvage; throws debris and gets
    faster as pieces fall off.
-7. **The Molten Deep** — lava tunnels deep underground, glowing deep red.
+8. **The Molten Deep** — lava tunnels deep underground, glowing deep red.
    Boss: **The Magma Leviathan**, rises from lava and sprays sweeping fire.
-8. **The Hive World** — the invaders' strange, organic homeworld; hardest
+9. **The Hive World** — the invaders' strange, organic homeworld; hardest
    level. Boss: **The Hive Mother**, two phases: swarms of small ships, then
    fights directly.
 
@@ -524,8 +535,8 @@ Approved by the owner. Keep the status column up to date.
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
-| 3 | **Levels 2–4** | Rust Moon, Frostring, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C in progress (Frostring world v0.17.0, its enemies v0.18.0) |
-| 4 | **Levels 5–8** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
+| 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C in progress (Frostring world v0.17.0, its enemies v0.18.0) |
+| 4 | **Levels 6–9** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |
 

@@ -316,7 +316,7 @@ fewer things per release; test edge cases (screen edges, deaths, last
 life) from the start; carry Stage 2's preferences into the first plan so
 fewer rounds are needed.
 
-### Stage 3 — Levels 2–4 (in progress, v0.11.0 → )
+### Stage 3 — Levels 2–5 (in progress, v0.11.0 → )
 - 3A, v0.11.0: moving between levels (score, lives and special carry on).
 - 3B-1, v0.12.x: Rust Moon — canyon floor, rock spires, cliff turrets,
   dust skimmers, mortar crawlers.
@@ -352,6 +352,12 @@ fewer rounds are needed.
   purpose to prove they catch it. Screenshots and the whole-level audit
   found two problems (stacking guards, a blob-like flicker) before
   hand-over.
+- After v0.18.0 the owner said they'd pictured an icy *planet* (a
+  Hoth-style ground battle), not a comet ring. Rather than rework
+  Frostring, they chose to keep it and add the ice planet as a new
+  level 4 after it (9 levels in all). Lesson: when a level's setting
+  could be read two ways ("an icy world"), show a picture of the setting
+  itself early, not just its enemies.
 **So far:** the owner's feedback has been about the world making sense
 (rocks on a planet, tanks on towers, enemies through towers) and about
 fairness (hidden or unreachable enemies) rather than raw difficulty.
