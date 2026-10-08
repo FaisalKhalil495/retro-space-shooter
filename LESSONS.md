@@ -216,6 +216,9 @@ Last updated: v0.17.0 (Stage 3, step 3C: the Frostring world).
 | v0.17.0: a test kept a reference to the level's terrain from before a reset (the same trap as in 3B-1) | In tests, never keep game objects in a variable across a reset; read them fresh each time (`g.terrain`, not a saved `t`). |
 | v0.18.0 (before release): Rime Guards stacked into one ship — a group's lanes squashed together at the top or bottom of the screen, back-to-back groups shared lanes, and the ice-dodging rule (faster) pushed two guards into the same gap | Every enemy type that hovers needs its own **keep-apart rule**, and it must work *alongside* the other rules that move it (ice dodging, edges): separating sideways as well as up/down. Run the whole-level overlap audit for every new type, not just the first one that stacked. |
 | v0.18.0: the "about to thaw" flicker reused the hit-flash picture, so the guard turned into a solid cream blob | Don't reuse one signal for two meanings. A warning needs its own look (here: flicking between the ice shell and the gunship inside). Look at screenshots of every new effect, not just the test results. |
+| v0.19.0 (before release): the Glacier Warden's saw ring surrounds its hub, and at first the ring (and the hub's rim) counted as armour for shots — so no shot could ever reach a plate or the core. Its fight on autopilot timed out with the boss untouched | **Time every new boss on autopilot as soon as it runs**, before polishing anything: a fight that never ends is a bug, not a balance problem (the same lesson as the Siege Crawler's core, again). For a weak point inside other parts, check the whole path a shot takes to it. |
+| v0.19.0: the 4-pixel-tall laser kept clipping a neighbouring plate with its bottom edge instead of reaching the core through the gap it had cut | Decide what a shot hits along its centre line (as the player aims), not its whole height; keep the full height only for bumping into things. |
+| v0.19.0: "blocks per minute" against a player who never dodges showed the first Warden draft was gentler than the Siege Crawler (15 vs 21), and its saw blades never hit anyone (all thrown off to the sides) | Measure a new boss's damage against the last boss with the same autopilot; each level should step up. Every attack should be able to reach a player who doesn't move. |
 | LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
 
 ## 5. Our working process (what works)
@@ -316,7 +319,7 @@ fewer things per release; test edge cases (screen edges, deaths, last
 life) from the start; carry Stage 2's preferences into the first plan so
 fewer rounds are needed.
 
-### Stage 3 — Levels 2–4 (in progress, v0.11.0 → )
+### Stage 3 — Levels 2–5 (in progress, v0.11.0 → )
 - 3A, v0.11.0: moving between levels (score, lives and special carry on).
 - 3B-1, v0.12.x: Rust Moon — canyon floor, rock spires, cliff turrets,
   dust skimmers, mortar crawlers.
@@ -352,6 +355,19 @@ fewer rounds are needed.
   purpose to prove they catch it. Screenshots and the whole-level audit
   found two problems (stacking guards, a blob-like flicker) before
   hand-over.
+- After v0.18.0 the owner said they'd pictured an icy *planet* (a
+  Hoth-style ground battle), not a comet ring. Rather than rework
+  Frostring, they chose to keep it and add the ice planet as a new
+  level 4 after it (9 levels in all). Lesson: when a level's setting
+  could be read two ways ("an icy world"), show a picture of the setting
+  itself early, not just its enemies.
+- v0.19.0: the Glacier Warden. The owner picked from four designs, asked
+  for a mix of two (B's fins + D's claws), saw three mixes side by side
+  and went back to the original B. Showing the mixes quickly was still
+  right: it settled the choice in one round. Timing the fight on
+  autopilot caught a boss that could never be hurt, and comparing
+  damage per minute with the Siege Crawler caught one that was too gentle
+  — both before the owner saw it.
 **So far:** the owner's feedback has been about the world making sense
 (rocks on a planet, tanks on towers, enemies through towers) and about
 fairness (hidden or unreachable enemies) rather than raw difficulty.

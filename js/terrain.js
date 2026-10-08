@@ -1,5 +1,5 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.18.0';
-import { seeded } from './util.js?v=0.18.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.19.0';
+import { seeded } from './util.js?v=0.19.0';
 
 // Solid things in the way, for levels that have them:
 //   - Rust Moon (and later the Ember Mines' tunnels): a floor strip along the
@@ -69,7 +69,7 @@ function spireImage(w, h, seed) {
 
 // A slab of ice, painted once: a pale block with bevelled edges, lit from the
 // upper left, with a few facet lines and frost specks.
-function slabImage(w, h, seed) {
+export function slabImage(w, h, seed) {
   const cv = document.createElement('canvas');
   cv.width = w;
   cv.height = h;

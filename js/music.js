@@ -1,9 +1,10 @@
-import { audioOut } from './audio.js?v=0.18.0';
+import { audioOut } from './audio.js?v=0.19.0';
 
 // Boss music, generated live: pounding drums, a growling bass line and dark
 // stabbing chords. Rockjaw's is in D minor with a flattened second (the
 // "phrygian" sound used in a lot of heavy, ominous music); the Siege
-// Crawler's is a slower military march. Notes are scheduled slightly ahead
+// Crawler's is a slower military march; the Glacier Warden's is cold, with
+// glassy chimes. Notes are scheduled slightly ahead
 // of time so the rhythm stays tight even if the game is busy.
 
 const LOOKAHEAD = 0.15;
@@ -57,6 +58,37 @@ const SONGS = {
       [55, 59, 62], // G
     ],
     bell: 79,
+  },
+  // The Glacier Warden: cold and heavy, in E minor, with a glassy arpeggio
+  // of chimes ringing over the drums like ice.
+  glacier: {
+    bpm: 118,
+    bass: [
+      // bar 1: Em
+      40, 0, 0, 40, 52, 0, 40, 0, 40, 0, 0, 40, 50, 0, 47, 0,
+      // bar 2: C
+      36, 0, 0, 36, 48, 0, 36, 0, 36, 0, 0, 36, 47, 0, 43, 0,
+      // bar 3: Am
+      33, 0, 0, 33, 45, 0, 33, 0, 33, 0, 0, 33, 43, 0, 40, 0,
+      // bar 4: B, climbing back
+      35, 0, 0, 35, 47, 0, 35, 0, 35, 0, 35, 0, 39, 42, 45, 47,
+    ],
+    kick: [1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+    snare: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1],
+    chords: [
+      [64, 67, 71], // Em
+      [60, 64, 67], // C
+      [57, 60, 64], // Am
+      [59, 63, 66], // B
+    ],
+    bell: 83,
+    // Chimes on every other 16th, up and down each chord.
+    arp: [
+      76, 0, 79, 0, 83, 0, 88, 0, 83, 0, 79, 0, 76, 0, 79, 0,
+      72, 0, 76, 0, 79, 0, 84, 0, 79, 0, 76, 0, 72, 0, 76, 0,
+      69, 0, 72, 0, 76, 0, 81, 0, 76, 0, 72, 0, 69, 0, 72, 0,
+      71, 0, 75, 0, 78, 0, 83, 0, 78, 0, 75, 0, 71, 0, 75, 0,
+    ],
   },
 };
 
@@ -122,6 +154,7 @@ function playStep({ ac, noiseBuf }, i, t) {
   if (s16 === 0) stab(ac, song.chords[bar].map(hz), t);
   // An eerie high bell every other bar, on the off-beat.
   if (s16 === 10 && bar % 2 === 1) bell(ac, hz(song.bell), t);
+  if (song.arp && song.arp[i]) chime(ac, hz(song.arp[i]), t);
 }
 
 function bass(ac, f, t) {
@@ -214,6 +247,22 @@ function stab(ac, freqs, t) {
       osc.start(t);
       osc.stop(t + 0.65);
     }
+  }
+}
+
+// A short glassy chime: a sine with a faint, slightly sharp overtone.
+function chime(ac, f, t) {
+  for (const [mul, vol] of [[1, 0.03], [2.01, 0.012]]) {
+    const osc = ac.createOscillator();
+    const g = ac.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = f * mul;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.005);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.45);
+    osc.connect(g).connect(bus);
+    osc.start(t);
+    osc.stop(t + 0.5);
   }
 }
 

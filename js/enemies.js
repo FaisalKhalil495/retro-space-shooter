@@ -1,11 +1,12 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.18.0';
-import { ROCKS } from './rockart.js?v=0.18.0';
-import { SPRITES } from './sprites.js?v=0.18.0';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.18.0';
-import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.18.0';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.18.0';
-import { GROUND_SPEED, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.18.0';
-import { sfx } from './audio.js?v=0.18.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.19.0';
+import { ROCKS } from './rockart.js?v=0.19.0';
+import { SPRITES } from './sprites.js?v=0.19.0';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.19.0';
+import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.19.0';
+import { GLACIER_WARDEN_TYPE, WARDEN_MINIONS } from './warden.js?v=0.19.0';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.19.0';
+import { GROUND_SPEED, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.19.0';
+import { sfx } from './audio.js?v=0.19.0';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -776,6 +777,8 @@ export const ENEMY_TYPES = {
   rockjaw: ROCKJAW_TYPE,
   siegeCrawler: SIEGE_CRAWLER_TYPE,
   ...CRAWLER_MINIONS,
+  glacierWarden: GLACIER_WARDEN_TYPE,
+  ...WARDEN_MINIONS,
 
   // ---- Frostring ----
 
@@ -1088,7 +1091,8 @@ function breakFree(e, game, shotOpen) {
 // another (or nearly) moves out of its way, the upper one up and the lower
 // one down (one pinned at the top or bottom edge stays, and the other
 // moves), and the right-hand one also edges right (the left-hand one left),
-// for when ice leaves only one gap for both of them.
+// for when ice leaves only one gap for both of them (two leaving side by
+// side through a gap, too).
 function keepApart(e, dt, game) {
   const top = HUD_H + 2;
   const low = game.terrain.floorY - e.h - 2;
@@ -1102,7 +1106,6 @@ function keepApart(e, dt, game) {
     const above = ey < oy || (ey === oy && first);
     const want = above ? o.y - e.h - 2 : o.y + o.h + 2;
     e.y = clamp(e.y + clamp(want - e.y, -60 * dt, 60 * dt), top, low);
-    if (e.mode === 'leave') continue; // (one leaving is just passing by)
     const ex = e.x + e.w / 2;
     const ox = o.x + o.w / 2;
     const right = ex > ox || (ex === ox && !first);

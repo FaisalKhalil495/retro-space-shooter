@@ -343,6 +343,32 @@ export const sfx = {
     [1900, 1500, 2300, 1250].forEach((f, i) =>
       tone({ type: 'triangle', f0: f, f1: f * 0.8, dur: 0.09, vol: 0.05, when: 0.04 + i * 0.05, cutoff: 5000 }));
   },
+  grind(dur = 0.6) {
+    // A saw ring spinning up: a rising, grinding whine.
+    if (!ready()) return;
+    tone({ type: 'sawtooth', f0: 220, f1: 640, dur, vol: 0.06, attack: 0.03, cutoff: 2400 });
+    noise({ dur, vol: 0.1, f0: 1800, f1: 4200, q: 4, type: 'bandpass' });
+  },
+  beam(dur) {
+    // The frost beam: a cold hiss with a high, wavering tone.
+    if (!ready()) return;
+    noise({ dur, vol: 0.18, f0: 5200, f1: 3000, q: 1.5, type: 'bandpass' });
+    tone({ type: 'triangle', f0: 1320, f1: 990, dur, vol: 0.05, attack: 0.03, cutoff: 4000 });
+  },
+  howl(dur) {
+    // A blizzard: wind howling up and dying away.
+    if (!ready()) return;
+    noise({ dur, vol: 0.22, f0: 300, f1: 1400, q: 6, type: 'bandpass' });
+    noise({ dur: dur * 0.8, vol: 0.12, f0: 900, f1: 500, q: 4, type: 'bandpass', when: 0.4 });
+  },
+  iceRoar() {
+    // The Glacier Warden: its horn, a grinding saw and cracking ice at once.
+    if (!ready()) return;
+    tone({ type: 'sawtooth', f0: 82, f1: 65, dur: 1.4, vol: 0.18, attack: 0.08, cutoff: 700 });
+    tone({ type: 'sawtooth', f0: 123, f1: 98, dur: 1.4, vol: 0.11, attack: 0.08, cutoff: 900 });
+    noise({ dur: 1.2, vol: 0.16, f0: 2400, f1: 5200, q: 3, type: 'bandpass' });
+    noise({ dur: 0.5, vol: 0.3, f0: 6000, f1: 900, q: 0.8, type: 'highpass', when: 0.1 });
+  },
   mortar() {
     // Hollow "thoomp" of a mortar shell leaving its tube.
     if (!ready()) return;
