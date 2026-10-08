@@ -1,4 +1,4 @@
-import { VIEW_W, VIEW_H } from './config.js?v=0.18.0';
+import { VIEW_W, VIEW_H } from './config.js?v=0.19.0';
 
 // Each side margin must leave at least this much room (CSS pixels) for a thumb.
 const MIN_MARGIN = 118;

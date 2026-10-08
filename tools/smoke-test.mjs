@@ -1613,7 +1613,7 @@ for (const phone of PHONES) {
     let fromEdges = 0;
     let stack = 0;
     let longestStack = 0;
-    for (let i = 0; i < 190 * 120 && g.state !== 'clear'; i++) {
+    for (let i = 0; i < 200 * 120 && !g.boss; i++) {
       g.player.invuln = 5;
       g.player.x = 4;
       g.player.y = 12;
@@ -1652,14 +1652,14 @@ for (const phone of PHONES) {
       stack = stacked ? stack + 1 : 0;
       longestStack = Math.max(longestStack, stack / 120);
     }
-    res.level = { cleared: g.state === 'clear', slabs: seen.size, fromEdges, minGap: Math.floor(minGap), overlaps, inIce: [...inIce].slice(0, 6), pkInIce, longestStack: +longestStack.toFixed(2) };
+    res.level = { bossCame: !!g.boss, slabs: seen.size, fromEdges, minGap: Math.floor(minGap), overlaps, inIce: [...inIce].slice(0, 6), pkInIce, longestStack: +longestStack.toFixed(2) };
     return res;
   });
   const ok = r.chip.firstHit === 1 && r.chip.shattered && r.chip.gone && r.chip.score >= 10 &&
     r.crash.hurt === 2 && r.crash.clear && r.shotStops && r.bomb === 3 && r.laser && r.itemClear &&
     r.wallOff.placed && r.wallOff.refused && r.diveCrash && r.fromTop.warned && r.fromTop.atMarker !== null && r.fromTop.atMarker < 3 &&
     r.frostLook.own === 6 && r.frostLook.sameSize === 6 && r.frostLook.cargoSame &&
-    r.level.cleared && r.level.slabs >= 40 && r.level.fromEdges >= 6 && r.level.minGap >= 30 && r.level.overlaps === 0 &&
+    r.level.bossCame && r.level.slabs >= 40 && r.level.fromEdges >= 6 && r.level.minGap >= 30 && r.level.overlaps === 0 &&
     r.level.inIce.length === 0 && r.level.pkInIce === 0 && r.level.longestStack < 0.6 && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  Frostring rules ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;
@@ -1866,6 +1866,269 @@ for (const phone of PHONES) {
     r.prismBomb.dead && r.prismBomb.shards === 0 &&
     r.shardFires.blinkedFirst && r.shardFires.shots === 1 && r.shardBehind && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  Frostring enemies ${JSON.stringify(r)} ${errs.join(' ')}`);
+  if (!ok) failures++;
+  await context.close();
+}
+
+// Stage 3C-2: the Glacier Warden plays by the rules.
+{
+  const context = await browser.newContext({ viewport: { width: 915, height: 412 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  const errs = [];
+  page.on('pageerror', (e) => errs.push(String(e)));
+  await page.goto(base + '?level=3');
+  await page.waitForTimeout(300);
+  await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  await page.waitForTimeout(300);
+  const r = await page.evaluate(() => {
+    window.__ember.frozen = true;
+    const g = window.__ember.game;
+    const idle = { dx: 0, dy: 0, fire: false, special: false, tap: false };
+    const fire = { ...idle, fire: true };
+    // A Glacier Warden already in the fight, holding still, nothing else around.
+    const fresh = (phase = 1) => {
+      g.reset();
+      g.runner.next = g.level.events.length;
+      g.banner = null;
+      g.player.entering = 0;
+      g.player.x = 20;
+      g.player.y = 60;
+      const b = g.spawnEnemy('glacierWarden', 0, 0);
+      Object.assign(b, { mode: 'fight', entered: true, taunted: true, block: null, x: 116, y: 38, phase, idle: 99, attack: null });
+      b.dest = { x: b.x, y: b.y };
+      return b;
+    };
+    const hold = (b) => {
+      b.dest = { x: b.x, y: b.y };
+      b.idle = 99;
+    };
+    const step = (sec, b, input = idle, safe = true) => {
+      for (let i = 0; i < sec * 120; i++) {
+        if (safe) g.player.invuln = 1;
+        if (b) hold(b);
+        g.update(1 / 120, input);
+      }
+    };
+    // Line the ship's guns up with the core.
+    const lineUp = (b) => {
+      g.player.y = b.y + 34 - g.player.h / 2;
+    };
+    const res = {};
+    const plates = (b) => b.plates.map((P) => P.hp).join(',');
+
+    // Armoured: a shot at the core's height cracks a front plate (through the
+    // saw ring), and the core takes nothing. 10 hits break the plate; then
+    // shots reach the core.
+    let b = fresh();
+    const full = b.plates[0].hp; // a whole plate
+    lineUp(b);
+    let firstPlate = null;
+    let coreHitAt = null;
+    for (let i = 0; i < 4 * 120 && coreHitAt === null; i++) {
+      g.player.invuln = 1;
+      hold(b);
+      lineUp(b);
+      g.update(1 / 120, fire);
+      if (firstPlate === null && b.plates.some((P) => P.hp < full)) firstPlate = { untouched: b.hp === b.maxHp, plates: plates(b), open: b.T.isVulnerable(b) };
+      if (b.hp < b.maxHp) coreHitAt = plates(b);
+    }
+    res.armour = { firstPlate, coreHitAt, vulnerable: b.T.isVulnerable(b) };
+
+    // A bomb shatters every plate at once.
+    b = fresh();
+    g.weapons.kind = 'bomb';
+    g.weapons.ammo = 1;
+    g.weapons.fire();
+    step(1.5, b);
+    res.bomb = plates(b);
+    // The laser cuts through a plate to the core.
+    b = fresh();
+    lineUp(b);
+    g.weapons.kind = 'laser';
+    g.weapons.ammo = 1;
+    g.weapons.fire();
+    step(1, b);
+    res.laser = { plates: plates(b), coreHurt: b.maxHp - b.hp };
+    // Rockets go for the core once it's open (and never chase saw blades).
+    b = fresh();
+    g.spawnEnemy('sawBlade', 60, 60, { vx: 0, vy: 0, owner: b });
+    res.rocketsArmoured = (g.nearestEnemy(30, 60) || {}).type || null;
+    b.plates[3].hp = 0;
+    res.rocketsOpen = (g.nearestEnemy(30, 60) || {}).type || null;
+
+    // Stage 1 never refreezes; stage 2 does (frost creeps back over a broken
+    // front plate within a few seconds), and shooting the frost knocks it back.
+    b = fresh(1);
+    b.plates[2].hp = 0;
+    b.plates[3].hp = 0;
+    g.player.y = 125;
+    step(10, b);
+    res.refreeze1 = plates(b) === [full, full, 0, 0, full, full].join();
+    b = fresh(2);
+    b.plates[2].hp = 0;
+    b.plates[3].hp = 0;
+    g.player.y = 125;
+    let grew = null;
+    for (let i = 0; i < 6 * 120 && grew === null; i++) {
+      step(1 / 120, b);
+      const P = b.plates.find((Q) => Q.grow > 0.5);
+      if (P) grew = b.plates.indexOf(P);
+    }
+    const before = grew === null ? 0 : b.plates[grew].grow;
+    if (grew !== null) {
+      b.hitPlate = grew;
+      for (let k = 0; k < 3; k++) b.T.shield(b, 1, g);
+    }
+    res.refreeze2 = { grew, knockedBack: grew !== null && b.plates[grew].grow < before - 0.25 };
+    step(9, b);
+    res.refreeze2.closedAgain = !b.T.isVulnerable(b);
+
+    // Every attack warns (glowing hub, guide lines, "!" marks, glinting
+    // teeth, a blinking hatch, the wind rising) at least 0.3 s before
+    // anything can hurt you.
+    res.warnings = {};
+    for (const name of ['fan', 'beam', 'hail', 'wall', 'blades', 'mines', 'blizzard']) {
+      b = fresh(3);
+      b.attack = { name, t: 0 };
+      let warnAt = null;
+      let dangerAt = null;
+      let shots = 0;
+      const slabs0 = g.terrain.slabs.length;
+      const x0 = g.player.x;
+      for (let i = 0; i < 6 * 120 && dangerAt === null; i++) {
+        g.player.invuln = 1;
+        hold(b);
+        g.update(1 / 120, idle);
+        const t = i / 120;
+        const warned = b.glow || b.glint || b.beamGuide || b.lightT > 0 || b.wind > 0 || g.markers.length > 0;
+        if (warned && warnAt === null) warnAt = t;
+        const danger = g.enemyShots.length > shots || b.beam || g.terrain.slabs.length > slabs0 ||
+          g.enemies.some((e) => e.type === 'sawBlade' || e.type === 'frostMine') || g.player.x < x0 - 1;
+        shots = g.enemyShots.length;
+        if (danger) dangerAt = t;
+      }
+      res.warnings[name] = warnAt === null || dangerAt === null ? -1 : +(dangerAt - warnAt).toFixed(2);
+    }
+
+    // The frost beam only sweeps the slice its guide lines show: sit in it
+    // and it costs 2 blocks; get out of it in time and it misses; a slab of
+    // ice in the way stops it.
+    const beamAt = (move, slab) => {
+      b = fresh(1);
+      g.player.x = 30;
+      g.player.y = 60;
+      b.attack = { name: 'beam', t: 0 };
+      g.update(1 / 120, idle);
+      if (slab) g.terrain.addSlab({ x: 70, y: 40, w: 20, h: 50, speed: 0 });
+      if (move) g.player.y = g.player.y > 70 ? 14 : 125; // well out of the slice
+      g.player.invuln = 0;
+      g.health = 5;
+      for (let i = 0; i < 2.5 * 120 && b.attack; i++) {
+        hold(b);
+        g.update(1 / 120, idle);
+      }
+      return 5 - g.health;
+    };
+    res.beam = { stay: beamAt(false), dodge: beamAt(true), ice: beamAt(false, true) };
+
+    // Hail: the first "!" right above you.
+    b = fresh(1);
+    g.player.x = 50;
+    b.attack = { name: 'hail', t: 0 };
+    step(0.3, b);
+    const pc = g.playerCenter();
+    res.hailAbove = g.markers.length ? Math.min(...g.markers.map((m) => Math.abs(m.x - pc.x))) : -1;
+
+    // Saw blades fly out and come back to the ring (none left behind).
+    b = fresh(1);
+    g.player.x = 30;
+    b.attack = { name: 'blades', t: 0 };
+    let maxBlades = 0;
+    for (let i = 0; i < 6 * 120; i++) {
+      g.player.invuln = 1;
+      hold(b);
+      g.update(1 / 120, idle);
+      maxBlades = Math.max(maxBlades, g.enemies.filter((e) => e.type === 'sawBlade').length);
+    }
+    res.blades = { thrown: maxBlades, left: g.enemies.filter((e) => e.type === 'sawBlade').length };
+
+    // Blizzard: the wind pushes you back (it doesn't hurt by itself).
+    b = fresh(3);
+    g.player.x = 120 - 40;
+    g.player.y = 125;
+    b.attack = { name: 'blizzard', t: 0 };
+    const px0 = g.player.x;
+    step(3, b);
+    res.blizzardPush = Math.round(px0 - g.player.x);
+
+    // No safe spot: wherever you sit (in front, high, low, behind it), its
+    // attacks reach you within 25 s of a stage-3 fight.
+    res.noSafeSpot = {};
+    for (const [name, x, y] of [['front', 30, 60], ['top', 30, 12], ['bottom', 30, 128], ['behind', 196, 12]]) {
+      b = fresh(3);
+      b.x = 80;
+      b.idle = 0.5;
+      let hits = 0;
+      const hurt = g.hurtPlayer.bind(g);
+      g.hurtPlayer = (n) => {
+        hits += n;
+        g.player.invuln = 1;
+      };
+      for (let i = 0; i < 25 * 120; i++) {
+        g.player.x = x;
+        g.player.y = y;
+        b.dest = { x: 80, y: 38 }; // it holds its spot; you hold yours
+        g.update(1 / 120, idle);
+      }
+      g.hurtPlayer = hurt;
+      res.noSafeSpot[name] = hits;
+    }
+
+    // Bumping into it costs 2 blocks and leaves you clear of it.
+    b = fresh(1);
+    g.player.x = b.x + 6;
+    g.player.y = b.y + 30;
+    g.player.invuln = 0;
+    g.health = 5;
+    g.update(1 / 120, idle);
+    const h = g.playerHitbox();
+    res.bump = { hurt: 5 - g.health, clear: g.contact(b, h.x, h.y, h.w, h.h) === null };
+    // ...and from behind, out behind it (never through it).
+    b = fresh(1);
+    b.x = 80;
+    g.player.x = b.x + 64;
+    g.player.y = b.y + 6;
+    g.player.invuln = 0;
+    g.update(1 / 120, idle);
+    res.bump.behind = g.player.x > b.x + 40;
+
+    // Breaking it into stage 2: it roars, a bonus, it can't be hurt while
+    // its fresh plates freeze over, and it starts stage 2 armoured.
+    b = fresh(1);
+    b.plates[3].hp = 0;
+    b.hp = Math.floor(b.maxHp * 0.66) + 1;
+    b.hitPlate = -1;
+    const score0 = g.score;
+    g.damage(b, 2);
+    res.stage2 = { phase: b.phase, mode: b.mode, bonus: g.score - score0, openInTransition: b.T.isVulnerable(b) };
+    for (let i = 0; i < 6 * 120 && b.mode !== 'fight'; i++) step(1 / 120, b);
+    res.stage2.armouredAfter = b.mode === 'fight' && !b.T.isVulnerable(b);
+    return res;
+  });
+  const w = r.warnings;
+  const ok = r.armour.firstPlate && r.armour.firstPlate.untouched && !r.armour.firstPlate.open &&
+    r.armour.coreHitAt !== null && r.armour.vulnerable &&
+    r.bomb === '0,0,0,0,0,0' && r.laser.coreHurt > 0 && r.laser.plates.split(',').filter((x) => x === '0').length >= 1 &&
+    r.rocketsArmoured !== 'sawBlade' && r.rocketsOpen === 'glacierWarden' &&
+    r.refreeze1 && r.refreeze2.grew !== null && r.refreeze2.knockedBack && r.refreeze2.closedAgain &&
+    Object.values(w).every((v) => v >= 0.3) &&
+    r.beam.stay === 2 && r.beam.dodge === 0 && r.beam.ice === 0 &&
+    r.hailAbove >= 0 && r.hailAbove < 3 && r.blades.thrown >= 2 && r.blades.left === 0 &&
+    r.blizzardPush > 40 && Object.values(r.noSafeSpot).every((n) => n > 0) &&
+    r.bump.hurt === 2 && r.bump.clear && r.bump.behind &&
+    r.stage2.phase === 2 && r.stage2.mode === 'transition' && r.stage2.bonus >= 1000 && !r.stage2.openInTransition &&
+    r.stage2.armouredAfter && errs.length === 0;
+  console.log(`${ok ? 'PASS' : 'FAIL'}  Glacier Warden rules ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;
   await context.close();
 }

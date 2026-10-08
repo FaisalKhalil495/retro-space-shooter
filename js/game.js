@@ -1,19 +1,19 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.18.0';
-import { SPRITES } from './sprites.js?v=0.18.0';
-import { ENEMY_TYPES } from './enemies.js?v=0.18.0';
-import { LEVELS, LevelRunner } from './levels.js?v=0.18.0';
-import { Background } from './background.js?v=0.18.0';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.18.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.18.0';
-import { buzz, HAPTIC } from './feedback.js?v=0.18.0';
-import { sfx } from './audio.js?v=0.18.0';
-import { clamp, rectsOverlap } from './util.js?v=0.18.0';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.18.0';
-import { Blasts } from './blasts.js?v=0.18.0';
-import { Speech } from './speech.js?v=0.18.0';
-import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.18.0';
-import { startBossMusic, stopMusic } from './music.js?v=0.18.0';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.18.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.19.0';
+import { SPRITES } from './sprites.js?v=0.19.0';
+import { ENEMY_TYPES } from './enemies.js?v=0.19.0';
+import { LEVELS, LevelRunner } from './levels.js?v=0.19.0';
+import { Background } from './background.js?v=0.19.0';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.19.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.19.0';
+import { buzz, HAPTIC } from './feedback.js?v=0.19.0';
+import { sfx } from './audio.js?v=0.19.0';
+import { clamp, rectsOverlap } from './util.js?v=0.19.0';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.19.0';
+import { Blasts } from './blasts.js?v=0.19.0';
+import { Speech } from './speech.js?v=0.19.0';
+import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.19.0';
+import { startBossMusic, stopMusic } from './music.js?v=0.19.0';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.19.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -425,15 +425,16 @@ export class Game {
   }
 
   // The best target near a point (for homing rockets). Real fighters only:
-  // never cargo pods, mines or mortar shells. A boss with its weak spot open
-  // comes first; armoured targets come after open ones.
+  // never cargo pods, mines, mortar shells or a boss's saw blades. A boss
+  // with its weak spot open comes first; armoured targets come after open
+  // ones.
   nearestEnemy(x, y) {
     const b = this.boss;
     if (b && this.bossOnScreen() && b.mode !== 'dying' && b.T.isVulnerable && b.T.isVulnerable(b)) return b;
     let best = null;
     let bestD = Infinity;
     for (const e of this.enemies) {
-      if (e.dead || e.mode === 'dying' || e.under || e.T.harmless || e.x > VIEW_W || e.x + e.w < 0) continue;
+      if (e.dead || e.mode === 'dying' || e.under || e.T.harmless || e.T.noTarget || e.x > VIEW_W || e.x + e.w < 0) continue;
       const tp = this.aimPoint(e);
       let d = Math.hypot(tp.x - x, tp.y - y) + (tp.x < x ? 80 : 0); // prefer targets ahead
       if (e.T.isVulnerable && !e.T.isVulnerable(e)) d += 60; // armour up: try something else first

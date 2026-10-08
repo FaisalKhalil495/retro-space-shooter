@@ -42,8 +42,8 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
   v0.18.0), each in a different setting, with a boss at the end of each.
 - Pickups give extra lives or special weapons: bombs, rockets, and a
   long-range laser. Rockets (v0.13.2) go for a boss's open weak spot first,
-  prefer unarmoured targets, and never chase cargo pods, mines or mortar
-  shells.
+  prefer unarmoured targets, and never chase cargo pods, mines, mortar
+  shells or saw blades (`noTarget`).
 - The game keeps a score and a high-score table.
 - **Difficulty: Hard** (changed from "Classic" after Stage 2 testing — the
   owner found level 1 and Rockjaw far too easy). Bosses should feel like
@@ -198,10 +198,10 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
 - **Frostring (level 3), step 3C** (plan approved by the owner after
   v0.16.0). Steps: 3C-0 looks (done) → 3C-1 the level, in two releases:
   the world (v0.17.0, built) then the three new enemies (v0.18.0,
-  built) → 3C-2 the boss;
-  the owner tests each. Until the Glacier Warden exists the level ends
-  with an `'end'` event at 3:02 (cleared once the last wave has gone);
-  after Rust Moon's boss, "TAP TO CONTINUE" goes on into Frostring.
+  built) → 3C-2 the boss (v0.19.0, built);
+  the owner tests each. The boss event is at 3:04 (v0.19.0). After Rust
+  Moon's boss, "TAP TO CONTINUE" goes on into Frostring; after the Glacier
+  Warden it goes back to level 1 until the ice planet exists.
   - **Its look: the "Ice Harvesters"** (owner, chosen from eight sets): the
     invaders' mining crews strip-mining the ring, in yellow-and-black
     hazard paint with drills and saw blades: pod → drill pod, weaver →
@@ -265,12 +265,57 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
       laser, a bomb or a rocket shatters it whole. 30 pts, +15 a shard;
       shards ram 1. Ice things shatter into ice dust (`gore.ice`), no
       explosion.
-  - Boss **The Glacier Warden** ("GLACIER WARDEN / KEEPER OF THE RING"):
-    ice armour plates over a core, shoot plates off to open a path; from
-    stage 2 it refreezes plates; 6+ warned attacks (icicle fans, sweeping
-    frost beam with a guide line, hailstorm with shadow markers, ice wall
-    with a gap, boomerang shards, stage 3 blizzard wind pushing you back);
-    a machine (explosions); fight about 1.2x the Siege Crawler's.
+- **The Glacier Warden** (boss of Frostring, step 3C-2, v0.19.0): the Ice
+  Harvesters' flagship, look **"Saw Crown"** (owner's pick of four designs,
+  after rejecting B+D mixes): a giant spinning saw ring (18 teeth, hazard
+  rim) round a hub where **six wedge-shaped ice plates** cover a glowing
+  furnace core, an engine body with two swept fins (ice tips) behind it.
+  Name card "GLACIER WARDEN / KEEPER OF THE RING", an ice roar (horn +
+  grinding saw + cracking ice), its own cold boss music with glassy chimes
+  (`music: 'glacier'`), metallic voice. 440 HP, plates 10 hits each; on
+  autopilot the fight lasts about 1.2x the Siege Crawler's (115 s vs 94 s)
+  and deals a bit more damage. Machine: explosions, no blood.
+  - **Entrance**: a giant slab of ice drifts in, shudders, cracks and bursts
+    — the Warden comes out of it spinning; then the name card.
+  - **Plates and core**: your shots fly through the saw ring's open spokes
+    (your ship still gets cut on it: 2 blocks, shoved clear) and crack the
+    plates; the core can be hurt once one of the two **front** plates (lower-
+    and upper-left) is gone. A shot counts along its centre line. A bomb
+    shatters every plate, the laser cuts through one to the core, rockets
+    go for the core only once it's open (and never chase saw blades).
+    Breaking a plate: +50. From **stage 2** broken plates **refreeze**: frost
+    creeps in from the rim for 3 s (front plates first; every 3.5 s, in
+    stage 3 every 2.5 s and two at once); shooting the frost knocks it
+    back. Each stage starts with a fresh set frozen on.
+  - **Movement**: drifts about the right of the screen, pushing in towards
+    you (further each stage); never sits still.
+  - **Attacks** (every one warned): **Icicle fan** (hub glows 0.5/0.45/0.4
+    s, then 5/7/9 icicles aimed at you, a second offset fan in stage 3);
+    **Frost beam** (two dotted guide lines show the slice it will sweep,
+    centred on you, 0.9/0.8/0.7 s, then the beam sweeps it, 2 blocks; ice
+    stops it, so hide behind a slab or leave the slice); **Hailstorm** (red
+    "!" marks along the top, the first right above you, then 2 chunks (3 in
+    stage 3) fall straight down under each); **Ice wall** (hub glows, then a
+    wall of ice freezes in front of it with a 36–40 px gap and drifts at
+    you; breakable; if you're in its face the gap forms round you);
+    **Saw blades** (teeth glint and the ring spins up 0.6 s, then 2/3/4
+    blades, the first straight at you, curve back to the ring like
+    boomerangs; 2 blocks; can't be shot down); stage 2+: **Frost mines**
+    (a hatch blinks, 3–4 of the Cryo Layer's mines); stage 3:
+    **Blizzard** (howl and snow streaks for 1 s, then 4 s of wind pushing
+    you left at 34 px/s while it fires two fans; the wind itself doesn't
+    hurt).
+  - Stages at 66% and 33%: its plates blow off ("YOU CRACKED MY FUCKING
+    ICE"), then burning ("FREEZE, YOU LITTLE SHIT"); the fins' ice tips go
+    in stage 2, holes and fire in stage 3. Taunt "THIS RING IS FUCKING
+    MINE"; kill lines include "FROZEN SOLID". Talks only in pauses; stage
+    bonuses; alternating supply pods (on the other side of the screen from
+    it).
+  - No safe spot: in front, along the top, along the bottom and behind it
+    all get hit within 25 s of stage 3 (a test checks).
+  - Death: the plates shatter one by one, explosions run over it, the saw
+    ring tears loose and spins away, a huge blast, and the burning engine
+    body falls away down the screen — towards the ice planet (level 4).
 - **Moving between levels** (Stage 3A, v0.11.0): after the level-clear
   screen, "TAP TO CONTINUE" flies you into the next level with your **score,
   lives and special weapon**; health refills to 5 blocks; timed power-ups
@@ -405,7 +450,8 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
   (a diving pod; a skimmer hopping spires itself); `onLift(e, d)` lets a
   type shift its own planned path when lifted by `d` pixels.
   More hooks (v0.18.0): `shield(e, amount, game, hx, hy)` soaks up damage
-  first (return true when it did: a frozen Rime Guard's shell);
+  first (return true when it did: a frozen Rime Guard's shell, the
+  Warden's ice plates);
   `gore: { ice: n }` makes it shatter into n ice chips instead of
   exploding; the shot kind `'icicle'` draws an ice spike.
 
@@ -535,7 +581,7 @@ Approved by the owner. Keep the status column up to date.
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
-| 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C in progress (Frostring world v0.17.0, its enemies v0.18.0) |
+| 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C built (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0; owner testing) |
 | 4 | **Levels 6–9** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |
@@ -565,6 +611,12 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   entrance, transitions, death) and its mines and drones.
   `js/crawlerart.js` — its hull painted by code; legs, cannon and core
   hatch drawn each frame.
+- `js/warden.js` — the Glacier Warden (3 stages, 7 attacks, plates that
+  refreeze, entrance from a slab of ice, transitions, death) and its saw
+  blades. `js/wardenart.js` — its body (3 damage looks), the saw ring in
+  rotation frames, the six plates (whole, cracked, refreezing, hit) and
+  the core, painted by code, plus the hit map (`wardenAt`) that says what a
+  shot reaches.
 - `js/weapons.js` — special weapons (bombs, rockets, laser), pickups, corner icon.
 - `js/powerups.js` — automatic power-ups (shield, repair, spread, rapid,
   wingman), their orbs, timers and HUD icons.
@@ -583,8 +635,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   Rockjaw drawn by code. `js/font.js` — 5×5 pixel font.
 - `js/audio.js` — all sound effects, synthesised in code (incl. boss roar,
   growl, jaw snap, inhale, splat).
-- `js/music.js` — boss music, generated live (Rockjaw's, and the Siege
-  Crawler's march).
+- `js/music.js` — boss music, generated live (Rockjaw's, the Siege
+  Crawler's march, the Glacier Warden's cold one with chimes).
 - `js/gore.js` — blood (creatures only), chunks/debris, stains, screen-glass
   smears, boss corpses.
 - `js/blasts.js` — explosions: fireballs, shockwave rings, smoke, rock dust.
@@ -595,7 +647,7 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - `tools/smoke-test.mjs` — simulated-phone test (Android + iPhone sizes):
   `PLAYWRIGHT_PATH=/opt/node22/lib/node_modules/playwright node tools/smoke-test.mjs <screenshot-dir>`
 - `tools/level-test.mjs` — invincible autopilot plays levels 1, 2 and 3
-  (with both bosses) at high speed; checks pickups, specials, bosses,
+  (with all three bosses) at high speed; checks pickups, specials, bosses,
   talking, stage bonuses, new enemies and level clears (same command
   style).
   It freezes the live game loop (`window.__ember.frozen = true`) and drives
@@ -607,7 +659,7 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   `?start=60` starts 60 seconds into the level; `?level=2` starts on level 2
   (combine them: `?level=2&start=boss`); `?level=3` is Frostring.
 - `tools/frostring-look.json` — the owner's chosen Frostring designs (all
-  nine, incl. the three new enemies still to be built).
+  nine).
 
 ## HOW TO WORK WITH ME — these rules apply for the whole project, every session
 - I'm not an experienced coder. Assume I don't know the technical details, but work at full strength. Just keep me in the loop in language I can follow.

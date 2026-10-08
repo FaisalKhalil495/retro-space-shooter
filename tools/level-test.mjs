@@ -1,4 +1,4 @@
-// Plays levels 1, 2 and 3 automatically at high speed (an
+// Plays levels 1, 2 and 3 (with all three bosses) automatically at high speed (an
 // invincible autopilot that lines up with enemies and holds Fire) to check
 // the level scripts, pickups, special weapons and the boss all work and each
 // level can be finished.
@@ -165,9 +165,13 @@ const level3 = await page.evaluate(() => {
   log.types = [];
   log.maxEnemies = 0;
   log.shattered = 0;
+  log.bossSeen = false;
+  log.said = [];
+  log.bonuses = 0;
+  log.talkAttacks = 0;
   return { level: g.level.number, state: g.state };
 });
-results.frost = await run(200, { invincible: true, useSpecials: true });
+results.frost = await run(560, { invincible: true, useSpecials: true });
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/lvl3-clear.png` });
 
@@ -209,6 +213,11 @@ const checks = {
   'slabs of ice broken by your shots': r3.shattered >= 10,
   'Frostring enemies appeared': ['rimeGuard', 'cryoLayer', 'frostMine', 'prism', 'prismShard', 'gunner', 'sniper', 'spinner']
     .every((t) => r3.types.includes(t)),
+  'Glacier Warden appeared': r3.bossSeen,
+  'Glacier Warden talks in speech bubbles': ['THIS RING IS FUCKING MINE', 'YOU CRACKED MY FUCKING ICE', 'FREEZE, YOU LITTLE SHIT']
+    .every((line) => r3.said.includes(line)),
+  'a Glacier Warden stage bonus for each broken stage': r3.bonuses === 2,
+  'Glacier Warden never attacks while talking': !r3.talkAttacks,
   'Frostring cleared': r3.state === 'clear',
   'no script errors': errors.length === 0,
 };

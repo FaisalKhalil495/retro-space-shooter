@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.18.0';
-import { drawText } from './font.js?v=0.18.0';
-import { sfx } from './audio.js?v=0.18.0';
-import { buzz } from './feedback.js?v=0.18.0';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.19.0';
+import { drawText } from './font.js?v=0.19.0';
+import { sfx } from './audio.js?v=0.19.0';
+import { buzz } from './feedback.js?v=0.19.0';
 
 // Special weapons and pickups.
 // The player carries ONE special at a time. A pickup gives some shots;
@@ -18,7 +18,7 @@ export const LIFE_PICKUP = { label: '+', name: 'EXTRA LIFE', color: PAL.cream, l
 export const AMMO_PICKUP = { label: 'A', name: 'AMMO', color: PAL.amberSoft, light: PAL.amberLight };
 const SPECIAL_KINDS = Object.keys(SPECIALS);
 
-const BOMB_DAMAGE = 8;
+export const BOMB_DAMAGE = 8;
 const BOMB_SPEED = 300;  // how fast the shockwave ring spreads (game px/s)
 const ROCKET_DAMAGE = 4;
 const LASER_TIME = 0.8;

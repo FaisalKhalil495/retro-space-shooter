@@ -1,4 +1,4 @@
-import { PATTERNS } from './waves.js?v=0.18.0';
+import { PATTERNS } from './waves.js?v=0.19.0';
 
 // Level scripts. Each event is [seconds from the start, pattern, options].
 // The final 'boss' event waits for the screen to clear, flashes a warning
@@ -227,12 +227,13 @@ export const LEVELS = [
     // across (they block you and stop shots both ways, but your shots break
     // them), and enemy shots fly 20% faster. The invaders' mining crews (the
     // "Ice Harvesters") are stripping the ring: frozen Rime Guards, Cryo
-    // Layers dropping frost mines, and Prisms that split when hit. Boss (step 3C-2): the Glacier
-    // Warden; until it's built the level ends when the last wave has gone.
+    // Layers dropping frost mines, and Prisms that split when hit. Boss: the
+    // Glacier Warden, their flagship (see warden.js).
     number: 3,
     name: 'FROSTRING',
     shotSpeed: 1.2,
     skin: 'frost', // its own look for the enemy types it shares with level 1
+    boss: 'glacierWarden',
     background: { frost: true, space: '#111829', sun: false, dust: true, dustColor: '#1a2640', farRocks: false },
     events: [
       // Part 1 (0:00-1:00): slabs of ice, shown alone first, then from above
@@ -338,7 +339,7 @@ export const LEVELS = [
       [173, 'ambush', { n: 4 }],
       [174, 'wall', { shooter: true }],
       [176, 'seekers', { n: 3 }],
-      [182, 'end'],
+      [184, 'boss'],
     ],
   },
 ];
