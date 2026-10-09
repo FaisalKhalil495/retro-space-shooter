@@ -283,7 +283,9 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
     one broken plate left the core open for good, so the plates were
     pointless): the six plates **turn round the core like a revolving
     door** (0.8 / 1.1 / 1.45 radians a second by stage; in stage 3 it
-    suddenly reverses every 3–5 s with a grinding jolt). Your shots fly
+    suddenly reverses every 3–5 s with a grinding jolt you can see).
+    The blizzard wind leaves your ship alone while it glides back in after
+    a respawn. Your shots fly
     through the saw ring's open spokes (your ship still gets cut on it: 2
     blocks, shoved clear) and crack the plate facing you; a broken plate
     leaves a gap, and **the core can only be hit while a gap faces you** —
@@ -291,7 +293,8 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
     centre line. Breaking a plate: +50. **The ice is its ammunition**: the
     icicle fan fires one icicle from each whole plate (a stripped Warden
     fires thin fans), and with no whole plates it can't fan or raise an
-    ice wall at all. **Every broken plate refreezes**: 2.6 / 2.1 / 1.7 s
+    ice wall at all (and gives no warning for a fan it can't fire,
+    v0.19.2). **Every broken plate refreezes**: 2.6 / 2.1 / 1.7 s
     after it breaks, frost creeps in from the rim for 2.5 s (frost blocks
     shots); knock the frost out and it starts again 0.6 s later. A bomb
     shatters every plate, the laser cuts through one to the core, rockets
@@ -592,7 +595,7 @@ Approved by the owner. Keep the status column up to date.
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
-| 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C built (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1; owner testing) |
+| 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C built (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2; owner testing) |
 | 4 | **Levels 6–9** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |

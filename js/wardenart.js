@@ -1,5 +1,5 @@
-import { PAL } from './config.js?v=0.19.1';
-import { seeded } from './util.js?v=0.19.1';
+import { PAL } from './config.js?v=0.19.2';
+import { seeded } from './util.js?v=0.19.2';
 
 // THE GLACIER WARDEN, painted by code (the owner's chosen "Saw Crown"
 // design): the Ice Harvesters' flagship. A giant saw ring spins round a hub
@@ -7,9 +7,9 @@ import { seeded } from './util.js?v=0.19.1';
 // body with two swept fins sits behind the ring, in hazard paint.
 //
 // The body and fins are painted once for each of 3 damage stages; the ring
-// is painted in a few rotation frames so it can spin; each ice plate has its
-// own pictures (whole, cracked, badly cracked, refreezing, hit-flash); the
-// core is drawn fresh every frame (it glows).
+// is painted in a few rotation frames so it can spin; the six ice plates
+// (whole, cracked, badly cracked, refreezing, hit-flash) turn, so they're
+// drawn fresh every frame, and so is the core (it glows).
 //
 // Layout inside the boss's box (80 x 68 game pixels): the ring's centre at
 // HUB, the hub (plates over the core) out to radius 17, the ring out to the
@@ -30,8 +30,6 @@ export const PLATE_HP = 6; // hits to break one plate of ice
 export const PLATES = 6;
 // Where things come out of it (inside its box).
 export const NOSE = { x: HUB.x - HUB_R, y: HUB.y }; // the hub's front edge
-export const ENGINES = [{ x: 79, y: 29 }, { x: 79, y: 39 }];
-export const FIN_TIPS = [{ x: 68, y: 4 }, { x: 68, y: 64 }];
 
 const C = {
   k: PAL.ink, a: PAL.amber, A: PAL.amberSoft, o: PAL.amberDark, l: PAL.amberLight, c: PAL.cream,
@@ -80,7 +78,7 @@ function grid() {
   return g;
 }
 
-function toCanvas(g, flash = false) {
+function toCanvas(g) {
   const c = document.createElement('canvas');
   c.width = WARDEN_W;
   c.height = WARDEN_H;
@@ -89,7 +87,7 @@ function toCanvas(g, flash = false) {
     for (let x = 0; x < WARDEN_W; x++) {
       const col = g.px[y][x];
       if (!col) continue;
-      ctx.fillStyle = flash ? (col === C.k ? C.k : PAL.cream) : col;
+      ctx.fillStyle = col;
       ctx.fillRect(x, y, 1, 1);
     }
   }
@@ -281,10 +279,8 @@ export const WARDEN = {};
 export function buildWardenArt() {
   if (WARDEN.bodies) return WARDEN;
   WARDEN.bodies = [1, 2, 3].map((s) => toCanvas(paintBody(s)));
-  WARDEN.bodyFlash = toCanvas(paintBody(1), true);
   WARDEN.ring = [];
   for (let f = 0; f < RING_FRAMES; f++) WARDEN.ring.push(toCanvas(paintRing((f / RING_FRAMES) * ((Math.PI * 2) / TEETH))));
-  WARDEN.ringFlash = toCanvas(paintRing(0), true);
   WARDEN.hub = toCanvas(paintHub());
   return WARDEN;
 }
