@@ -2239,11 +2239,31 @@ for (const phone of PHONES) {
     out.painted = painted.length;
     out.paintedWrong = painted.filter((p) => !p.hi || p.hi.width !== p.width * DETAIL || p.hi.height !== p.height * DETAIL).length;
     out.blankHi = painted.filter((p) => {
+      if (!p.hi) return false; // (counted in paintedWrong)
       const d = p.hi.getContext('2d').getImageData(0, 0, p.hi.width, p.hi.height).data;
       for (let i = 3; i < d.length; i += 4) if (d[i]) return false;
       return true;
     }).length;
     out.level1Missing = ['drifter', 'weaver', 'gunner', 'seeker', 'sniper', 'spinner', 'carrier'].filter((n) => !HI_NAMES.includes(n));
+    // Round shapes (explosions, the sun, orbs) drawn at a screen scale that
+    // isn't a whole number leave no faint seams between their rows.
+    const { fillDisc } = await import('/js/util.js' + v);
+    const sc = document.createElement('canvas');
+    sc.width = 400;
+    sc.height = 400;
+    const sctx = sc.getContext('2d', { alpha: false });
+    sctx.fillStyle = '#000';
+    sctx.fillRect(0, 0, 400, 400);
+    sctx.setTransform(7.51, 0, 0, 7.51, 3, 2);
+    sctx.fillStyle = '#ff0000';
+    fillDisc(sctx, 25.3, 25.7, 10);
+    const col = sctx.getImageData(190, 0, 1, 400).data;
+    let inside = false;
+    out.seams = 0;
+    for (let i = 0; i < col.length; i += 4) {
+      if (col[i] === 255) inside = true;
+      else if (inside && col[i] > 0 && i + 4 < col.length && col[i + 4] === 255) out.seams++;
+    }
     // Drawing through useDetail gives exactly the sharp picture.
     const c = document.createElement('canvas');
     c.width = SPRITES.player.hi.width;
@@ -2279,7 +2299,7 @@ for (const phone of PHONES) {
   r.missingLetters = [...missing].join('');
   delete r.glyphs;
   const ok = r.hi >= 9 && r.wrongSize.length === 0 && r.shimDiff === 0 && r.screenSharp &&
-    r.painted === 34 && r.paintedWrong === 0 && r.blankHi === 0 && r.level1Missing.length === 0 &&
+    r.painted === 34 && r.paintedWrong === 0 && r.blankHi === 0 && r.level1Missing.length === 0 && r.seams === 0 &&
     r.shipSize[0] === 18 && r.shipSize[1] === 11 && r.missingLetters === '' && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  double detail ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;

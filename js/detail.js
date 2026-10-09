@@ -10,6 +10,21 @@ export const DETAIL = 2; // pixels per game pixel in the sharper pictures
 
 // The smallest step for things drawn by code (half a game pixel).
 export const FINE = 1 / DETAIL;
+// Round to the nearest half pixel.
+export const snapFine = (v) => Math.round(v / FINE) * FINE;
+
+// Fill a rectangle with its edges moved to the nearest real screen pixel,
+// so rectangles that touch meet exactly. (At, say, 7.5 screen pixels per
+// game pixel, a half-pixel edge falls part-way through a screen pixel, and
+// rows of a filled shape would show faint seams.) m = ctx.getTransform(),
+// taken once for a batch of rectangles; no rotation.
+export function fillCrisp(ctx, m, x, y, w, h) {
+  const x0 = Math.round(x * m.a + m.e);
+  const x1 = Math.round((x + w) * m.a + m.e);
+  const y0 = Math.round(y * m.d + m.f);
+  const y1 = Math.round((y + h) * m.d + m.f);
+  ctx.fillRect((x0 - m.e) / m.a, (y0 - m.f) / m.d, (x1 - x0) / m.a, (y1 - y0) / m.d);
+}
 
 export function useDetail(ctx) {
   const draw = ctx.drawImage.bind(ctx);

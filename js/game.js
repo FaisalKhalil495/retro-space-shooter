@@ -1,27 +1,31 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.21.0';
-import { SPRITES } from './sprites.js?v=0.21.0';
-import { ENEMY_TYPES } from './enemies.js?v=0.21.0';
-import { LEVELS, LevelRunner } from './levels.js?v=0.21.0';
-import { Background } from './background.js?v=0.21.0';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.21.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.21.0';
-import { buzz, HAPTIC } from './feedback.js?v=0.21.0';
-import { sfx } from './audio.js?v=0.21.0';
-import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.21.0';
-import { FINE } from './detail.js?v=0.21.0';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.21.0';
-import { Blasts } from './blasts.js?v=0.21.0';
-import { Speech } from './speech.js?v=0.21.0';
-import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.21.0';
-import { startBossMusic, stopMusic } from './music.js?v=0.21.0';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.21.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.21.1';
+import { SPRITES } from './sprites.js?v=0.21.1';
+import { ENEMY_TYPES } from './enemies.js?v=0.21.1';
+import { LEVELS, LevelRunner } from './levels.js?v=0.21.1';
+import { Background } from './background.js?v=0.21.1';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.21.1';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.21.1';
+import { buzz, HAPTIC } from './feedback.js?v=0.21.1';
+import { sfx } from './audio.js?v=0.21.1';
+import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.21.1';
+import { FINE, snapFine, fillCrisp } from './detail.js?v=0.21.1';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.21.1';
+import { Blasts } from './blasts.js?v=0.21.1';
+import { Speech } from './speech.js?v=0.21.1';
+import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.21.1';
+import { startBossMusic, stopMusic } from './music.js?v=0.21.1';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.21.1';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
 const BLOCK_COLORS = [PAL.grey, PAL.cream, PAL.bluePale];
 const DUST_COLORS = ['#7a4632', '#9a6a4a', '#c4a68e'];
-// A broken-off piece of the player's wing, for the death explosion.
-const WING = { rows: ['aab', 'abbc', '.bcc'], colors: { a: PAL.bluePale, b: PAL.blue, c: PAL.amberSoft } };
+// A broken-off piece of the player's wing, for the death explosion (a map
+// of half pixels, like every gore piece).
+const WING = {
+  rows: ['kkkk....', 'kaaabk..', 'kaabbbkk', 'kabbbbck', '.kbbdcck', '..kkkkk.'],
+  colors: { k: PAL.ink, a: PAL.bluePale, b: PAL.blue, c: PAL.amberSoft, d: PAL.blueDark },
+};
 const LIFE_BONUS = 500;
 const TITLE_TIME = 3.3; // seconds a boss name card stays up
 const SUPPLY_EVERY = 20; // seconds between supply pods in a boss fight
@@ -40,9 +44,6 @@ const DEATH_LINES = [
   'SHIT. TRY AGAIN.',
   'THEY WILL NEED A MOP',
 ];
-
-// Round to the nearest half pixel (the step things drawn by code use).
-const snapFine = (v) => Math.round(v / FINE) * FINE;
 
 export class Game {
   constructor({ startAt = 0, level = 1 } = {}) {
@@ -1194,20 +1195,22 @@ export class Game {
     const len = 2 + (p.moveX > 0 ? 3 : p.moveX < 0 ? 0 : 1) + (Math.floor(this.time * 30) % 2);
     // A tapered flame in half-pixel rows: longest in the middle, with a
     // bright core and a white-hot spot at the nozzle.
+    // (Rows meet on whole screen pixels, so no seams show between them.)
+    const m = ctx.getTransform();
     for (let r = 0; r < 6; r++) {
       const k = 1 - Math.abs(r + 0.5 - 3) / 3.2;
       const L = snapFine(len * (0.45 + 0.55 * k));
       const ry = y + 4 + r * FINE;
       ctx.fillStyle = PAL.amberSoft;
-      ctx.fillRect(x - L, ry, L, FINE);
+      fillCrisp(ctx, m, x - L, ry, L, FINE);
       if (r >= 1 && r <= 4) {
         const L2 = snapFine(L * 0.6);
         ctx.fillStyle = PAL.amberLight;
-        ctx.fillRect(x - L2, ry, L2, FINE);
+        fillCrisp(ctx, m, x - L2, ry, L2, FINE);
       }
       if (r === 2 || r === 3) {
         ctx.fillStyle = PAL.cream;
-        ctx.fillRect(x - 1, ry, 1, FINE);
+        fillCrisp(ctx, m, x - 1, ry, 1, FINE);
       }
     }
     ctx.drawImage(SPRITES.player, x, y);

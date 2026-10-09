@@ -1,6 +1,6 @@
-import { PAL } from './config.js?v=0.21.0';
-import { seeded } from './util.js?v=0.21.0';
-import { DETAIL, FINE, detailCanvas } from './detail.js?v=0.21.0';
+import { PAL } from './config.js?v=0.21.1';
+import { seeded } from './util.js?v=0.21.1';
+import { DETAIL, FINE, detailCanvas } from './detail.js?v=0.21.1';
 
 // Asteroids and Rockjaw are drawn by code rather than by hand: a lumpy
 // circle, shaded from the top-left with a pixel-art checkerboard "dither"
@@ -28,6 +28,32 @@ function eachFine(size, c0, fn) {
 }
 // A cheap fixed "random" per half pixel (grit, rough edges).
 const grit = (fx, fy, seed) => ((((fx * 73856093) ^ (fy * 19349663) ^ (seed * 83492791)) >>> 0) % 1000) / 1000;
+
+// Paint half pixels straight into a sharp canvas's pixel data, then put it
+// back in one go: much faster at start-up than one fillRect per half pixel.
+function pixels(canvas) {
+  const hi = canvas.hi;
+  const c = hi.getContext('2d');
+  const img = c.getImageData(0, 0, hi.width, hi.height);
+  const buf = new Uint32Array(img.data.buffer);
+  return {
+    set: (fx, fy, hex) => {
+      buf[fy * hi.width + fx] = rgba(hex);
+    },
+    done: () => c.putImageData(img, 0, 0),
+  };
+}
+// '#rrggbb' as one 32-bit pixel (in the byte order canvas pixel data uses).
+const rgbaCache = new Map();
+function rgba(hex) {
+  let v = rgbaCache.get(hex);
+  if (v === undefined) {
+    const n = parseInt(hex.slice(1), 16);
+    v = ((255 << 24) | ((n & 255) << 16) | (n & 0xff00) | (n >> 16)) >>> 0;
+    rgbaCache.set(hex, v);
+  }
+  return v;
+}
 
 // Radius at a given angle: a circle with smooth bumps.
 function lumpy(rand, r, bumps = 5, amount = 0.16) {
@@ -64,7 +90,8 @@ function paintRock(r, seed, { craters = 3, flash = false, shades = ROCK_SHADES }
   const cr = makeCraters(rand, r, craters);
   const size = Math.ceil(r * 1.4) * 2 + 3;
   const c0 = Math.floor(size / 2);
-  const { canvas, ctx } = detailCanvas(size, size);
+  const { canvas } = detailCanvas(size, size);
+  const px = pixels(canvas);
   eachFine(size, c0, (fx, fy, dx, dy) => {
     if (Math.hypot(dx, dy) > radiusAt(Math.atan2(dy, dx))) return;
     let color = PAL.cream;
@@ -84,9 +111,9 @@ function paintRock(r, seed, { craters = 3, flash = false, shades = ROCK_SHADES }
       else if (g < 0.04) idx = Math.max(0, idx - 1);
       color = shades[idx];
     }
-    ctx.fillStyle = color;
-    ctx.fillRect(fx * FINE, fy * FINE, FINE, FINE);
+    px.set(fx, fy, color);
   });
+  px.done();
   outline(canvas.hi);
   return canvas;
 }
@@ -109,14 +136,48 @@ const JAW_SHADES = ['#221d27', '#3b3139', '#5d4d50', '#85706a'];
 const THROAT = ['#1e0a0d', '#3d1014', '#5a1a1e', '#7a2228', '#9e2f2f'];
 const LAVA = ['#8a3a22', '#b5562a', '#d9813f'];
 
-function paintRockjaw(mouth, damage, flash) {
+// His stone body is the same in every picture, so its shading (shape,
+// light, craters, grit and the heavy brow) is worked out once and shared.
+const JAW_SIZE = Math.ceil(JAW_R * 1.3) * 2 + 3;
+const JAW_C0 = Math.floor(JAW_SIZE / 2);
+const JAW_EYE = { x: Math.round(-JAW_R * 0.38), y: Math.round(-JAW_R * 0.46) }; // relative to the centre
+let jawBody = null;
+function rockjawBody() {
+  if (jawBody) return jawBody;
   const r = JAW_R;
   const rand = seeded(JAW_SEED);
   const radiusAt = lumpy(rand, r, 6, 0.12);
   const craters = makeCraters(rand, r, 7);
+  const eye = JAW_EYE;
+  const cells = [];
+  eachFine(JAW_SIZE, JAW_C0, (fx, fy, dx, dy) => {
+    if (Math.hypot(dx, dy) > radiusAt(Math.atan2(dy, dx))) return;
+    const d = Math.hypot(dx, dy) || 1;
+    let idx = shadeIndex(dx / d, dy / d, fx, fy, JAW_SHADES.length);
+    for (const c of craters) {
+      const cd = Math.hypot(dx - c.x, dy - c.y);
+      if (cd < c.r) idx = Math.max(0, idx - 1 - (cd < c.r * 0.5 && dx - c.x < 0 ? 1 : 0));
+      else if (cd < c.r + FINE * 1.5 && dx - c.x > 0 && dy - c.y > 0) idx = Math.min(3, idx + 1);
+    }
+    const g = grit(fx, fy, JAW_SEED);
+    if (g > 0.965) idx = Math.min(3, idx + 1);
+    else if (g < 0.035) idx = Math.max(0, idx - 1);
+    // Heavy brow: a dark arched ridge over the eye.
+    const bx = dx - eye.x - 1;
+    const top = eye.y - 4 + (bx * bx) / 40;
+    if (dx >= eye.x - 5 && dx <= eye.x + 7.5 && dy >= top && dy <= eye.y - 1.5) idx = 0;
+    cells.push({ fx, fy, dx, dy, idx });
+  });
+  jawBody = { radiusAt, cells };
+  return jawBody;
+}
+
+function paintRockjaw(mouth, damage, flash) {
+  const r = JAW_R;
+  const { radiusAt, cells } = rockjawBody();
   const crackRand = seeded(JAW_SEED + 1);
-  const size = Math.ceil(r * 1.3) * 2 + 3;
-  const c0 = Math.floor(size / 2);
+  const size = JAW_SIZE;
+  const c0 = JAW_C0;
   const { canvas, ctx } = detailCanvas(size, size);
   // One half pixel at a point given relative to the centre, in the same
   // grid the shapes use.
@@ -129,43 +190,27 @@ function paintRockjaw(mouth, damage, flash) {
   const inside = (dx, dy) => Math.hypot(dx, dy) <= radiusAt(Math.atan2(dy, dx));
   const jaw = 0.06 + mouth * 0.6; // half-opening angle (radians)
   const inMouth = (dx, dy) => dx < 0 && Math.abs(Math.atan2(dy, -dx)) < jaw && Math.hypot(dx, dy) > r * 0.12;
-  const eye = { x: Math.round(-r * 0.38), y: Math.round(-r * 0.46) }; // relative to the centre
+  const eye = JAW_EYE;
   const open = !flash && mouth > 0.05;
 
   // Body and throat.
-  eachFine(size, c0, (fx, fy, dx, dy) => {
-    if (!inside(dx, dy)) return;
-    let col;
+  const px = pixels(canvas);
+  for (const { fx, fy, dx, dy, idx } of cells) {
+    let col = JAW_SHADES[idx];
     if (flash) col = PAL.cream;
     else if (open && inMouth(dx, dy)) {
       const depth = Math.hypot(dx, dy) / r;
-      let idx = depth < 0.35 ? 0 : depth < 0.6 ? 1 : depth < 0.85 ? 2 : 3;
+      let t = depth < 0.35 ? 0 : depth < 0.6 ? 1 : depth < 0.85 ? 2 : 3;
       // A tongue along the lower jaw, with a wet highlight on its top.
       const ang = Math.atan2(dy, -dx);
-      if (dy > 0 && ang > jaw * 0.45 && depth > 0.3 && depth < 0.8) idx = ang < jaw * 0.53 ? 4 : 3;
+      if (dy > 0 && ang > jaw * 0.45 && depth > 0.3 && depth < 0.8) t = ang < jaw * 0.53 ? 4 : 3;
       // Ridges down the throat.
-      else if (depth < 0.6 && Math.round(depth * 40) % 5 === 0) idx = Math.max(0, idx - 1);
-      col = THROAT[idx];
-    } else {
-      const d = Math.hypot(dx, dy) || 1;
-      let idx = shadeIndex(dx / d, dy / d, fx, fy, JAW_SHADES.length);
-      for (const c of craters) {
-        const cd = Math.hypot(dx - c.x, dy - c.y);
-        if (cd < c.r) idx = Math.max(0, idx - 1 - (cd < c.r * 0.5 && dx - c.x < 0 ? 1 : 0));
-        else if (cd < c.r + FINE * 1.5 && dx - c.x > 0 && dy - c.y > 0) idx = Math.min(3, idx + 1);
-      }
-      const g = grit(fx, fy, JAW_SEED);
-      if (g > 0.965) idx = Math.min(3, idx + 1);
-      else if (g < 0.035) idx = Math.max(0, idx - 1);
-      // Heavy brow: a dark arched ridge over the eye.
-      const bx = dx - eye.x - 1;
-      const top = eye.y - 4 + (bx * bx) / 40;
-      if (dx >= eye.x - 5 && dx <= eye.x + 7.5 && dy >= top && dy <= eye.y - 1.5) idx = 0;
-      col = JAW_SHADES[idx];
+      else if (depth < 0.6 && Math.round(depth * 40) % 5 === 0) t = Math.max(0, t - 1);
+      col = THROAT[t];
     }
-    ctx.fillStyle = col;
-    ctx.fillRect(fx * FINE, fy * FINE, FINE, FINE);
-  });
+    px.set(fx, fy, col);
+  }
+  px.done();
 
   if (!flash) {
     // Molten cracks (more of them the more damaged he is): thin glowing
@@ -180,9 +225,11 @@ function paintRockjaw(mouth, damage, flash) {
         a += (crackRand() - 0.5) * 0.85;
         x -= Math.cos(a) * 0.55;
         y -= Math.sin(a) * 0.55;
-        if (!inside(x, y) || (open && inMouth(x, y))) continue;
-        dot(x + FINE, y, LAVA[0]);
-        dot(x, y + FINE, LAVA[0]);
+        // (Only on his stone: never outside him or inside his mouth.)
+        const onStone = (u, v) => inside(u, v) && !(open && inMouth(u, v));
+        if (!onStone(x, y)) continue;
+        if (onStone(x + FINE, y)) dot(x + FINE, y, LAVA[0]);
+        if (onStone(x, y + FINE)) dot(x, y + FINE, LAVA[0]);
         dot(x, y, k < 4 ? LAVA[0] : k % 5 === 0 ? LAVA[2] : LAVA[1]);
       }
     }

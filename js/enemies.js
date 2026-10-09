@@ -1,13 +1,12 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.21.0';
-import { ROCKS } from './rockart.js?v=0.21.0';
-import { SPRITES } from './sprites.js?v=0.21.0';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.21.0';
-import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.21.0';
-import { GLACIER_WARDEN_TYPE, WARDEN_MINIONS } from './warden.js?v=0.21.0';
-import { clamp, rectHitsCircle, rectsOverlap, fillDisc } from './util.js?v=0.21.0';
-import { FINE } from './detail.js?v=0.21.0';
-import { GROUND_SPEED, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.21.0';
-import { sfx } from './audio.js?v=0.21.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.21.1';
+import { ROCKS } from './rockart.js?v=0.21.1';
+import { SPRITES } from './sprites.js?v=0.21.1';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.21.1';
+import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.21.1';
+import { GLACIER_WARDEN_TYPE, WARDEN_MINIONS } from './warden.js?v=0.21.1';
+import { clamp, rectHitsCircle, rectsOverlap, fillDisc } from './util.js?v=0.21.1';
+import { GROUND_SPEED, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.21.1';
+import { sfx } from './audio.js?v=0.21.1';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -260,18 +259,17 @@ export const ENEMY_TYPES = {
         // The aiming line: a dotted red line along the shot's path.
         const x0 = e.x;
         const y0 = e.y + e.h / 2;
-        // (Short dashes of half pixels: thin but easy to see.)
-        ctx.fillStyle = PAL.red;
-        for (let d = 4; d < 260; d += 3) {
-          const x = x0 + Math.cos(e.aimAngle) * d;
-          const y = y0 + Math.sin(e.aimAngle) * d;
-          if (x < -2 || y < -2 || y > VIEW_H + 2) break;
-          for (let k = 0; k < 1.5; k += FINE) {
-            const px = x + Math.cos(e.aimAngle) * k;
-            const py = y + Math.sin(e.aimAngle) * k;
-            ctx.fillRect(Math.round(px / FINE) * FINE, Math.round(py / FINE) * FINE, FINE * 2, FINE * 2);
-          }
-        }
+        // (One dashed stroke, a pixel thick: smooth at double detail, easy
+        // to see, and a single drawing call.)
+        ctx.save();
+        ctx.strokeStyle = PAL.red;
+        ctx.lineWidth = 1;
+        ctx.setLineDash([1.5, 1.5]);
+        ctx.beginPath();
+        ctx.moveTo(x0 + Math.cos(e.aimAngle) * 4, y0 + Math.sin(e.aimAngle) * 4);
+        ctx.lineTo(x0 + Math.cos(e.aimAngle) * 260, y0 + Math.sin(e.aimAngle) * 260);
+        ctx.stroke();
+        ctx.restore();
       }
       ctx.drawImage(spr, snap(e.x), snap(e.y));
     },
@@ -836,11 +834,16 @@ export const ENEMY_TYPES = {
         e.x += (e.targetX - e.x) * Math.min(1, dt * 2.2) - 6 * dt;
         if (e.x - e.targetX < 2) e.mode = 'hold';
       } else if (e.mode === 'leave' || e.mode === 'retreat') {
-        // (Retreat: backing out to the right after getting wedged in; see
-        // keepApart.)
+        // (Retreat: backing out to the right after getting wedged in, see
+        // keepApart. It holds again as soon as it's clear of the others,
+        // if that's still on screen; otherwise it's gone.)
         e.charge = 0;
         e.x += (e.mode === 'leave' ? -55 : 70) * dt;
         keepApart(e, dt, game);
+        if (e.mode === 'retreat' && e.x + e.w < VIEW_W - 2 && !nearGuard(e, game)) {
+          e.mode = 'hold';
+          e.targetX = e.x;
+        }
         return;
       }
       if (e.frozen) {
@@ -1101,10 +1104,16 @@ function breakFree(e, game, shotOpen) {
 // moves), and the right-hand one also edges right (the left-hand one left),
 // for when ice leaves only one gap for both of them (two leaving side by
 // side through a gap, too).
+// Rime Guards flying off (leave) or backing out (retreat).
+const moving = (g) => g.mode === 'leave' || g.mode === 'retreat';
+// Is another Rime Guard touching this one (or within 2 pixels)?
+const nearGuard = (e, game) => game.enemies.some((o) => o !== e && o.type === 'rimeGuard' && !o.dead &&
+  e.x < o.x + o.w + 2 && o.x < e.x + e.w + 2 && e.y < o.y + o.h + 2 && o.y < e.y + e.h + 2);
+
 function keepApart(e, dt, game) {
   const top = HUD_H + 2;
   const low = game.terrain.floorY - e.h - 2;
-  let stuck = null;
+  let stuck = false;
   for (const o of game.enemies) {
     if (o === e || o.type !== 'rimeGuard' || o.dead) continue;
     if (e.x >= o.x + o.w + 2 || o.x >= e.x + e.w + 2) continue;
@@ -1115,27 +1124,30 @@ function keepApart(e, dt, game) {
     const above = ey < oy || (ey === oy && first);
     const want = above ? o.y - e.h - 2 : o.y + o.h + 2;
     e.y = clamp(e.y + clamp(want - e.y, -60 * dt, 60 * dt), top, low);
-    // Sideways: they move apart, except that a guard flying away past one
-    // that's staying keeps going, and the other makes way for it (moves
-    // right, so they pass).
-    const passing = (e.mode === 'leave') !== (o.mode === 'leave');
-    if (passing && e.mode === 'leave') continue;
+    // Sideways: they move apart, except that a guard flying off (or backing
+    // out) past one that's staying keeps going, and the other makes way
+    // (moving against it, so they pass quickly).
+    const passing = moving(e) !== moving(o);
+    if (passing && moving(e)) continue;
     const ex = e.x + e.w / 2;
     const ox = o.x + o.w / 2;
-    const right = passing || ex > ox || (ex === ox && !first);
+    const behind = ex > ox || (ex === ox && !first); // this one's further back (right)
+    const right = passing ? o.mode === 'leave' : behind;
     e.x = clamp(e.x + (right ? 30 : -30) * dt, Math.min(e.x, VIEW_W * 0.45), Math.max(e.x, VIEW_W - e.w - 2));
-    // Still half on top of an older guard?
-    const ow = Math.min(e.x + e.w, o.x + o.w) - Math.max(e.x, o.x);
-    const oh = Math.min(e.y + e.h, o.y + o.h) - Math.max(e.y, o.y);
-    if (!first && ow > 0 && oh > 0 && ow * oh > 0.25 * e.w * e.h) stuck = o;
+    // Still half on top of a guard that's staying, from behind it?
+    if (!moving(o) && behind) {
+      const ow = Math.min(e.x + e.w, o.x + o.w) - Math.max(e.x, o.x);
+      const oh = Math.min(e.y + e.h, o.y + o.h) - Math.max(e.y, o.y);
+      if (ow > 0 && oh > 0 && ow * oh > 0.25 * e.w * e.h) stuck = true;
+    }
   }
   // Wedged on top of another guard with no room to move (ice and other
-  // guards all round): after a moment the newer one gives up its place and
-  // backs out the way it came (or flies off, if it's the one in front), so
-  // two guards never sit stacked into one.
+  // guards all round): after a moment the one further back backs out to
+  // the right until it's clear, so two guards never sit stacked into one.
   e.stuck = stuck ? (e.stuck || 0) + dt : 0;
-  if (e.stuck > 0.3 && e.mode !== 'leave' && e.mode !== 'retreat') {
-    e.mode = e.x >= stuck.x ? 'retreat' : 'leave';
+  if (e.stuck > 0.3 && !moving(e)) {
+    e.mode = 'retreat';
+    e.stuck = 0;
     e.charge = 0;
     e.burstLeft = 0;
   }
