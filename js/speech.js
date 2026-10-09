@@ -1,6 +1,7 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.19.2';
-import { drawText, textWidth } from './font.js?v=0.19.2';
-import { sfx } from './audio.js?v=0.19.2';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.20.0';
+import { drawText, textWidth } from './font.js?v=0.20.0';
+import { sfx } from './audio.js?v=0.20.0';
+import { FINE } from './detail.js?v=0.20.0';
 
 // Comic-book speech bubbles for characters that talk (bosses so far).
 // A bubble sits beside the speaker, follows them around, points its tail at
@@ -102,17 +103,20 @@ export class Speech {
     const len = Math.min(8, Math.hypot(dx, dy));
     const ux = dx / (Math.hypot(dx, dy) || 1);
     const uy = dy / (Math.hypot(dx, dy) || 1);
-    for (let i = len; i >= 0; i--) {
-      const s = i < 3 ? 3 : i < 6 ? 2 : 1;
-      const px = Math.round(tx + ux * i - s / 2);
-      const py = Math.round(ty + uy * i - s / 2);
+    // Drawn in half-pixel steps (double detail): a smoothly tapering tail
+    // and a thin ink outline.
+    const F = FINE;
+    const step = (v) => Math.round(v / F) * F;
+    const tail = (i) => step(3 - (2 * i) / Math.max(1, len));
+    for (let i = len; i >= 0; i -= F) {
+      const sz = tail(i);
       ctx.fillStyle = ink;
-      ctx.fillRect(px - 1, py - 1, s + 2, s + 2);
+      ctx.fillRect(step(tx + ux * i - sz / 2) - F, step(ty + uy * i - sz / 2) - F, sz + F * 2, sz + F * 2);
     }
-    for (let i = len - 1; i >= 0; i--) {
-      const s = i < 3 ? 3 : i < 6 ? 2 : 1;
-      ctx.fillStyle = fill;
-      ctx.fillRect(Math.round(tx + ux * i - s / 2), Math.round(ty + uy * i - s / 2), s, s);
+    ctx.fillStyle = fill;
+    for (let i = len - F; i >= 0; i -= F) {
+      const sz = tail(i);
+      ctx.fillRect(step(tx + ux * i - sz / 2), step(ty + uy * i - sz / 2), sz, sz);
     }
 
     // Body.
@@ -122,30 +126,39 @@ export class Speech {
     const H = h + pop * 2;
     ctx.fillStyle = ink;
     if (roar) {
-      // Jagged edge: little spikes all the way round.
-      for (let x = x0 + 2; x < x0 + W - 2; x += 5) {
-        ctx.fillRect(x, y0 - 2, 2, 2);
-        ctx.fillRect(x + 2, y0 + H, 2, 2);
+      // Jagged edge: little pointed spikes all the way round.
+      const spike = (x, y, dx, dy) => {
+        for (let k = 0; k < 3; k++) {
+          const along = (3 - k) * F; // narrower towards the point
+          const off = (k + 1) * F;
+          if (dy) ctx.fillRect(x + k * F / 2, dy < 0 ? y - off : y + off - F, along, F);
+          else ctx.fillRect(dx < 0 ? x - off : x + off - F, y + k * F / 2, F, along);
+        }
+      };
+      for (let x = x0 + 2; x < x0 + W - 2; x += 4) {
+        spike(x, y0 - F, 0, -1);
+        spike(x + 2, y0 + H + F, 0, 1);
       }
-      for (let y = y0 + 2; y < y0 + H - 2; y += 5) {
-        ctx.fillRect(x0 - 2, y, 2, 2);
-        ctx.fillRect(x0 + W, y + 2, 2, 2);
+      for (let y = y0 + 2; y < y0 + H - 2; y += 4) {
+        spike(x0 - F, y, -1, 0);
+        spike(x0 + W + F, y + 2, 1, 0);
       }
-      ctx.fillRect(x0 - 1, y0 - 1, W + 2, H + 2);
+      ctx.fillRect(x0 - F, y0 - F, W + F * 2, H + F * 2);
     } else {
       // Rounded corners.
-      ctx.fillRect(x0, y0 - 1, W, H + 2);
-      ctx.fillRect(x0 - 1, y0, W + 2, H);
+      ctx.fillRect(x0 + F, y0 - F, W - F * 2, H + F * 2);
+      ctx.fillRect(x0 - F, y0 + F, W + F * 2, H - F * 2);
+      ctx.fillRect(x0, y0, W, H);
     }
     ctx.fillStyle = fill;
     if (roar) ctx.fillRect(x0, y0, W, H);
     else {
-      ctx.fillRect(x0 + 1, y0, W - 2, H);
-      ctx.fillRect(x0, y0 + 1, W, H - 2);
+      ctx.fillRect(x0 + F, y0, W - F * 2, H);
+      ctx.fillRect(x0, y0 + F, W, H - F * 2);
     }
     // Restore the tail joint so it looks attached.
-    if (level) ctx.fillRect(ax > bx ? tx - 1 : tx, ty - 1, 2, 3);
-    else ctx.fillRect(tx - 1, ty - 1, 3, 2);
+    if (level) ctx.fillRect(ax > bx ? tx - F : tx + 1 - F * 2, ty - 1.5, F * 2, 3);
+    else ctx.fillRect(tx - 1.5, ty - F, 3, F * 2);
 
     // Words, typed out.
     let left = b.typed;

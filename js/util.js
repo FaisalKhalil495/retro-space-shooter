@@ -1,3 +1,5 @@
+import { DETAIL } from './detail.js?v=0.20.0';
+
 // Small maths helpers shared across the game.
 export function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
@@ -10,13 +12,17 @@ export function rectHitsCircle(x, y, w, h, cx, cy, r) {
   return (nx - cx) ** 2 + (ny - cy) ** 2 <= r * r;
 }
 
-// A filled circle built from horizontal pixel rows, so its edge is stepped
-// like pixel art rather than smooth. Uses the current fill colour.
+// A filled circle built from horizontal rows of half-pixel steps (double
+// detail), so its edge is stepped like pixel art rather than smooth. Uses
+// the current fill colour.
 export function fillDisc(ctx, cx, cy, r) {
-  const ri = Math.max(1, Math.round(r));
+  const D = DETAIL;
+  const ri = Math.max(1, Math.round(r * D));
+  const x0 = Math.round(cx * D);
+  const y0 = Math.round(cy * D);
   for (let y = -ri; y <= ri; y++) {
     const half = Math.floor(Math.sqrt(ri * ri - y * y));
-    ctx.fillRect(Math.round(cx - half), Math.round(cy + y), half * 2 + 1, 1);
+    ctx.fillRect((x0 - half) / D, (y0 + y) / D, (half * 2 + 1) / D, 1 / D);
   }
 }
 
