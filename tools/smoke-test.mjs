@@ -1956,14 +1956,63 @@ for (const phone of PHONES) {
     b.plates[3].hp = 0;
     res.rocketsOpen = (g.nearestEnemy(30, 60) || {}).type || null;
 
-    // Stage 1 never refreezes; stage 2 does (frost creeps back over a broken
-    // front plate within a few seconds), and shooting the frost knocks it back.
+    // The plates turn: with one gap, a shot at the core's height reaches the
+    // core only while the gap faces it (some of the time, not all of it).
+    b = fresh(1);
+    g.player.y = 125;
+    b.plates[0].hp = 0;
+    b.plates[0].wait = 1e9; // (no refreezing during this check)
+    let open = 0;
+    let frames = 0;
+    for (let i = 0; i < 8 * 120; i++) {
+      step(1 / 120, b);
+      const saved = b.hitPlate;
+      if (b.T.shotTest(b, b.x, b.y + 33, 40, 2) === 'hit' && b.hitPlate === -1) open++;
+      b.hitPlate = saved;
+      frames++;
+    }
+    res.turning = +(open / frames).toFixed(2);
+    // Its icicle fan is its own ice: one icicle from each whole plate, and
+    // with no plates left it can't fire a fan or raise a wall at all.
+    const fanShots = (wholePlates) => {
+      b = fresh(1);
+      b.plates.forEach((P, k) => {
+        P.hp = k < wholePlates ? full : 0;
+        P.wait = 1e9;
+      });
+      b.attack = { name: 'fan', t: 0 };
+      let n = 0;
+      for (let i = 0; i < 2 * 120 && b.attack; i++) {
+        const before = g.enemyShots.length;
+        step(1 / 120, b);
+        n += Math.max(0, g.enemyShots.length - before);
+      }
+      return n;
+    };
+    res.ammo = { six: fanShots(6), two: fanShots(2) };
+    b = fresh(1);
+    b.plates.forEach((P) => {
+      P.hp = 0;
+    });
+    const picks = new Set();
+    for (let i = 0; i < 60; i++) {
+      b.attack = null;
+      b.idle = 0;
+      b.last = null;
+      g.update(1 / 120, idle);
+      if (b.attack) picks.add(b.attack.name);
+      b.attack = null;
+    }
+    res.ammo.strippedPicks = [...picks].sort().join();
+
+    // It freezes broken plates back over (one at a time in stage 1, faster
+    // and two at once later), and shooting the frost knocks it back.
     b = fresh(1);
     b.plates[2].hp = 0;
     b.plates[3].hp = 0;
     g.player.y = 125;
     step(10, b);
-    res.refreeze1 = plates(b) === [full, full, 0, 0, full, full].join();
+    res.refreeze1 = plates(b) === Array(6).fill(full).join();
     b = fresh(2);
     b.plates[2].hp = 0;
     b.plates[3].hp = 0;
@@ -2120,7 +2169,9 @@ for (const phone of PHONES) {
     r.armour.coreHitAt !== null && r.armour.vulnerable &&
     r.bomb === '0,0,0,0,0,0' && r.laser.coreHurt > 0 && r.laser.plates.split(',').filter((x) => x === '0').length >= 1 &&
     r.rocketsArmoured !== 'sawBlade' && r.rocketsOpen === 'glacierWarden' &&
-    r.refreeze1 && r.refreeze2.grew !== null && r.refreeze2.knockedBack && r.refreeze2.closedAgain &&
+    r.refreeze1 && r.turning > 0.08 && r.turning < 0.5 &&
+    r.ammo.six === 6 && r.ammo.two === 2 && !/fan|wall/.test(r.ammo.strippedPicks) && r.ammo.strippedPicks.length > 0 &&
+    r.refreeze2.grew !== null && r.refreeze2.knockedBack && r.refreeze2.closedAgain &&
     Object.values(w).every((v) => v >= 0.3) &&
     r.beam.stay === 2 && r.beam.dodge === 0 && r.beam.ice === 0 &&
     r.hailAbove >= 0 && r.hailAbove < 3 && r.blades.thrown >= 2 && r.blades.left === 0 &&
