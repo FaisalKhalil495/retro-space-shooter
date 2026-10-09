@@ -1,4 +1,4 @@
-import { FINE } from './detail.js?v=0.21.1';
+import { FINE, snapFine } from './detail.js?v=0.21.2';
 
 // The game's lettering (v0.20.0): our own smooth letters, drawn as lines by
 // the game itself, so they look exactly the same on every phone and stay
@@ -70,6 +70,8 @@ export function textWidth(str, px = 1) {
 // Draw text with its top-left at (x, y). px = size of one font pixel.
 export function drawText(ctx, str, x, y, color, px = 1) {
   const s = String(str).toUpperCase();
+  const m = ctx.getTransform();
+  const k = px * FINE; // one step of a letter's grid
   ctx.save();
   ctx.strokeStyle = color;
   ctx.lineWidth = STROKE;
@@ -79,17 +81,16 @@ export function drawText(ctx, str, x, y, color, px = 1) {
   for (let i = 0; i < s.length; i++) {
     const path = paths[s[i]];
     if (!path) continue;
-    ctx.save();
-    ctx.translate(x + (i * ADVANCE - 0.3) * px, y);
-    ctx.scale(px * FINE, px * FINE);
+    // Each letter in its own place and size: one transform, no nesting.
+    const gx = x + (i * ADVANCE - 0.3) * px;
+    ctx.setTransform(m.a * k, m.b * k, m.c * k, m.d * k, m.e + m.a * gx + m.c * y, m.f + m.b * gx + m.d * y);
     ctx.stroke(path);
-    ctx.restore();
   }
   ctx.restore();
 }
 
 export function drawTextCentered(ctx, str, cx, y, color, px = 1) {
-  drawText(ctx, str, Math.round((cx - textWidth(str, px) / 2) / FINE) * FINE, y, color, px);
+  drawText(ctx, str, snapFine(cx - textWidth(str, px) / 2), y, color, px);
 }
 
 // For the tests: which characters have a letter.

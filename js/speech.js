@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.21.1';
-import { drawText, textWidth } from './font.js?v=0.21.1';
-import { sfx } from './audio.js?v=0.21.1';
-import { FINE } from './detail.js?v=0.21.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.21.2';
+import { drawText, textWidth } from './font.js?v=0.21.2';
+import { sfx } from './audio.js?v=0.21.2';
+import { FINE, snapFine } from './detail.js?v=0.21.2';
 
 // Comic-book speech bubbles for characters that talk (bosses so far).
 // A bubble sits beside the speaker, follows them around, points its tail at
@@ -106,7 +106,7 @@ export class Speech {
     // Drawn in half-pixel steps (double detail): a smoothly tapering tail
     // and a thin ink outline.
     const F = FINE;
-    const step = (v) => Math.round(v / F) * F;
+    const step = snapFine;
     const tail = (i) => step(3 - (2 * i) / Math.max(1, len));
     for (let i = len; i >= 0; i -= F) {
       const sz = tail(i);

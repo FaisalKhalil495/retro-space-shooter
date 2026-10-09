@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.21.1';
-import { FAR_ROCKS } from './rockart.js?v=0.21.1';
-import { fillDisc, seeded } from './util.js?v=0.21.1';
-import { FINE, detailCanvas } from './detail.js?v=0.21.1';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.21.2';
+import { FAR_ROCKS } from './rockart.js?v=0.21.2';
+import { fillDisc, seeded } from './util.js?v=0.21.2';
+import { DETAIL, FINE, detailCanvas, pixels } from './detail.js?v=0.21.2';
 
 // Deep-space backdrop: a slow distant amber sun, a band of dust, distant
 // asteroids and four layers of stars moving at different speeds, which
@@ -31,8 +31,39 @@ function sunRings(rings) {
   }
   return out;
 }
+// Painted once into a picture (it never changes shape), drawn centred.
+const SUN_SIZE = 32;
+const sunCache = new Map();
+function makeSun(rings) {
+  if (sunCache.has(rings)) return sunCache.get(rings);
+  const { canvas, ctx } = detailCanvas(SUN_SIZE, SUN_SIZE);
+  for (const [r, c] of rings) {
+    ctx.fillStyle = c;
+    fillDisc(ctx, SUN_SIZE / 2, SUN_SIZE / 2, r);
+  }
+  sunCache.set(rings, canvas);
+  return canvas;
+}
 const SUN = sunRings([[15, '#262638'], [12, '#4a3530'], [9, PAL.amberDark], [6, '#a87545']]);
 const LOW_SUN = sunRings([[13, '#3e2824'], [10, '#5e4234'], [7, '#8c6a4e'], [4, '#c4a07a']]);
+
+// Space lightening very slightly towards the bottom: painted once as a
+// one-pixel-wide strip and stretched across the screen (a gradient
+// repainted every frame is slow on phones that draw without a graphics chip).
+const skyCache = new Map();
+function makeSky(color) {
+  if (skyCache.has(color)) return skyCache.get(color);
+  const { canvas } = detailCanvas(1, VIEW_H);
+  const px = pixels(canvas);
+  const n = VIEW_H * DETAIL;
+  for (let fy = 0; fy < n; fy++) {
+    const col = mix(color, '#2a3256', (0.18 * fy) / (n - 1));
+    for (let fx = 0; fx < DETAIL; fx++) px.set(fx, fy, col);
+  }
+  px.done();
+  skyCache.set(color, canvas);
+  return canvas;
+}
 
 // A faint band of space dust, drawn once with a checkerboard "dither"
 // pattern (the classic pixel-art way to fade between two colours). Its
@@ -42,18 +73,20 @@ const DUST_H = 26;
 const dustCanvases = new Map();
 function makeDust(color = '#19203a') {
   if (dustCanvases.has(color)) return dustCanvases.get(color);
-  const { canvas, ctx: c } = detailCanvas(VIEW_W * 2, DUST_H);
-  c.fillStyle = color;
+  const { canvas } = detailCanvas(VIEW_W * 2, DUST_H);
+  const px = pixels(canvas);
   // Checked at every half pixel, so the dither is twice as fine.
-  for (let y = 0; y < DUST_H; y += FINE) {
+  for (let fy = 0; fy < DUST_H * DETAIL; fy++) {
+    const y = fy * FINE;
     const edge = Math.min(y, DUST_H - FINE - y);
-    for (let x = 0; x < VIEW_W * 2; x += FINE) {
-      const wobble = Math.sin((x / VIEW_W) * Math.PI * 4) * 2;
+    for (let fx = 0; fx < VIEW_W * 2 * DETAIL; fx++) {
+      const wobble = Math.sin((fx * FINE / VIEW_W) * Math.PI * 4) * 2;
       const solid = edge + wobble > 6;
-      const dither = edge + wobble > 2 && Math.round((x + y) / FINE) % 2 === 0;
-      if (solid || dither) c.fillRect(x, y, FINE, FINE);
+      const dither = edge + wobble > 2 && (fx + fy) % 2 === 0;
+      if (solid || dither) px.set(fx, fy, color);
     }
   }
+  px.done();
   dustCanvases.set(color, canvas);
   return canvas;
 }
@@ -135,7 +168,8 @@ function makeRingedPlanet() {
   const cx = 48;
   const cy = 32;
   const R = 22;
-  const { canvas, ctx: c } = detailCanvas(W, H);
+  const { canvas } = detailCanvas(W, H);
+  const pxs = pixels(canvas);
   const bands = ['#26334f', '#2b3a58', '#314262', '#2b3a58', '#3a4d70'];
   const ring = (x, y) => {
     const d = ((x - cx) / 44) ** 2 + ((y - cy) / 7) ** 2;
@@ -145,10 +179,7 @@ function makeRingedPlanet() {
     const d = ((x - cx) / 44) ** 2 + ((y - cy) / 7) ** 2;
     return d > 0.96 || d < 0.65;
   };
-  const px = (x, y, col) => {
-    c.fillStyle = col;
-    c.fillRect(x, y, FINE, FINE);
-  };
+  const px = (x, y, col) => pxs.set(Math.round(x * DETAIL), Math.round(y * DETAIL), col);
   // Every half pixel (x, y = its top-left corner; X, Y = its centre).
   const each = (y0, y1, fn) => {
     for (let y = y0; y < y1; y += FINE) for (let x = 0; x < W; x += FINE) fn(x, y, x + FINE / 2, y + FINE / 2);
@@ -176,6 +207,7 @@ function makeRingedPlanet() {
     if (!ring(X, Y)) return;
     px(x, y, ringEdge(X, Y) ? '#3d5078' : Math.round(X / FINE) % 5 ? '#4a5f86' : '#5d74a0');
   });
+  pxs.done();
   ringedPlanet = canvas;
   return canvas;
 }
@@ -283,16 +315,10 @@ export class Background {
   }
 
   draw(ctx, snap) {
-    // Space lightens very slightly towards the bottom.
-    if (!this.sky) {
-      this.sky = ctx.createLinearGradient(0, 0, 0, VIEW_H);
-      this.sky.addColorStop(0, this.theme.space);
-      this.sky.addColorStop(1, mix(this.theme.space, '#2a3256', 0.18));
-    }
-    ctx.fillStyle = this.sky;
-    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
-
+    // Space lightens very slightly towards the bottom (Rust Moon has its
+    // own dusty sky instead).
     if (this.theme.canyon) ctx.drawImage(makeCanyonSky(), 0, 0);
+    else ctx.drawImage(makeSky(this.theme.space), 0, 0, VIEW_W, VIEW_H);
 
     if (this.theme.frost) ctx.drawImage(makeRingedPlanet(), snap(this.planetX), 14);
 
@@ -304,10 +330,7 @@ export class Background {
       const sx = snap(this.sunX);
       const low = this.theme.canyon; // Rust Moon: a pale sun low over the mesas
       const sy = low ? 74 : 30;
-      for (const [r, c] of low ? LOW_SUN : SUN) {
-        ctx.fillStyle = c;
-        fillDisc(ctx, sx, sy, r);
-      }
+      ctx.drawImage(makeSun(low ? LOW_SUN : SUN), sx - SUN_SIZE / 2, sy - SUN_SIZE / 2);
     }
 
     for (const s of this.stars) {

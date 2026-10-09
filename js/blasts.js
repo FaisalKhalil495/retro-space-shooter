@@ -1,7 +1,7 @@
-import { PAL } from './config.js?v=0.21.1';
-import { ROCK } from './gore.js?v=0.21.1';
-import { fillDisc } from './util.js?v=0.21.1';
-import { FINE } from './detail.js?v=0.21.1';
+import { PAL } from './config.js?v=0.21.2';
+import { ROCK } from './gore.js?v=0.21.2';
+import { fillDisc } from './util.js?v=0.21.2';
+import { FINE, snapFine } from './detail.js?v=0.21.2';
 
 // Explosions, drawn as chunky pixel art in the warm palette (no neon, no
 // glow). A blast is a quick white-hot flash, a fireball that swells and cools
@@ -138,8 +138,16 @@ export class Blasts {
 // Dithered rows are filled with a repeating pattern: one draw call per row
 // instead of one per pixel, which keeps big explosions cheap on phones.
 function disc(ctx, cx, cy, r, color, dither = 0) {
-  ctx.fillStyle = dither ? ditherPattern(ctx, color, dither) : color;
-  fillDisc(ctx, cx, cy, r);
+  const m = ctx.getTransform();
+  if (dither) {
+    // Checkerboard cells of half a pixel, rounded to whole screen pixels so
+    // every cell is the same size (the rows they fill are too).
+    const pat = ditherPattern(ctx, color, dither);
+    const cell = Math.max(1, Math.round(m.a * FINE)) / m.a;
+    pat.setTransform(new DOMMatrix([cell, 0, 0, cell, 0, 0]));
+    ctx.fillStyle = pat;
+  } else ctx.fillStyle = color;
+  fillDisc(ctx, cx, cy, r, m);
 }
 
 const patterns = new Map();
@@ -155,7 +163,6 @@ function ditherPattern(ctx, color, dither) {
     c.fillRect(0, 0, 1, 1);
     if (dither === 1) c.fillRect(1, 1, 1, 1);
     pat = ctx.createPattern(cv, 'repeat');
-    pat.setTransform(new DOMMatrix([FINE, 0, 0, FINE, 0, 0])); // dither in half pixels
     patterns.set(key, pat);
   }
   return pat;
@@ -167,6 +174,6 @@ function ring(ctx, cx, cy, r, dotted) {
   for (let i = 0; i < steps; i++) {
     if (dotted && i % 4 > 1) continue;
     const a = (i / steps) * Math.PI * 2;
-    ctx.fillRect(Math.round((cx + Math.cos(a) * r) / FINE) * FINE, Math.round((cy + Math.sin(a) * r) / FINE) * FINE, FINE, FINE);
+    ctx.fillRect(snapFine(cx + Math.cos(a) * r), snapFine(cy + Math.sin(a) * r), FINE, FINE);
   }
 }
