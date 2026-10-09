@@ -231,6 +231,8 @@ Last updated: v0.17.0 (Stage 3, step 3C: the Frostring world).
 | v0.19.2 review: a Prism check failed about 1 run in 30 — the Prism bobs, and now and then it sat just above the test ship's fixed line of fire for the whole second | Caught by looping the one check 30 times. A test of "shoot the thing" must aim at it the way a player would (track it), not fire along a fixed line and hope. |
 | v0.20.0 (design): a double-detail version of the old blocky letters looked almost exactly like the old ones — same stroke, same square shapes — so it wouldn't have delivered the "sharper, more modern" look the owner had approved in the mock-up | Check a design against the picture that sold it before building it. Here the fix was smooth letters drawn as lines (our own design), which match what the owner saw. |
 | v0.20.0 (before release): the score's 1-pixel text shadow, fine for blocky letters, smudged the thin smooth letters into dark blobs; a slashed zero read like a row of "no entry" signs | Shadows and details sized for chunky pixels need halving at double detail. Look at the real screen (screenshots), not just the design sheet. |
+| v0.21.0 (testing the tests): one "deliberate break" (painting a rock one pixel wider) didn't break anything — the normal picture grew with it, so the rule still held; and another (a misspelt picture name) crashed the check instead of failing it | A break must violate the rule the check is about, or it proves nothing. And a check should report a bad case as a failure with a reason, not fall over. |
+| v0.21.0: "Frostring rules" failed once in a full run (two Rime Guards overlapping 0.63 s, limit 0.6) — a v0.18.0 behaviour bug, nothing to do with the graphics. Running that one check 30–100 times (several at once) and logging the guards' last second showed three causes: a newcomer pushing into a held spot, a leaving guard held back by the push meant to separate them, and jams against the screen edge between ice. The first two fixes each made a *different* rare case worse; the general rule (the newer guard backs out after 0.3 s) fixed all of them | Never wave a rare failure away as a flake: loop the check, log the moments before it, find the cause. Prefer one general rule ("whoever's newer gives way") over a patch per case, and re-measure the whole distribution after every change, not just the case you fixed. |
 | LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
 
 ## 5. Our working process (what works)
@@ -407,6 +409,13 @@ rock, pickups reachable) before the first hand-over.
   built in one release. New checks were each proven to fail on a
   deliberately broken copy (wrong-size picture, screen not wrapped, a
   missing letter, the wrapper drawing at the wrong size).
+
+- Step 2 (v0.21.0): level 1's seven enemies (hand-drawn at double
+  detail), the asteroids and Rockjaw (painted by code in half-pixel
+  steps). The first draft of the sheet had a pod that looked like a smiley
+  face and a weaver that was just a cone — caught by looking at the sheet
+  before sending it. Rockjaw's open-mouth fangs used to point into his
+  jaw; at double detail they point into the mouth as intended.
 
 ### Carry into Stage 3 (checklist for the plan)
 - Each boss: 3+ phases, 5+ attacks, entrance + name card, roar, music,

@@ -1,8 +1,8 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.20.0';
-import { ROCKJAW } from './rockart.js?v=0.20.0';
-import { sfx } from './audio.js?v=0.20.0';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.20.0';
-import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.20.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.21.0';
+import { ROCKJAW } from './rockart.js?v=0.21.0';
+import { sfx } from './audio.js?v=0.21.0';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.21.0';
+import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.21.0';
 
 // ROCKJAW · THE LIVING ASTEROID — boss of The Outer Belt.
 //
@@ -576,8 +576,12 @@ export const ROCKJAW_TYPE = {
     // Eye flashes before a charge (a warning).
     if (e.eyeFlash && stage === 0 && Math.floor(g.time * 16) % 2 === 0) {
       const c = center(e);
+      // (Rounded at the corners, in half pixels, over the eye.)
+      const ex = snap(c.x + ROCKJAW.eye.dx) - 2 + wx;
+      const ey = snap(c.y + ROCKJAW.eye.dy) - 1 + wy;
       ctx.fillStyle = '#efe3cf';
-      ctx.fillRect(snap(c.x + ROCKJAW.eye.dx) - 2 + wx, snap(c.y + ROCKJAW.eye.dy) - 1 + wy, 5, 3);
+      ctx.fillRect(ex + 0.5, ey, 4, 3);
+      ctx.fillRect(ex, ey + 0.5, 5, 2);
     }
   },
 };

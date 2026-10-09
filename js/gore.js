@@ -1,6 +1,6 @@
-import { VIEW_H, BLOOD } from './config.js?v=0.20.0';
-import { fillDisc } from './util.js?v=0.20.0';
-import { FINE } from './detail.js?v=0.20.0';
+import { VIEW_H, BLOOD } from './config.js?v=0.21.0';
+import { fillDisc } from './util.js?v=0.21.0';
+import { FINE } from './detail.js?v=0.21.0';
 
 // Blood, gore and debris. Only living creatures bleed: weavers lightly,
 // Rockjaw fully. Machines and the player explode instead (see blasts.js).
@@ -64,7 +64,8 @@ export class Gore {
       const life = 0.9 + r() * 1.2;
       this.gibs.push({
         x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v - 10, life, max: life,
-        w: 1 + Math.floor(r() * 3), h: 1 + Math.floor(r() * 2),
+        // Sizes in half pixels (double detail): small, ragged bits.
+        w: (1 + Math.floor(r() * 5)) * FINE, h: (1 + Math.floor(r() * 3)) * FINE,
         color: palette[Math.floor(r() * palette.length)],
         bleeds: bleeds && BLOOD,
         trail: 0,
@@ -72,7 +73,8 @@ export class Gore {
     }
   }
 
-  // One special chunk (a tooth, a helmet...) drawn from a tiny pixel map.
+  // One special chunk (a tooth, a helmet...) drawn from a tiny pixel map
+  // of half pixels.
   piece(x, y, rows, colors, vx, vy, spin = 0) {
     this.gibs.push({
       x, y, vx, vy, life: 2.5, max: 2.5, rows, colors, spin, angle: 0,
@@ -207,7 +209,7 @@ export class Gore {
             const col = g.colors[row[x]];
             if (!col) continue;
             ctx.fillStyle = col;
-            ctx.fillRect(x - row.length / 2, y - g.rows.length / 2, 1, 1);
+            ctx.fillRect((x - row.length / 2) * FINE, (y - g.rows.length / 2) * FINE, FINE, FINE);
           }
         });
         ctx.restore();
@@ -237,5 +239,5 @@ export class Gore {
   }
 }
 
-// Little pixel-map pieces.
-export const TOOTH = { rows: ['ab', 'aa', '.a'], colors: { a: BONE[0], b: BONE[1] } };
+// Little pixel-map pieces, in half pixels (double detail).
+export const TOOTH = { rows: ['baab', 'aaab', 'aaab', '.aab', '.aa.', '..a.'], colors: { a: BONE[0], b: BONE[1] } };

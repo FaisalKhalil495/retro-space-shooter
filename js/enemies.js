@@ -1,12 +1,13 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.20.0';
-import { ROCKS } from './rockart.js?v=0.20.0';
-import { SPRITES } from './sprites.js?v=0.20.0';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.20.0';
-import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.20.0';
-import { GLACIER_WARDEN_TYPE, WARDEN_MINIONS } from './warden.js?v=0.20.0';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.20.0';
-import { GROUND_SPEED, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.20.0';
-import { sfx } from './audio.js?v=0.20.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.21.0';
+import { ROCKS } from './rockart.js?v=0.21.0';
+import { SPRITES } from './sprites.js?v=0.21.0';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.21.0';
+import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.21.0';
+import { GLACIER_WARDEN_TYPE, WARDEN_MINIONS } from './warden.js?v=0.21.0';
+import { clamp, rectHitsCircle, rectsOverlap, fillDisc } from './util.js?v=0.21.0';
+import { FINE } from './detail.js?v=0.21.0';
+import { GROUND_SPEED, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.21.0';
+import { sfx } from './audio.js?v=0.21.0';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -259,12 +260,17 @@ export const ENEMY_TYPES = {
         // The aiming line: a dotted red line along the shot's path.
         const x0 = e.x;
         const y0 = e.y + e.h / 2;
+        // (Short dashes of half pixels: thin but easy to see.)
         ctx.fillStyle = PAL.red;
-        for (let d = 4; d < 260; d += 4) {
+        for (let d = 4; d < 260; d += 3) {
           const x = x0 + Math.cos(e.aimAngle) * d;
           const y = y0 + Math.sin(e.aimAngle) * d;
           if (x < -2 || y < -2 || y > VIEW_H + 2) break;
-          ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
+          for (let k = 0; k < 1.5; k += FINE) {
+            const px = x + Math.cos(e.aimAngle) * k;
+            const py = y + Math.sin(e.aimAngle) * k;
+            ctx.fillRect(Math.round(px / FINE) * FINE, Math.round(py / FINE) * FINE, FINE * 2, FINE * 2);
+          }
         }
       }
       ctx.drawImage(spr, snap(e.x), snap(e.y));
@@ -316,7 +322,7 @@ export const ENEMY_TYPES = {
       ctx.restore();
       if (e.charge && Math.floor(game.time * 16) % 2 === 0) {
         ctx.fillStyle = PAL.amberLight;
-        ctx.fillRect(cx - 1, cy - 1, 3, 3);
+        fillDisc(ctx, cx + 0.5, cy + 0.5, 1.5);
       }
     },
   },
@@ -829,9 +835,11 @@ export const ENEMY_TYPES = {
       if (e.mode === 'enter') {
         e.x += (e.targetX - e.x) * Math.min(1, dt * 2.2) - 6 * dt;
         if (e.x - e.targetX < 2) e.mode = 'hold';
-      } else if (e.mode === 'leave') {
+      } else if (e.mode === 'leave' || e.mode === 'retreat') {
+        // (Retreat: backing out to the right after getting wedged in; see
+        // keepApart.)
         e.charge = 0;
-        e.x -= 55 * dt;
+        e.x += (e.mode === 'leave' ? -55 : 70) * dt;
         keepApart(e, dt, game);
         return;
       }
@@ -1096,6 +1104,7 @@ function breakFree(e, game, shotOpen) {
 function keepApart(e, dt, game) {
   const top = HUD_H + 2;
   const low = game.terrain.floorY - e.h - 2;
+  let stuck = null;
   for (const o of game.enemies) {
     if (o === e || o.type !== 'rimeGuard' || o.dead) continue;
     if (e.x >= o.x + o.w + 2 || o.x >= e.x + e.w + 2) continue;
@@ -1106,10 +1115,29 @@ function keepApart(e, dt, game) {
     const above = ey < oy || (ey === oy && first);
     const want = above ? o.y - e.h - 2 : o.y + o.h + 2;
     e.y = clamp(e.y + clamp(want - e.y, -60 * dt, 60 * dt), top, low);
+    // Sideways: they move apart, except that a guard flying away past one
+    // that's staying keeps going, and the other makes way for it (moves
+    // right, so they pass).
+    const passing = (e.mode === 'leave') !== (o.mode === 'leave');
+    if (passing && e.mode === 'leave') continue;
     const ex = e.x + e.w / 2;
     const ox = o.x + o.w / 2;
-    const right = ex > ox || (ex === ox && !first);
+    const right = passing || ex > ox || (ex === ox && !first);
     e.x = clamp(e.x + (right ? 30 : -30) * dt, Math.min(e.x, VIEW_W * 0.45), Math.max(e.x, VIEW_W - e.w - 2));
+    // Still half on top of an older guard?
+    const ow = Math.min(e.x + e.w, o.x + o.w) - Math.max(e.x, o.x);
+    const oh = Math.min(e.y + e.h, o.y + o.h) - Math.max(e.y, o.y);
+    if (!first && ow > 0 && oh > 0 && ow * oh > 0.25 * e.w * e.h) stuck = o;
+  }
+  // Wedged on top of another guard with no room to move (ice and other
+  // guards all round): after a moment the newer one gives up its place and
+  // backs out the way it came (or flies off, if it's the one in front), so
+  // two guards never sit stacked into one.
+  e.stuck = stuck ? (e.stuck || 0) + dt : 0;
+  if (e.stuck > 0.3 && e.mode !== 'leave' && e.mode !== 'retreat') {
+    e.mode = e.x >= stuck.x ? 'retreat' : 'leave';
+    e.charge = 0;
+    e.burstLeft = 0;
   }
 }
 
