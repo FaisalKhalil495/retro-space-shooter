@@ -1837,7 +1837,13 @@ for (const phone of PHONES) {
       step(0.05);
       return { dead: !!pr.dead, shards: g.enemies.filter((e) => e.type === 'prismShard').length };
     };
-    res.prismShot = shardsAfter((pr) => { for (let i = 0; i < 120 && !pr.dead; i++) step(1 / 120, fire); }); // (stops firing once it breaks)
+    // (Keeps lined up with it as it bobs, and stops firing once it breaks.)
+    res.prismShot = shardsAfter((pr) => {
+      for (let i = 0; i < 120 && !pr.dead; i++) {
+        g.player.y = pr.y + pr.h / 2 - g.player.h / 2;
+        step(1 / 120, fire);
+      }
+    });
     res.prismLaser = shardsAfter(() => { g.weapons.kind = 'laser'; g.weapons.ammo = 1; g.weapons.fire(); step(0.3); });
     res.prismBomb = shardsAfter(() => { g.weapons.kind = 'bomb'; g.weapons.ammo = 1; g.weapons.fire(); step(0.5); });
     // A shard blinks before it fires its one shot...
@@ -1990,6 +1996,19 @@ for (const phone of PHONES) {
       return n;
     };
     res.ammo = { six: fanShots(6), two: fanShots(2) };
+    // ...and no fan means no warning either (no glow before nothing).
+    b = fresh(1);
+    b.plates.forEach((P) => {
+      P.hp = 0;
+      P.wait = 1e9;
+    });
+    b.attack = { name: 'fan', t: 0 };
+    let glowed = 0;
+    for (let i = 0; i < 120 && b.attack; i++) {
+      step(1 / 120, b);
+      if (b.glow) glowed++;
+    }
+    res.ammo.emptyGlow = glowed;
     b = fresh(1);
     b.plates.forEach((P) => {
       P.hp = 0;
@@ -2170,7 +2189,7 @@ for (const phone of PHONES) {
     r.bomb === '0,0,0,0,0,0' && r.laser.coreHurt > 0 && r.laser.plates.split(',').filter((x) => x === '0').length >= 1 &&
     r.rocketsArmoured !== 'sawBlade' && r.rocketsOpen === 'glacierWarden' &&
     r.refreeze1 && r.turning > 0.08 && r.turning < 0.5 &&
-    r.ammo.six === 6 && r.ammo.two === 2 && !/fan|wall/.test(r.ammo.strippedPicks) && r.ammo.strippedPicks.length > 0 &&
+    r.ammo.six === 6 && r.ammo.two === 2 && r.ammo.emptyGlow === 0 && !/fan|wall/.test(r.ammo.strippedPicks) && r.ammo.strippedPicks.length > 0 &&
     r.refreeze2.grew !== null && r.refreeze2.knockedBack && r.refreeze2.closedAgain &&
     Object.values(w).every((v) => v >= 0.3) &&
     r.beam.stay === 2 && r.beam.dodge === 0 && r.beam.ice === 0 &&

@@ -1,19 +1,19 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.19.1';
-import { sfx } from './audio.js?v=0.19.1';
-import { clamp } from './util.js?v=0.19.1';
-import { METAL, MOLTEN } from './gore.js?v=0.19.1';
-import { ICE_COLORS, slabImage } from './terrain.js?v=0.19.1';
-import { BOMB_DAMAGE } from './weapons.js?v=0.19.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.19.2';
+import { sfx } from './audio.js?v=0.19.2';
+import { clamp } from './util.js?v=0.19.2';
+import { METAL, MOLTEN } from './gore.js?v=0.19.2';
+import { ICE_COLORS, slabImage } from './terrain.js?v=0.19.2';
+import { BOMB_DAMAGE } from './weapons.js?v=0.19.2';
 import {
-  WARDEN, WARDEN_W, WARDEN_H, HUB, CORE_R, PLATE_HP, PLATES, NOSE, ENGINES, HOLES, RING_FRAMES, TEETH,
+  WARDEN, WARDEN_W, WARDEN_H, HUB, PLATE_HP, PLATES, NOSE, HOLES, RING_FRAMES, TEETH,
   CORE, PLATE, RING, SECTOR, buildWardenArt, wardenAt, drawWardenCore, drawWardenPlates, toothTips,
-} from './wardenart.js?v=0.19.1';
+} from './wardenart.js?v=0.19.2';
 
 // THE GLACIER WARDEN · KEEPER OF THE RING — boss of Frostring.
 //
 // The Ice Harvesters' flagship: a giant saw ring spinning round a hub where
 // six wedge-shaped plates of ice cover its furnace core — and the plates
-// TURN, like a revolving door. Your shots crack the plate facing you (10
+// TURN, like a revolving door. Your shots crack the plate facing you (6
 // hits); a broken plate leaves a gap, and the core can only be hit while a
 // gap is facing you, so break more plates for more (and longer) chances.
 // The ice is also its ammunition: its icicle fan fires one icicle from each
@@ -28,7 +28,8 @@ import {
 // Stage 1 (100–66%): Icicle Fan, Frost Beam, Hailstorm, Ice Wall, Saw Blades.
 // Stage 2 (66–33%), the ice crust blown off: + Frost Mines; faster refreezing.
 // Stage 3 (33–0%), burning: + Blizzard (wind pushes you back while it keeps
-//   attacking); everything faster, more icicles, plates refreeze sooner.
+//   attacking); everything faster, two fans at a time, plates refreeze
+//   sooner, and the hub suddenly reverses now and then.
 // Every attack has a warning: a glowing hub, guide lines, "!" markers,
 // glinting teeth, a blinking hatch or a howling wind.
 
@@ -112,6 +113,7 @@ const ATTACKS = {
     const fans = e.phase === 3 ? 2 : 1;
     drift(e, dt, g, 0.4);
     if (!a.started) {
+      if (!whole(e)) return true; // no ice left to fire: no fan (and no false warning)
       a.started = true;
       sfx.charge(warn);
     }
@@ -323,7 +325,7 @@ const ATTACKS = {
       a.fans = [];
     }
     e.wind = a.t < warn ? (a.t / warn) * 0.35 : a.t < warn + blow ? 1 : Math.max(0, 1 - (a.t - warn - blow) * 2);
-    if (a.t >= warn && a.t < warn + blow && g.state === 'playing') {
+    if (a.t >= warn && a.t < warn + blow && g.state === 'playing' && !(g.player.entering > 0)) {
       const p = g.player;
       p.x = Math.max(2, p.x - 34 * dt);
     }
@@ -372,6 +374,7 @@ export const GLACIER_WARDEN_TYPE = {
     e.hubAng = 0;
     e.hubDir = 1;
     e.flipT = 4;
+    e.jolt = 0;
     e.spinBoost = 1;
     e.plates = Array.from({ length: PLATES }, () => ({ hp: PLATE_HP, grow: 0, flash: 0 }));
     e.attack = null;
@@ -404,8 +407,12 @@ export const GLACIER_WARDEN_TYPE = {
       if (e.phase === 3 && (e.flipT -= dt) <= 0) {
         e.flipT = 3 + g.rand() * 2;
         e.hubDir = -e.hubDir;
-        e.wobble = 1;
+        e.jolt = 0.3;
         sfx.grind(0.25);
+      }
+      if (e.jolt > 0) {
+        e.jolt -= dt;
+        e.wobble = 1.5; // the jolt of it reversing
       }
       e.hubAng += HUB_SPIN[e.phase] * e.hubDir * dt;
     }
@@ -963,5 +970,3 @@ export const WARDEN_MINIONS = {
   },
 };
 
-// (Exported for the tests.)
-export const WARDEN_RULES = { HOME_X, LEFT_LIMIT, CORE_R, ENGINES };
