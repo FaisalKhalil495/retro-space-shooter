@@ -1,4 +1,4 @@
-import { FINE, snapFine } from './detail.js?v=0.22.1';
+import { FINE, snapFine, crispOf } from './detail.js?v=0.22.2';
 
 // The game's lettering (v0.20.0): our own smooth letters, drawn as lines by
 // the game itself, so they look exactly the same on every phone and stay
@@ -70,7 +70,7 @@ export function textWidth(str, px = 1) {
 // Draw text with its top-left at (x, y). px = size of one font pixel.
 export function drawText(ctx, str, x, y, color, px = 1) {
   const s = String(str).toUpperCase();
-  const m = ctx.getTransform();
+  const m = crispOf(ctx); // (plain numbers: no garbage per letter)
   const k = px * FINE; // one step of a letter's grid
   ctx.save();
   ctx.strokeStyle = color;
