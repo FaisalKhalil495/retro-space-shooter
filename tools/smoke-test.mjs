@@ -1660,7 +1660,7 @@ for (const phone of PHONES) {
     r.wallOff.placed && r.wallOff.refused && r.diveCrash && r.fromTop.warned && r.fromTop.atMarker !== null && r.fromTop.atMarker < 3 &&
     r.frostLook.own === 6 && r.frostLook.sameSize === 6 && r.frostLook.cargoSame &&
     r.level.bossCame && r.level.slabs >= 40 && r.level.fromEdges >= 6 && r.level.minGap >= 30 && r.level.overlaps === 0 &&
-    r.level.inIce.length === 0 && r.level.pkInIce === 0 && r.level.longestStack < 0.6 && errs.length === 0;
+    r.level.inIce.length === 0 && r.level.pkInIce === 0 && r.level.longestStack < 0.5 && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  Frostring rules ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;
   await context.close();
@@ -2203,7 +2203,7 @@ for (const phone of PHONES) {
   await context.close();
 }
 
-// Stage 4 step 1 (v0.20.0): double detail. Sharper pictures are exactly
+// Double detail (v0.20.0 on). Sharper pictures are exactly
 // twice the size of the normal ones (so nothing changes size or hit area),
 // the screen draws the sharper ones, and every word the game shows uses
 // letters the new font has.
@@ -2228,9 +2228,22 @@ for (const phone of PHONES) {
     for (const name of HI_NAMES) {
       for (const n of [name, name + 'Flash']) {
         const s = SPRITES[n];
-        if (!s.hi || s.hi.width !== s.width * DETAIL || s.hi.height !== s.height * DETAIL) out.wrongSize.push(n);
+        if (!s || !s.hi || s.hi.width !== s.width * DETAIL || s.hi.height !== s.height * DETAIL) out.wrongSize.push(n);
       }
     }
+    // Pictures painted by code (rocks, Rockjaw) carry sharp versions too,
+    // exactly double size and not blank; level 1's enemies are all redrawn.
+    const { ROCKS, ROCKJAW, FAR_ROCKS } = await import('/js/rockart.js' + v);
+    const painted = [...ROCKS.big, ...ROCKS.small, ...ROCKS.bigFlash, ...ROCKS.smallFlash, ...FAR_ROCKS,
+      ...ROCKJAW.frames.flat(), ...ROCKJAW.flash];
+    out.painted = painted.length;
+    out.paintedWrong = painted.filter((p) => !p.hi || p.hi.width !== p.width * DETAIL || p.hi.height !== p.height * DETAIL).length;
+    out.blankHi = painted.filter((p) => {
+      const d = p.hi.getContext('2d').getImageData(0, 0, p.hi.width, p.hi.height).data;
+      for (let i = 3; i < d.length; i += 4) if (d[i]) return false;
+      return true;
+    }).length;
+    out.level1Missing = ['drifter', 'weaver', 'gunner', 'seeker', 'sniper', 'spinner', 'carrier'].filter((n) => !HI_NAMES.includes(n));
     // Drawing through useDetail gives exactly the sharp picture.
     const c = document.createElement('canvas');
     c.width = SPRITES.player.hi.width;
@@ -2265,7 +2278,8 @@ for (const phone of PHONES) {
   }
   r.missingLetters = [...missing].join('');
   delete r.glyphs;
-  const ok = r.hi >= 2 && r.wrongSize.length === 0 && r.shimDiff === 0 && r.screenSharp &&
+  const ok = r.hi >= 9 && r.wrongSize.length === 0 && r.shimDiff === 0 && r.screenSharp &&
+    r.painted === 34 && r.paintedWrong === 0 && r.blankHi === 0 && r.level1Missing.length === 0 &&
     r.shipSize[0] === 18 && r.shipSize[1] === 11 && r.missingLetters === '' && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  double detail ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;

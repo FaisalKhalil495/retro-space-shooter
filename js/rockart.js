@@ -1,6 +1,6 @@
-import { PAL } from './config.js?v=0.20.0';
-import { seeded } from './util.js?v=0.20.0';
-import { DETAIL, FINE, detailCanvas } from './detail.js?v=0.20.0';
+import { PAL } from './config.js?v=0.21.0';
+import { seeded } from './util.js?v=0.21.0';
+import { DETAIL, FINE, detailCanvas } from './detail.js?v=0.21.0';
 
 // Asteroids and Rockjaw are drawn by code rather than by hand: a lumpy
 // circle, shaded from the top-left with a pixel-art checkerboard "dither"

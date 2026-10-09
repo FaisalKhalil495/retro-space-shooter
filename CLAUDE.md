@@ -251,7 +251,10 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
       Raiders (35%, 50% when hurt, 30% of it "A" ammo). Groups hover in
       separate lanes, and guards **never stack up** (one overlapping
       another moves away up/down and sideways, even when ice leaves one
-      gap).
+      gap); v0.21.0: a guard flying away passes one that's
+      staying, which makes way; one still wedged on top of another after
+      0.3 s backs out to the right the way it came, or flies off if it's
+      the one in front — the test allows 0.5 s of overlap, was 0.6).
     - **Cryo Layer** (about 10): an ore hauler crossing high up, dropping
       3–4 **frost mines** as it goes (about 34 a level). 5 HP, 60 pts,
       ram 2, 15% drop. A mine falls a little, then drifts left; come
@@ -542,6 +545,13 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
   (`js/font.js`), same on every phone, in the same 5x5 space as the old
   blocky ones (owner approved; a blocky double-detail font looked no
   different). Shadows are half a pixel.
+- Level 1 at double detail (v0.21.0, owner approved the sheet): pod
+  (seam, glowing engine), weaver (ribbed wings), gunship (glass dome,
+  steel cannons), seeker, sniper (red sight), spinner (pale ring, steel
+  spikes), cargo pod (rivets, framed window — the same on every level);
+  asteroids with finer craters and grit; Rockjaw with tapering fangs that
+  point into his mouth, a slit eye with a glint, throat ridges and thin
+  glowing cracks (same shape, size and mouth position).
 - Your ship: **"B: detailed"** (owner's pick, v0.20.0): glass canopy with a
   frame, rivets, lit fin edge, glowing engine ring, smooth tapered flame.
 - **Every level has its own look** (owner, v0.16.0): enemy types shared
@@ -610,7 +620,7 @@ Approved by the owner. Keep the status column up to date.
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
 | 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C built (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2; owner testing) |
-| G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | In progress — step 1 built (v0.20.0; owner testing) |
+| G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | In progress — step 1 done (v0.20.0), step 2 built (v0.21.0: level 1 enemies, cargo pod, asteroids, Rockjaw; owner testing) |
 | 4 | **Levels 6–9** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |
