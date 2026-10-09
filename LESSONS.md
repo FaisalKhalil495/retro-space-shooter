@@ -240,6 +240,8 @@ Last updated: v0.17.0 (Stage 3, step 3C: the Frostring world).
 | v0.21.2 second review: with the processor slowed 4x the game drew about half as many frames as before double detail (64 vs 110 in a busy scene), yet the game's own code was only ~1 ms slower — the cost was the browser *painting*: mostly a full-screen sky gradient I'd added (one setting alone: 68 → 116 frames), plus the sun as 300 rows every frame | Measure frames per second on a slowed processor, not just how long our code takes; switch parts off one at a time to find the cost. Paint anything that never changes once into a picture (sky strip, sun, shot bodies) and copy it. Now level 1 draws faster than before double detail. Kept as `tools/speed-test.mjs`. |
 | v0.22.0 review: several of Rust Moon's hand-drawn sharp sprites came out a little smaller than the normal ones (the drawing shrank inside the same canvas), so shots could hit empty space around them; level 1's sniper had the same slip, unnoticed since v0.21.0 | A sharp picture must fill **exactly** the same outline box as the normal one, not just the same canvas size. Now a test compares the outline boxes, and it caught the old sniper the first time it ran. |
 | v0.22.0: speed checks of the same code differed by up to 10 frames from run to run, enough to look like a slowdown that wasn't there | Average several runs, or run the old version alongside, before deciding a change made the game slower. |
+| v0.22.1 review: the Siege Crawler's new rock spikes and dust waves, built from half-pixel rows every frame, showed faint stripes — the very seams fixed for explosions in v0.21.1, back in new code | A lesson only sticks if a test enforces it. Any shape built from half-pixel rows or columns each frame uses `fillCrisp`; the smoke test now renders the spikes and waves at a 7.51 scale and fails on any stray colour inside them (proven on the striped version: 40 bad pixels). |
+| v0.22.1 review: the level test failed one run in thirty, and re-running the same start didn't repeat it: the "repeatable" test used real random dice, and the background kept rolling them while the test had the game frozen | A test with randomness must print its seed and be replayable with it. With a seed, the failing run (28) replayed exactly, and a trace showed the real cause in a minute: the autopilot, not the game. Then 80 seeds in a row passed. |
 | v0.21.2 second review: round shapes sat a quarter pixel off-centre (orbs spilled half a pixel past their box), and the wingman drone's outline had a notch | Small geometry slips show at double detail; check shapes against the box they're meant to fill. |
 | LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
 
@@ -433,6 +435,12 @@ rock, pickups reachable) before the first hand-over.
   faint seams in the floor tiles and the hull's panel lines, and leg
   joints sitting a quarter pixel off. A new outline check then found the
   same slip in level 1's sniper (half a pixel short) from step 2.
+  The owner's review request (v0.22.1) found more: the stomp's rock spikes
+  and dust waves were striped (the v0.21.1 seam lesson hadn't been applied
+  to these new shapes), crack edges blurred, the floor moved in whole-pixel
+  jumps under smoothly gliding spires, and the level test failed about one
+  run in thirty because its autopilot chased loose items while a slow
+  cargo pod crossed the screen unopened.
 
 ### Carry into Stage 3 (checklist for the plan)
 - Each boss: 3+ phases, 5+ attacks, entrance + name card, roar, music,

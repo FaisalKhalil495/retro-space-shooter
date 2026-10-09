@@ -2311,6 +2311,56 @@ for (const phone of PHONES) {
     out.glyphs = GLYPH_CHARS;
     return out;
   }));
+  // Shapes the game builds from half-pixel rows or columns each frame (the
+  // Siege Crawler's rock spikes and dust waves) show no faint stripes at a
+  // screen scale that isn't a whole number: every screen pixel inside them
+  // is one of their own colours.
+  await page.goto(base + '?level=2&start=boss');
+  await page.waitForTimeout(300);
+  await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  await page.waitForTimeout(300);
+  r.stripes = await page.evaluate(() => {
+    window.__ember.frozen = true;
+    const g = window.__ember.game;
+    for (let i = 0; i < 20 * 120; i++) {
+      g.player.invuln = 5;
+      g.update(1 / 120, { dx: 0, dy: 0, fire: false, special: false, tap: false });
+    }
+    const e = g.boss;
+    if (!e) return 'no boss';
+    g.enemyShots = [];
+    g.shake = 0;
+    g.player.x = 4;
+    g.player.y = 20;
+    e.spikes = [{ x: 30.3, t: 5 }]; // standing at full height
+    e.waves = [{ x: 50.2, vx: -60 }]; // rolling left, trailing to the right
+    const k = 7.51;
+    const cv = document.createElement('canvas');
+    cv.width = 1600;
+    cv.height = 1100;
+    const ctx = cv.getContext('2d');
+    ctx.setTransform(k, 0, 0, k, 3, 2);
+    ctx.imageSmoothingEnabled = false;
+    const snap = (v) => Math.round(v * k) / k;
+    g.draw(ctx, snap);
+    const at = (gx, gy) => {
+      const d = ctx.getImageData(Math.floor(gx * k + 3), Math.floor(gy * k + 2), 1, 1).data;
+      return '#' + [d[0], d[1], d[2]].map((n) => n.toString(16).padStart(2, '0')).join('');
+    };
+    const floorY = g.terrain.floorY;
+    const bad = [];
+    // Down the spike's lit face (from where it's wide enough).
+    for (let gy = floorY - 15; gy < floorY - 0.2; gy += 1 / k) {
+      const c = at(snap(30.3) - 1.25, gy);
+      if (c !== '#8c5a3e') bad.push('spike ' + c);
+    }
+    // Along the bottom of the dust wave.
+    for (let gx = 50.6; gx < 55.8; gx += 1 / k) {
+      const c = at(gx, floorY - 0.75);
+      if (!['#6b4a3a', '#9a6a4a', '#c4a68e'].includes(c)) bad.push('wave ' + c);
+    }
+    return bad.length;
+  });
   // Every all-capitals string in the game's code is something it shows on
   // screen; each of its characters must be in the font.
   const { readdirSync, readFileSync } = await import('node:fs');
@@ -2327,7 +2377,7 @@ for (const phone of PHONES) {
   delete r.glyphs;
   const ok = r.hi >= 22 && r.wrongSize.length === 0 && r.wrongOutline.length === 0 && r.shimDiff === 0 && r.screenSharp &&
     r.painted === 39 && r.paintedWrong === 0 && r.blankHi === 0 && r.level1Missing.length === 0 &&
-    r.level2Missing.length === 0 && r.seams === 0 &&
+    r.level2Missing.length === 0 && r.seams === 0 && r.stripes === 0 &&
     r.shipSize[0] === 18 && r.shipSize[1] === 11 && r.missingLetters === '' && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  double detail ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;

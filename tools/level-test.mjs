@@ -20,7 +20,23 @@ const errors = [];
 page.on('pageerror', (e) => errors.push(String(e)));
 await page.goto(base);
 await page.waitForTimeout(300);
-await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+// The game's dice come from a seed, so a run can be replayed exactly: a
+// fresh seed each time (for variety), printed; replay one with SEED=n.
+const seed = Number(process.env.SEED) || Math.floor(Math.random() * 1e9);
+console.log(`seed ${seed} (replay with SEED=${seed})`);
+await page.evaluate((seed) => {
+  // Stop the real-time loop from also stepping the game while we drive it.
+  window.__ember.frozen = true;
+  document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+  const g = window.__ember.game;
+  let s = seed >>> 0;
+  g.rand = () => {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(s ^ (s >>> 15), s | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}, seed);
 await page.waitForTimeout(300);
 
 // Freeze the real-time loop's influence by pausing input, then drive the
@@ -64,10 +80,19 @@ const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
         target = e;
       }
     }
-    if (pk) ty = pk.y - 1;
+    // A cargo pod still ahead comes first, before chasing loose items (they
+    // drift slower than pods, so they can wait): chasing items let a slow
+    // pod cross the whole screen behind the ship unopened, about one run in
+    // thirty.
+    const pod = g.enemies.find((e) => e.type === 'carrier' && !e.dead && e.x < VIEW_W_ && g.aimPoint(e).x > p.x + p.w);
+    if (pod && !(pk && pk.magnet)) {
+      target = pod;
+      ty = g.aimPoint(pod).y - p.h / 2;
+    } else if (pk) ty = pk.y - 1;
     else if (target) ty = g.aimPoint(target).y - p.h / 2;
     let dx = 0;
-    if (pk) dx = pk.x > p.x + 6 ? 1 : pk.x < p.x ? -1 : 0;
+    if (pod && !(pk && pk.magnet)) dx = p.x > 40 ? -1 : 0;
+    else if (pk) dx = pk.x > p.x + 6 ? 1 : pk.x < p.x ? -1 : 0;
     else dx = p.x > 40 ? -1 : 0;
     const dy = Math.abs(ty - p.y) < 1.5 ? 0 : ty > p.y ? 1 : -1;
     let special = false;
@@ -92,11 +117,6 @@ const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
     weapon: g.weapons.kind, ammo: g.weapons.ammo, ...log,
   };
 }, { seconds, opts });
-
-// Stop the real-time loop from also stepping the game while we drive it.
-await page.evaluate(() => {
-  window.__ember.frozen = true;
-});
 
 // Boss supply pods: count them over about 55 seconds of boss fight, and check
 // they alternate survival / weapon.

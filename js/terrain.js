@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.22.0';
-import { seeded } from './util.js?v=0.22.0';
-import { DETAIL, detailCanvas, pixels, grit } from './detail.js?v=0.22.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.22.1';
+import { seeded } from './util.js?v=0.22.1';
+import { DETAIL, detailCanvas, pixels, grit } from './detail.js?v=0.22.1';
 
 // Solid things in the way, for levels that have them:
 //   - Rust Moon (and later the Ember Mines' tunnels): a floor strip along the
@@ -55,7 +55,7 @@ export function spireImage(w, h, seed) {
     const y = Math.floor(fy / DETAIL);
     // The edge runs smoothly from one row's width to the next.
     const t = (fy % DETAIL) / DETAIL;
-    const half = rows[y] * (1 - t) + (rows[Math.min(h - 1, y + 1)] ?? rows[y]) * t;
+    const half = rows[y] * (1 - t) + rows[Math.min(h - 1, y + 1)] * t;
     const band = bands[y];
     for (let fx = 0; fx < w * DETAIL; fx++) {
       const dx = (fx + 0.5) / DETAIL - w / 2;
@@ -421,7 +421,8 @@ export class Terrain {
     // The floor: a strip of layered ground with pebbles, scrolling along
     // (a tile painted once, repeated).
     const y0 = this.floorY;
-    const off = Math.floor(this.scroll) % FLOOR_TILE;
+    // (Snapped like the spires, so they don't slide about on it.)
+    const off = snap(this.scroll % FLOOR_TILE);
     ctx.drawImage(floorTile(this.floor), -off, y0);
   }
 }
