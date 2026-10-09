@@ -621,7 +621,7 @@ Approved by the owner. Keep the status column up to date.
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
 | 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C built (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2; owner testing) |
-| G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | In progress — step 1 done (v0.20.0), step 2 built (v0.21.0: level 1 enemies, cargo pod, asteroids, Rockjaw; review fixes v0.21.1; owner testing) |
+| G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | In progress — step 1 done (v0.20.0), step 2 built (v0.21.0: level 1 enemies, cargo pod, asteroids, Rockjaw; review fixes v0.21.1–v0.21.2; owner testing) |
 | 4 | **Levels 6–9** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |
@@ -679,8 +679,10 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - `js/detail.js` — double detail: `useDetail(ctx)` (the screen draws a
   picture's sharp `.hi` version in its place), `detailCanvas(w, h)` (paint a
   picture by code at double detail), `DETAIL`, `FINE` (half a pixel),
-  `snapFine`, and `fillCrisp` (rows of a shape meet on whole screen pixels,
-  so no faint seams show at scales like 7.5 screen pixels per game pixel).
+  `snapFine`, `fillCrisp` (rows of a shape meet on whole screen pixels,
+  so no faint seams show at scales like 7.5 screen pixels per game pixel),
+  and `pixels(canvas)` (paint a whole picture straight into its pixel data —
+  much faster at start-up than one fillRect per pixel).
 - `js/audio.js` — all sound effects, synthesised in code (incl. boss roar,
   growl, jaw snap, inhale, splat).
 - `js/music.js` — boss music, generated live (Rockjaw's, the Siege
@@ -703,6 +705,11 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   style).
   It freezes the live game loop (`window.__ember.frozen = true`) and drives
   the game itself, so results are repeatable.
+- `tools/speed-test.mjs` — how fast the game draws on a slow phone (five
+  busy scenes, processor slowed 4x, frames in 3 s). Run it before and after
+  any change to drawing and compare; v0.21.2: 114 / 102 / 92 / 97 / 91.
+  Rule: nothing big is repainted every frame if it never changes (paint it
+  once into a picture), and no full-screen gradients per frame.
 - `tools/serve.mjs` — the tests' tiny web server (this computer only; refuses
   paths outside the repository).
 - Testing aids: add `?safe=62` to the URL to fake an iPhone camera cutout;

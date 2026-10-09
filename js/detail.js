@@ -43,6 +43,33 @@ export function useDetail(ctx) {
   return ctx;
 }
 
+// Paint single sharp pixels straight into a picture's pixel data, then put
+// it back in one go: much faster than one fillRect per pixel when painting
+// a whole picture by code. (fx, fy count sharp pixels.)
+export function pixels(canvas) {
+  const hi = canvas.hi;
+  const c = hi.getContext('2d');
+  const img = c.getImageData(0, 0, hi.width, hi.height);
+  const buf = new Uint32Array(img.data.buffer);
+  return {
+    set: (fx, fy, hex) => {
+      buf[fy * hi.width + fx] = rgba(hex);
+    },
+    done: () => c.putImageData(img, 0, 0),
+  };
+}
+// '#rrggbb' as one 32-bit pixel (in the byte order canvas pixel data uses).
+const rgbaCache = new Map();
+function rgba(hex) {
+  let v = rgbaCache.get(hex);
+  if (v === undefined) {
+    const n = parseInt(hex.slice(1), 16);
+    v = ((255 << 24) | ((n & 255) << 16) | (n & 0xff00) | (n >> 16)) >>> 0;
+    rgbaCache.set(hex, v);
+  }
+  return v;
+}
+
 // A blank picture to paint by code at double detail. Returns `canvas`, a
 // normal-size stand-in (measure it and draw it like any picture; it carries
 // the sharp one as .hi), and `ctx`, the sharp canvas's context, already

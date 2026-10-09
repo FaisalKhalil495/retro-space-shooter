@@ -1,6 +1,6 @@
-import { PAL } from './config.js?v=0.21.1';
-import { seeded } from './util.js?v=0.21.1';
-import { DETAIL, FINE, detailCanvas } from './detail.js?v=0.21.1';
+import { PAL } from './config.js?v=0.21.2';
+import { seeded } from './util.js?v=0.21.2';
+import { DETAIL, FINE, detailCanvas, pixels } from './detail.js?v=0.21.2';
 
 // Asteroids and Rockjaw are drawn by code rather than by hand: a lumpy
 // circle, shaded from the top-left with a pixel-art checkerboard "dither"
@@ -28,32 +28,6 @@ function eachFine(size, c0, fn) {
 }
 // A cheap fixed "random" per half pixel (grit, rough edges).
 const grit = (fx, fy, seed) => ((((fx * 73856093) ^ (fy * 19349663) ^ (seed * 83492791)) >>> 0) % 1000) / 1000;
-
-// Paint half pixels straight into a sharp canvas's pixel data, then put it
-// back in one go: much faster at start-up than one fillRect per half pixel.
-function pixels(canvas) {
-  const hi = canvas.hi;
-  const c = hi.getContext('2d');
-  const img = c.getImageData(0, 0, hi.width, hi.height);
-  const buf = new Uint32Array(img.data.buffer);
-  return {
-    set: (fx, fy, hex) => {
-      buf[fy * hi.width + fx] = rgba(hex);
-    },
-    done: () => c.putImageData(img, 0, 0),
-  };
-}
-// '#rrggbb' as one 32-bit pixel (in the byte order canvas pixel data uses).
-const rgbaCache = new Map();
-function rgba(hex) {
-  let v = rgbaCache.get(hex);
-  if (v === undefined) {
-    const n = parseInt(hex.slice(1), 16);
-    v = ((255 << 24) | ((n & 255) << 16) | (n & 0xff00) | (n >> 16)) >>> 0;
-    rgbaCache.set(hex, v);
-  }
-  return v;
-}
 
 // Radius at a given angle: a circle with smooth bumps.
 function lumpy(rand, r, bumps = 5, amount = 0.16) {
@@ -352,6 +326,7 @@ export const ROCKJAW = {
   radius: JAW_R,
   eye: { dx: -JAW_R * 0.38 + 2, dy: -JAW_R * 0.46 + 1 },
 };
+jawBody = null; // (only needed while his pictures were being painted)
 
 // Distant, dim rocks for the background layer.
 export const FAR_ROCKS = [5, 6, 7, 8].map((s, i) => {

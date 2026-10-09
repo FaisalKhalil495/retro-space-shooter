@@ -1,4 +1,4 @@
-import { DETAIL, fillCrisp } from './detail.js?v=0.21.1';
+import { DETAIL, fillCrisp } from './detail.js?v=0.21.2';
 
 // Small maths helpers shared across the game.
 export function clamp(v, lo, hi) {
@@ -12,21 +12,23 @@ export function rectHitsCircle(x, y, w, h, cx, cy, r) {
   return (nx - cx) ** 2 + (ny - cy) ** 2 <= r * r;
 }
 
-// A filled circle built from horizontal rows of half-pixel steps (double
-// detail), so its edge is stepped like pixel art rather than smooth. Uses
-// the current fill colour.
-export function fillDisc(ctx, cx, cy, r) {
+// A filled circle of radius r centred on (cx, cy), built from horizontal
+// rows of half-pixel steps (double detail), so its edge is stepped like
+// pixel art rather than smooth. Uses the current fill colour. m: the
+// context's transform, if the caller already has it.
+export function fillDisc(ctx, cx, cy, r, m = ctx.getTransform()) {
   const D = DETAIL;
   const ri = Math.max(1, Math.round(r * D));
   const x0 = Math.round(cx * D);
   const y0 = Math.round(cy * D);
   // (Rows meet on whole screen pixels, so no seams show between them.)
-  const m = ctx.getTransform();
   const crisp = !m.b && !m.c;
-  for (let y = -ri; y <= ri; y++) {
-    const half = Math.floor(Math.sqrt(ri * ri - y * y));
-    if (crisp) fillCrisp(ctx, m, (x0 - half) / D, (y0 + y) / D, (half * 2 + 1) / D, 1 / D);
-    else ctx.fillRect((x0 - half) / D, (y0 + y) / D, (half * 2 + 1) / D, 1 / D);
+  for (let y = -ri; y < ri; y++) {
+    const yc = y + 0.5;
+    const half = Math.round(Math.sqrt(ri * ri - yc * yc));
+    if (!half) continue;
+    if (crisp) fillCrisp(ctx, m, (x0 - half) / D, (y0 + y) / D, (half * 2) / D, 1 / D);
+    else ctx.fillRect((x0 - half) / D, (y0 + y) / D, (half * 2) / D, 1 / D);
   }
 }
 

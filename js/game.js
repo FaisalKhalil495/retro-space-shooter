@@ -1,20 +1,20 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.21.1';
-import { SPRITES } from './sprites.js?v=0.21.1';
-import { ENEMY_TYPES } from './enemies.js?v=0.21.1';
-import { LEVELS, LevelRunner } from './levels.js?v=0.21.1';
-import { Background } from './background.js?v=0.21.1';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.21.1';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.21.1';
-import { buzz, HAPTIC } from './feedback.js?v=0.21.1';
-import { sfx } from './audio.js?v=0.21.1';
-import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.21.1';
-import { FINE, snapFine, fillCrisp } from './detail.js?v=0.21.1';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.21.1';
-import { Blasts } from './blasts.js?v=0.21.1';
-import { Speech } from './speech.js?v=0.21.1';
-import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.21.1';
-import { startBossMusic, stopMusic } from './music.js?v=0.21.1';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.21.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.21.2';
+import { SPRITES } from './sprites.js?v=0.21.2';
+import { ENEMY_TYPES } from './enemies.js?v=0.21.2';
+import { LEVELS, LevelRunner } from './levels.js?v=0.21.2';
+import { Background } from './background.js?v=0.21.2';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.21.2';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.21.2';
+import { buzz, HAPTIC } from './feedback.js?v=0.21.2';
+import { sfx } from './audio.js?v=0.21.2';
+import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.21.2';
+import { FINE, snapFine, fillCrisp, detailCanvas } from './detail.js?v=0.21.2';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.21.2';
+import { Blasts } from './blasts.js?v=0.21.2';
+import { Speech } from './speech.js?v=0.21.2';
+import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.21.2';
+import { startBossMusic, stopMusic } from './music.js?v=0.21.2';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.21.2';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -44,6 +44,28 @@ const DEATH_LINES = [
   'SHIT. TRY AGAIN.',
   'THEY WILL NEED A MOP',
 ];
+
+// Enemy shots' round bodies, painted once (in two blink colours) and copied
+// each frame: an ordinary round, a heavy cannon shell and a chip of rock.
+function shotBody(size, layers) {
+  const { canvas, ctx } = detailCanvas(size, size);
+  for (const [color, r] of layers) {
+    ctx.fillStyle = color;
+    fillDisc(ctx, size / 2, size / 2, r);
+  }
+  return canvas;
+}
+const SHOT_ART = {
+  orb: [PAL.amberLight, PAL.cream].map((core) => shotBody(4, [[PAL.redDark, 2], [PAL.red, 1.5], [core, 0.75]])),
+  shell: [PAL.amberLight, PAL.cream].map((core) => shotBody(6, [[PAL.ink, 3], [PAL.red, 2.25], [core, 1]])),
+  gravel: (() => {
+    const c = shotBody(4, [[PAL.ink, 2], ['#9c8478', 1.25]]);
+    const ctx = c.hi.getContext('2d');
+    ctx.fillStyle = '#c4a68e';
+    ctx.fillRect(1 * 2, 1 * 2, 2, 1); // a lit corner (in sharp pixels)
+    return c;
+  })(),
+};
 
 export class Game {
   constructor({ startAt = 0, level = 1 } = {}) {
@@ -1049,12 +1071,7 @@ export class Game {
       // Shots are drawn in half-pixel steps (double detail).
       if (s.kind === 'gravel') {
         // A chip of rock.
-        ctx.fillStyle = PAL.ink;
-        fillDisc(ctx, x, y, 2);
-        ctx.fillStyle = '#9c8478';
-        fillDisc(ctx, x, y, 1.25);
-        ctx.fillStyle = '#c4a68e';
-        ctx.fillRect(x - 1, y - 1, 1, FINE);
+        ctx.drawImage(SHOT_ART.gravel, x - 2, y - 2);
         continue;
       }
       if (s.kind === 'shell') {
@@ -1067,12 +1084,7 @@ export class Game {
           const sz = i > 8 ? FINE * 2 : FINE * 3;
           ctx.fillRect(snapFine(s.x - dx * i) - sz / 2, snapFine(s.y - dy * i) - sz / 2, sz, sz);
         }
-        ctx.fillStyle = PAL.ink;
-        fillDisc(ctx, x, y, 3);
-        ctx.fillStyle = PAL.red;
-        fillDisc(ctx, x, y, 2.25);
-        ctx.fillStyle = Math.floor(s.t * 12) % 2 ? PAL.amberLight : PAL.cream;
-        fillDisc(ctx, x, y, 1);
+        ctx.drawImage(SHOT_ART.shell[Math.floor(s.t * 12) % 2 ? 0 : 1], x - 3, y - 3);
         continue;
       }
       if (s.kind === 'icicle') {
@@ -1107,12 +1119,7 @@ export class Game {
         continue;
       }
       // An ordinary round: a red ball with a blinking hot core.
-      ctx.fillStyle = PAL.redDark;
-      fillDisc(ctx, x, y, 2);
-      ctx.fillStyle = PAL.red;
-      fillDisc(ctx, x, y, 1.5);
-      ctx.fillStyle = Math.floor(s.t * 12) % 2 ? PAL.amberLight : PAL.cream;
-      fillDisc(ctx, x, y, 0.75);
+      ctx.drawImage(SHOT_ART.orb[Math.floor(s.t * 12) % 2 ? 0 : 1], x - 2, y - 2);
     }
 
     this.weapons.draw(ctx, snap);

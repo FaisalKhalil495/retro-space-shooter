@@ -1,8 +1,8 @@
-import { PAL, PLAYER } from './config.js?v=0.21.1';
-import { sfx } from './audio.js?v=0.21.1';
-import { buzz } from './feedback.js?v=0.21.1';
-import { fillDisc } from './util.js?v=0.21.1';
-import { FINE } from './detail.js?v=0.21.1';
+import { PAL, PLAYER } from './config.js?v=0.21.2';
+import { sfx } from './audio.js?v=0.21.2';
+import { buzz } from './feedback.js?v=0.21.2';
+import { fillDisc } from './util.js?v=0.21.2';
+import { FINE } from './detail.js?v=0.21.2';
 
 // Automatic power-ups: they work the moment you fly into them, no button.
 // They're drawn as ROUND orbs, so they never get mixed up with the square
@@ -211,7 +211,7 @@ export class PowerUps {
         ctx.fillRect(x - 1, y, 8.5, 3);
         ctx.fillStyle = PAL.blue;
         ctx.fillRect(x, y, 6.5, 4);
-        ctx.fillRect(x - F, y + F, 7.5, 3);
+        ctx.fillRect(x - F, y + F, 7.5, 2.5);
         ctx.fillStyle = PAL.bluePale;
         ctx.fillRect(x + F, y, 5, F);
         ctx.fillStyle = PAL.blueDark;
