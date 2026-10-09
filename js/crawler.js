@@ -1,6 +1,7 @@
 import { VIEW_W, HUD_H, PAL } from './config.js?v=0.21.2';
 import { sfx } from './audio.js?v=0.21.2';
-import { clamp, rectsOverlap } from './util.js?v=0.21.2';
+import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.21.2';
+import { FINE, snapFine } from './detail.js?v=0.21.2';
 import { METAL, MOLTEN } from './gore.js?v=0.21.2';
 import { GROUND_SPEED } from './terrain.js?v=0.21.2';
 import { drawText } from './font.js?v=0.21.2';
@@ -644,19 +645,24 @@ export const SIEGE_CRAWLER_TYPE = {
     // A hatch or rack blinking: something's about to come out of it.
     if (e.lightT > 0 && blink && e.lightAt) {
       ctx.fillStyle = PAL.amberLight;
-      ctx.fillRect(x + e.lightAt.x - 1, y + e.lightAt.y - 1, 3, 3);
+      fillDisc(ctx, x + e.lightAt.x + 0.5, y + e.lightAt.y + 0.5, 1.5);
     }
     // The cannon's aim line: dotted red along the barrel, to the edge.
     if (e.aimLine && Math.floor(g.time * 20) % 2 === 0) {
+      // (One dashed stroke a pixel thick, stopping at the ground.)
       const m = muzzle(e);
       const d = aimDir(e.ang);
-      ctx.fillStyle = PAL.red;
-      for (let s = 4; s < 300; s += 4) {
-        const px = m.x + d.x * s;
-        const py = m.y + d.y * s;
-        if (px < -2 || px > VIEW_W + 2 || py < -2 || py > g.terrain.floorY) break;
-        ctx.fillRect(Math.round(px), Math.round(py), 1, 1);
-      }
+      let len = 300;
+      if (d.y > 0) len = Math.min(len, (g.terrain.floorY - m.y) / d.y);
+      ctx.save();
+      ctx.strokeStyle = PAL.red;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([1.5, 2.5]);
+      ctx.beginPath();
+      ctx.moveTo(m.x + d.x * 4, m.y + d.y * 4);
+      ctx.lineTo(m.x + d.x * len, m.y + d.y * len);
+      ctx.stroke();
+      ctx.restore();
     }
     // Flak warning: a flashing dotted line across the screen, with a gap.
     if (e.flak && !e.flakFiring) {
@@ -697,12 +703,17 @@ function drawWaves(e, ctx, g) {
   const floorY = g.terrain.floorY;
   for (const w of e.waves) {
     const dir = Math.sign(w.vx);
-    for (let i = 0; i < 12; i++) {
-      // A rolling crest: tallest at the front, trailing off behind.
-      const h = Math.round(WAVE_H * (1 - i / 12) * (0.75 + 0.25 * Math.sin(g.time * 30 + i)));
-      const px = Math.round(w.x - dir * i);
+    for (let i = 0; i < 12; i += FINE) {
+      // A rolling crest: tallest at the front, trailing off behind (in
+      // half-pixel columns).
+      const h = snapFine(WAVE_H * (1 - i / 12) * (0.75 + 0.25 * Math.sin(g.time * 30 + i)));
+      const px = snapFine(w.x - dir * i);
       ctx.fillStyle = DUST[i < 2 ? 2 : i < 6 ? 1 : 0];
-      ctx.fillRect(px, floorY - h, 1, h);
+      ctx.fillRect(px, floorY - h, FINE, h);
+      if (h > 1) {
+        ctx.fillStyle = DUST[Math.min(2, (i < 2 ? 2 : i < 6 ? 1 : 0) + 1)];
+        ctx.fillRect(px, floorY - h, FINE, FINE); // a lit crest
+      }
     }
   }
 }
@@ -756,36 +767,43 @@ function drawSpikes(e, ctx, g) {
       // The crack: a jagged dark split in the ground, opening up.
       const open = Math.min(1, s.t / SPIKE_WARN);
       ctx.fillStyle = SPIKE_ROCK[0];
-      for (let i = -4; i <= 4; i++) {
+      for (let i = -4; i <= 4; i += FINE) {
         if (Math.abs(i) > 1 + open * 3) continue;
-        ctx.fillRect(s.x + i, floorY + ((i + 4) % 3), 1, 2);
+        const k = Math.round(i / FINE);
+        ctx.fillRect(snapFine(s.x) + i, floorY + (((k % 5) + 5) % 5) * FINE, FINE, 2 - Math.abs(i) * 0.25);
       }
       if (Math.floor(g.time * 12) % 2 === 0) {
         ctx.fillStyle = DUST[1];
-        ctx.fillRect(s.x - 1 + Math.round(Math.sin(g.time * 30) * 2), floorY - 2, 1, 1);
+        ctx.fillRect(snapFine(s.x - 1 + Math.sin(g.time * 30) * 2), floorY - 2, FINE, FINE);
       }
-      // A blinking "!" above the crack (moving with it, like the ground).
+      // A blinking "!" above the crack (moving with it, like the ground):
+      // a red tag with rounded corners and a thin ink edge.
       if (Math.floor(s.t * 10) % 2 === 0) {
         const mx = Math.round(s.x);
         const my = floorY - SPIKE_H - 12;
         ctx.fillStyle = PAL.ink;
-        ctx.fillRect(mx - 3, my - 1, 7, 9);
+        ctx.fillRect(mx - 2.5, my - 1, 6, 9);
+        ctx.fillRect(mx - 3, my - FINE, 7, 8);
         ctx.fillStyle = PAL.red;
-        ctx.fillRect(mx - 2, my, 5, 7);
+        ctx.fillRect(mx - 2, my - FINE, 5, 8);
+        ctx.fillRect(mx - 2.5, my, 6, 7);
         drawText(ctx, '!', mx - 2, my + 1, PAL.cream);
       }
       continue;
     }
     // The spike: a jagged column of rock, wide at the base, pointed on top.
-    for (let y = 0; y < h; y++) {
-      const half = Math.max(0.5, (SPIKE_W / 2) * (y / h)) + ((y * 7) % 3 === 0 ? 0.6 : 0);
+    // (In half-pixel rows: a thin dark edge, a lit left face and a shaded
+    // right face.)
+    const sx = snapFine(s.x);
+    for (let y = 0; y < h; y += FINE) {
+      const half = snapFine(Math.max(0.5, (SPIKE_W / 2) * (y / h)) + ((Math.round(y / FINE) * 7) % 5 === 0 ? 0.5 : 0));
       const py = floorY - h + y;
       ctx.fillStyle = SPIKE_ROCK[0];
-      ctx.fillRect(Math.round(s.x - half - 1), py, Math.round(half * 2) + 2, 1);
+      ctx.fillRect(sx - half - FINE, py, half * 2 + FINE * 2, FINE);
       ctx.fillStyle = SPIKE_ROCK[y < 3 ? 3 : 2];
-      ctx.fillRect(Math.round(s.x - half), py, Math.max(1, Math.round(half)), 1);
+      ctx.fillRect(sx - half, py, Math.max(FINE, half), FINE);
       ctx.fillStyle = SPIKE_ROCK[1];
-      ctx.fillRect(Math.round(s.x), py, Math.max(1, Math.round(half)), 1);
+      ctx.fillRect(sx, py, Math.max(FINE, half), FINE);
     }
   }
 }
@@ -898,7 +916,7 @@ export const CRAWLER_MINIONS = {
       const rate = e.fuse < 0.5 ? 16 : 3;
       if (Math.floor(g.time * rate) % 2 === 0) {
         ctx.fillStyle = PAL.amberLight;
-        ctx.fillRect(snap(e.x) + 3, snap(e.y) + 3, 1, 1);
+        fillDisc(ctx, snap(e.x) + 3.5, snap(e.y) + 3.5, 1);
       }
     },
   },

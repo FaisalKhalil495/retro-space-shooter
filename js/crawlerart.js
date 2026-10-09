@@ -209,17 +209,17 @@ export const CRAWLER = {
   bodies: [0, 1, 2].map((s) => paintBody(s)),
 };
 
-// A thick pixel line: a square brush of width w stepped along the line in
-// half-pixel steps.
+// A thick line with square ends, drawn as one stroke (smooth at double
+// detail, and one drawing call however long it is: the legs and the cannon
+// are drawn fresh every frame).
 function line(ctx, x0, y0, x1, y1, w, color) {
-  const n = Math.max(1, Math.ceil(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) * DETAIL));
-  ctx.fillStyle = color;
-  const h = w / 2;
-  for (let i = 0; i <= n; i++) {
-    const x = snapFine(x0 + ((x1 - x0) * i) / n);
-    const y = snapFine(y0 + ((y1 - y0) * i) / n);
-    ctx.fillRect(x - h, y - h, w, w);
-  }
+  ctx.strokeStyle = color;
+  ctx.lineWidth = w;
+  ctx.lineCap = 'square';
+  ctx.beginPath();
+  ctx.moveTo(x0, y0);
+  ctx.lineTo(x1, y1);
+  ctx.stroke();
 }
 
 // Six legs: the far three darker, behind; the near three in front. `step`
