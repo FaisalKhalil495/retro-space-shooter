@@ -265,32 +265,43 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
       laser, a bomb or a rocket shatters it whole. 30 pts, +15 a shard;
       shards ram 1. Ice things shatter into ice dust (`gore.ice`), no
       explosion.
-- **The Glacier Warden** (boss of Frostring, step 3C-2, v0.19.0): the Ice
+- **The Glacier Warden** (boss of Frostring, step 3C-2, v0.19.0; turning
+  plates v0.19.1): the Ice
   Harvesters' flagship, look **"Saw Crown"** (owner's pick of four designs,
   after rejecting B+D mixes): a giant spinning saw ring (18 teeth, hazard
   rim) round a hub where **six wedge-shaped ice plates** cover a glowing
   furnace core, an engine body with two swept fins (ice tips) behind it.
   Name card "GLACIER WARDEN / KEEPER OF THE RING", an ice roar (horn +
   grinding saw + cracking ice), its own cold boss music with glassy chimes
-  (`music: 'glacier'`), metallic voice. 440 HP, plates 10 hits each; on
-  autopilot the fight lasts about 1.2x the Siege Crawler's (115 s vs 94 s)
-  and deals a bit more damage. Machine: explosions, no blood.
+  (`music: 'glacier'`), metallic voice. 250 HP, plates 6 hits each; on
+  autopilot the fight lasts about 1.2x the Siege Crawler's (115 s vs 94 s),
+  with about the same damage per minute and the core reachable 35–40% of
+  the time. Machine: explosions, no blood.
   - **Entrance**: a giant slab of ice drifts in, shudders, cracks and bursts
     — the Warden comes out of it spinning; then the name card.
-  - **Plates and core**: your shots fly through the saw ring's open spokes
-    (your ship still gets cut on it: 2 blocks, shoved clear) and crack the
-    plates; the core can be hurt once one of the two **front** plates (lower-
-    and upper-left) is gone. A shot counts along its centre line. A bomb
+  - **Plates and core — why the ice matters** (owner, v0.19.1: in v0.19.0
+    one broken plate left the core open for good, so the plates were
+    pointless): the six plates **turn round the core like a revolving
+    door** (0.8 / 1.1 / 1.45 radians a second by stage; in stage 3 it
+    suddenly reverses every 3–5 s with a grinding jolt). Your shots fly
+    through the saw ring's open spokes (your ship still gets cut on it: 2
+    blocks, shoved clear) and crack the plate facing you; a broken plate
+    leaves a gap, and **the core can only be hit while a gap faces you** —
+    break more plates for more and longer chances. A shot counts along its
+    centre line. Breaking a plate: +50. **The ice is its ammunition**: the
+    icicle fan fires one icicle from each whole plate (a stripped Warden
+    fires thin fans), and with no whole plates it can't fan or raise an
+    ice wall at all. **Every broken plate refreezes**: 2.6 / 2.1 / 1.7 s
+    after it breaks, frost creeps in from the rim for 2.5 s (frost blocks
+    shots); knock the frost out and it starts again 0.6 s later. A bomb
     shatters every plate, the laser cuts through one to the core, rockets
-    go for the core only once it's open (and never chase saw blades).
-    Breaking a plate: +50. From **stage 2** broken plates **refreeze**: frost
-    creeps in from the rim for 3 s (front plates first; every 3.5 s, in
-    stage 3 every 2.5 s and two at once); shooting the frost knocks it
-    back. Each stage starts with a fresh set frozen on.
+    go for it once there's a gap (and never chase saw blades). Each stage
+    starts with a fresh set frozen on.
   - **Movement**: drifts about the right of the screen, pushing in towards
     you (further each stage); never sits still.
   - **Attacks** (every one warned): **Icicle fan** (hub glows 0.5/0.45/0.4
-    s, then 5/7/9 icicles aimed at you, a second offset fan in stage 3);
+    s, then one icicle from each whole plate, aimed at you in a fan; a
+    second offset fan in stage 3);
     **Frost beam** (two dotted guide lines show the slice it will sweep,
     centred on you, 0.9/0.8/0.7 s, then the beam sweeps it, 2 blocks; ice
     stops it, so hide behind a slab or leave the slice); **Hailstorm** (red
@@ -581,7 +592,7 @@ Approved by the owner. Keep the status column up to date.
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
-| 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C built (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0; owner testing) |
+| 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C built (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1; owner testing) |
 | 4 | **Levels 6–9** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |

@@ -1,28 +1,32 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.19.0';
-import { sfx } from './audio.js?v=0.19.0';
-import { clamp } from './util.js?v=0.19.0';
-import { METAL, MOLTEN } from './gore.js?v=0.19.0';
-import { ICE_COLORS, slabImage } from './terrain.js?v=0.19.0';
-import { BOMB_DAMAGE } from './weapons.js?v=0.19.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.19.1';
+import { sfx } from './audio.js?v=0.19.1';
+import { clamp } from './util.js?v=0.19.1';
+import { METAL, MOLTEN } from './gore.js?v=0.19.1';
+import { ICE_COLORS, slabImage } from './terrain.js?v=0.19.1';
+import { BOMB_DAMAGE } from './weapons.js?v=0.19.1';
 import {
   WARDEN, WARDEN_W, WARDEN_H, HUB, CORE_R, PLATE_HP, PLATES, NOSE, ENGINES, HOLES, RING_FRAMES, TEETH,
-  CORE, PLATE, RING, buildWardenArt, wardenAt, drawWardenCore, toothTips,
-} from './wardenart.js?v=0.19.0';
+  CORE, PLATE, RING, SECTOR, buildWardenArt, wardenAt, drawWardenCore, drawWardenPlates, toothTips,
+} from './wardenart.js?v=0.19.1';
 
 // THE GLACIER WARDEN · KEEPER OF THE RING — boss of Frostring.
 //
 // The Ice Harvesters' flagship: a giant saw ring spinning round a hub where
-// six wedge-shaped plates of ice cover its furnace core. Your shots crack
-// the plates (6 hits each); once one of the two front plates is gone, the
-// core is open to your fire. A bomb shatters every plate at once, the laser
-// cuts straight through one, and rockets go for the core when it's open.
-// From stage 2 it freezes broken plates back over (frost creeps across the
-// hole for 4 s; shooting the frost knocks it back), and each stage starts
-// with a fresh set of plates frozen on. It never sits still: it drifts round
-// the right of the screen and pushes in towards you.
+// six wedge-shaped plates of ice cover its furnace core — and the plates
+// TURN, like a revolving door. Your shots crack the plate facing you (10
+// hits); a broken plate leaves a gap, and the core can only be hit while a
+// gap is facing you, so break more plates for more (and longer) chances.
+// The ice is also its ammunition: its icicle fan fires one icicle from each
+// plate still there, and it can only raise an ice wall while it has plates,
+// so stripping it weakens it too. It freezes broken plates back over (frost
+// creeps in from the rim for 2.5 s; shooting the frost knocks it back) —
+// slowly in stage 1, faster later — and each stage starts with a fresh set.
+// The hub turns faster each stage and, in stage 3, suddenly reverses. A bomb
+// shatters every plate; the laser cuts through one. It never sits still: it
+// drifts round the right of the screen and pushes in towards you.
 //
 // Stage 1 (100–66%): Icicle Fan, Frost Beam, Hailstorm, Ice Wall, Saw Blades.
-// Stage 2 (66–33%), the ice crust blown off: + Frost Mines; plates refreeze.
+// Stage 2 (66–33%), the ice crust blown off: + Frost Mines; faster refreezing.
 // Stage 3 (33–0%), burning: + Blizzard (wind pushes you back while it keeps
 //   attacking); everything faster, more icicles, plates refreeze sooner.
 // Every attack has a warning: a glowing hub, guide lines, "!" markers,
@@ -35,15 +39,16 @@ const HOME_X = VIEW_W - WARDEN_W - 2;
 const LEFT_LIMIT = [0, 108, 94, 80];
 const TOP_Y = HUD_H + 1;
 const LOW_Y = VIEW_H - WARDEN_H - 1;
-const REFREEZE = [0, 0, 3.5, 2.5]; // seconds between plates starting to refreeze
-const GROW_TIME = 3; // seconds for a plate to freeze back over
+const REFREEZE = [0, 2.6, 2.1, 1.7]; // seconds after a plate breaks before it starts to refreeze
+const FROST_PAUSE = 0.6; // ...and after you knock its frost out
+const HUB_SPIN = [0, 0.8, 1.1, 1.45]; // how fast the plates turn (radians a second)
+const GROW_TIME = 2.5; // seconds for a plate to freeze back over
 const MOVESETS = [
   null,
   ['fan', 'beam', 'hail', 'fan', 'wall', 'blades'],
   ['fan', 'beam', 'hail', 'wall', 'blades', 'mines', 'fan'],
   ['fan', 'beam', 'hail', 'wall', 'blades', 'mines', 'blizzard', 'blizzard'],
 ];
-const FRONT = [2, 3]; // the two plates facing you (lower-left, upper-left)
 const SMOKE = ['#3a2a2a', '#4d3f45', '#5e4a44'];
 const FROST = ICE_COLORS.slice(2);
 
@@ -51,7 +56,12 @@ const FROST = ICE_COLORS.slice(2);
 const hub = (e) => ({ x: e.x + HUB.x, y: e.y + HUB.y });
 const nose = (e) => ({ x: e.x + NOSE.x - 1, y: e.y + NOSE.y });
 const plateUp = (P) => P.hp > 0 || P.grow > 0; // solid: whole, or freezing back over
-const coreOpen = (e) => FRONT.some((k) => !plateUp(e.plates[k]));
+const whole = (e) => e.plates.filter((P) => P.hp > 0).length; // its ammunition
+// Is there a gap in its plates at all? (Rockets go for it then; whether a
+// shot reaches the core depends on where the gap has turned to.)
+const coreOpen = (e) => e.plates.some((P) => !plateUp(P));
+// Where plate k is now (the middle of its wedge), as an angle.
+const plateMid = (e, k) => e.hubAng + (k + 0.5) * SECTOR;
 const soft = (code) => code === CORE || code >= PLATE; // what a shot can do damage to
 
 // Drift about the right of the screen between attacks (and slowly during
@@ -94,12 +104,11 @@ function light(e, what, t = 0.12) {
 // ---------------------------------------------------------------- attacks
 // Each returns true when finished. a.t is the time since the attack began.
 const ATTACKS = {
-  // The hub glows and whines, then a fan of icicles bursts out of it aimed
-  // at you (5, 7, then 9 of them; a second fan in stage 3, offset so its
-  // icicles fly through the first one's gaps).
+  // The hub glows and whines, then its plates fire: a fan of icicles aimed
+  // at you, one from each plate still whole (so a stripped Warden fires thin
+  // fans; a second fan in stage 3, offset into the first one's gaps).
   fan(e, a, dt, g) {
     const warn = [0, 0.5, 0.45, 0.4][e.phase];
-    const n = [0, 5, 7, 9][e.phase];
     const fans = e.phase === 3 ? 2 : 1;
     drift(e, dt, g, 0.4);
     if (!a.started) {
@@ -112,17 +121,22 @@ const ATTACKS = {
     }
     a.fired = a.fired || 0;
     if (a.fired < fans && a.t >= warn + a.fired * 0.45) {
-      const m = nose(e);
+      const h = hub(e);
       const pc = g.playerCenter();
-      const mid = Math.atan2(pc.y - m.y, pc.x - m.x);
-      const spread = 1.2; // the whole fan: about 70 degrees
-      const step = spread / (n - 1);
-      for (let i = 0; i < n; i++) {
-        const ang = mid - spread / 2 + i * step + (a.fired ? step / 2 : 0);
-        g.fireShot(m.x, m.y, ang, 80, 'icicle', true);
-      }
-      g.burst(m.x, m.y, 8, 50, FROST);
-      sfx.shatter();
+      const mid = Math.atan2(pc.y - h.y, pc.x - h.x);
+      const from = e.plates.map((P, k) => k).filter((k) => e.plates[k].hp > 0);
+      const n = from.length;
+      const spread = Math.min(1.2, 0.24 * (n - 1)); // up to about 70 degrees
+      const step = n > 1 ? spread / (n - 1) : 0;
+      from.forEach((k, i) => {
+        const pa = plateMid(e, k);
+        const sx = h.x + Math.cos(pa) * 10;
+        const sy = h.y + Math.sin(pa) * 10;
+        const ang = mid - spread / 2 + i * step + (a.fired && n > 1 ? step / 2 : 0);
+        g.fireShot(sx, sy, ang, [0, 80, 86, 90][e.phase], 'icicle', true);
+        g.burst(sx, sy, 2, 40, FROST);
+      });
+      if (n) sfx.shatter();
       a.fired++;
     }
     return a.fired >= fans && a.t > warn + (fans - 1) * 0.45 + 0.5;
@@ -340,7 +354,7 @@ export const GLACIER_WARDEN_TYPE = {
   killLines: ['FROZEN SOLID', 'SHATTERED. FUCKING PATHETIC', 'ANOTHER ONE FOR THE ICE', 'STAY FROZEN'],
   voice: 'metal',
   music: 'glacier',
-  hp: 440,
+  hp: 250,
   score: 7000,
   explodeSize: 2,
 
@@ -355,9 +369,11 @@ export const GLACIER_WARDEN_TYPE = {
     e.phase = 1;
     e.ringAng = 0;
     e.spin = 0;
+    e.hubAng = 0;
+    e.hubDir = 1;
+    e.flipT = 4;
     e.spinBoost = 1;
     e.plates = Array.from({ length: PLATES }, () => ({ hp: PLATE_HP, grow: 0, flash: 0 }));
-    e.freezeT = 0;
     e.attack = null;
     e.last = null;
     e.idle = 1;
@@ -382,6 +398,17 @@ export const GLACIER_WARDEN_TYPE = {
     e.spin += clamp(spinWant - e.spin, -dt * 4, dt * 4);
     e.spinBoost = 1;
     e.ringAng += e.spin * dt;
+    // The plates turn (not while it's dying); in stage 3 it suddenly
+    // reverses now and then, with a grinding jolt.
+    if (e.mode !== 'dying') {
+      if (e.phase === 3 && (e.flipT -= dt) <= 0) {
+        e.flipT = 3 + g.rand() * 2;
+        e.hubDir = -e.hubDir;
+        e.wobble = 1;
+        sfx.grind(0.25);
+      }
+      e.hubAng += HUB_SPIN[e.phase] * e.hubDir * dt;
+    }
     for (const P of e.plates) P.flash = Math.max(0, P.flash - dt);
     const set = (mode) => {
       e.mode = mode;
@@ -524,7 +551,8 @@ export const GLACIER_WARDEN_TYPE = {
     return 2;
   },
 
-  // The core can be hurt once one of the two front plates is gone.
+  // The core can be hurt once there's a gap in its plates (a shot gets
+  // through only while the gap faces it).
   isVulnerable(e) {
     return e.mode === 'fight' && coreOpen(e);
   },
@@ -569,6 +597,7 @@ export const GLACIER_WARDEN_TYPE = {
       P.grow -= amount / PLATE_HP;
       if (P.grow <= 0) {
         P.grow = 0;
+        P.wait = FROST_PAUSE;
         g.burst(e.x + HUB.x - 8, e.y + HUB.y, 4, 30, FROST);
       }
       sfx.iceChip();
@@ -625,12 +654,7 @@ export const GLACIER_WARDEN_TYPE = {
       ctx.drawImage(WARDEN.ring[frame], x, y);
       ctx.drawImage(WARDEN.hub, x, y);
       drawWardenCore(ctx, x + HUB.x, y + HUB.y, g.time, e.flash > 0);
-      e.plates.forEach((P, k) => {
-        const art = WARDEN.plates[k];
-        if (P.flash > 0) ctx.drawImage(art.flash, x, y);
-        else if (P.hp > 0) ctx.drawImage(art.looks[P.hp > PLATE_HP * 0.67 ? 0 : P.hp > PLATE_HP * 0.34 ? 1 : 2], x, y);
-        else if (P.grow > 0) ctx.drawImage(art.grow[Math.min(2, Math.floor(P.grow * 3))], x, y);
-      });
+      drawWardenPlates(ctx, x + HUB.x, y + HUB.y, e.plates, e.hubAng);
     } else {
       ctx.drawImage(WARDEN.bodies[2], x, y);
     }
@@ -707,7 +731,7 @@ function scan(e, x, y, w, h, remember) {
   for (let cx = rx0; cx <= rx1; cx++) {
     let code = 0;
     for (const r of rows) {
-      let c = wardenAt(cx, r, up);
+      let c = wardenAt(cx, r, up, e.hubAng);
       if (c === RING && remember) c = 0; // shots fly through the saw ring's open spokes
       if (c && (!code || soft(c))) code = c; // plates and the core before armour
       if (soft(code)) break;
@@ -717,7 +741,7 @@ function scan(e, x, y, w, h, remember) {
       if (remember) e.hitPlate = code - PLATE;
       return 'hit';
     }
-    if (code === CORE && GLACIER_WARDEN_TYPE.isVulnerable(e)) {
+    if (code === CORE && e.mode === 'fight') {
       if (remember) e.hitPlate = -1;
       return 'hit';
     }
@@ -730,7 +754,8 @@ function startAttack(e, g) {
   e.beam = null;
   e.beamGuide = null;
   e.wind = 0;
-  const options = MOVESETS[e.phase].filter((n) => n !== e.last);
+  // (Its fans and walls are made of its own ice: none without plates.)
+  const options = MOVESETS[e.phase].filter((n) => n !== e.last && (whole(e) > 0 || (n !== 'fan' && n !== 'wall')));
   const name = options[Math.floor(g.rand() * options.length)];
   e.last = name;
   e.attack = { name, t: 0 };
@@ -741,7 +766,8 @@ function breakPlate(e, k, g, points = true) {
   const P = e.plates[k];
   P.hp = 0;
   P.grow = 0;
-  const a = ((k + 0.5) * Math.PI) / 3;
+  P.wait = REFREEZE[e.phase];
+  const a = plateMid(e, k);
   const px = e.x + HUB.x + Math.cos(a) * 9;
   const py = e.y + HUB.y + Math.sin(a) * 9;
   g.burst(px, py, 14, 80, ICE_COLORS.slice(1));
@@ -752,14 +778,17 @@ function breakPlate(e, k, g, points = true) {
   }
 }
 
-// From stage 2 it freezes broken plates back over, the front ones first:
-// one plate at a time (two at once in stage 3), every few seconds.
+// It freezes every broken plate back over: a plate starts to refreeze
+// REFREEZE seconds after it broke (sooner each stage), and frost creeps in
+// over GROW_TIME. Frost you knock out starts again after a short pause.
 function refreeze(e, dt, g) {
-  if (e.phase < 2) return;
-  let growing = 0;
   for (const P of e.plates) {
-    if (P.hp > 0 || P.grow <= 0) continue;
-    growing++;
+    if (P.hp > 0) continue;
+    if (P.grow <= 0) {
+      P.wait = (P.wait ?? REFREEZE[e.phase]) - dt;
+      if (P.wait <= 0) P.grow = 0.02;
+      continue;
+    }
     P.grow += dt / GROW_TIME;
     if (P.grow >= 1) {
       P.hp = PLATE_HP;
@@ -768,12 +797,6 @@ function refreeze(e, dt, g) {
       g.burst(e.x + HUB.x, e.y + HUB.y, 6, 40, FROST);
     }
   }
-  e.freezeT += dt;
-  if (e.freezeT < REFREEZE[e.phase] || growing >= (e.phase === 3 ? 2 : 1)) return;
-  const broken = [...FRONT, 0, 1, 4, 5].filter((k) => e.plates[k].hp <= 0 && e.plates[k].grow <= 0);
-  if (!broken.length) return;
-  e.freezeT = 0;
-  e.plates[broken[0]].grow = 0.02;
 }
 
 // Stage 3: fire and smoke pour out of the holes in its hull.

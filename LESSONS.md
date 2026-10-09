@@ -219,6 +219,8 @@ Last updated: v0.17.0 (Stage 3, step 3C: the Frostring world).
 | v0.19.0 (before release): the Glacier Warden's saw ring surrounds its hub, and at first the ring (and the hub's rim) counted as armour for shots — so no shot could ever reach a plate or the core. Its fight on autopilot timed out with the boss untouched | **Time every new boss on autopilot as soon as it runs**, before polishing anything: a fight that never ends is a bug, not a balance problem (the same lesson as the Siege Crawler's core, again). For a weak point inside other parts, check the whole path a shot takes to it. |
 | v0.19.0: the 4-pixel-tall laser kept clipping a neighbouring plate with its bottom edge instead of reaching the core through the gap it had cut | Decide what a shot hits along its centre line (as the player aims), not its whole height; keep the full height only for bumping into things. |
 | v0.19.0: "blocks per minute" against a player who never dodges showed the first Warden draft was gentler than the Siege Crawler (15 vs 21), and its saw blades never hit anyone (all thrown off to the sides) | Measure a new boss's damage against the last boss with the same autopilot; each level should step up. Every attack should be able to reach a player who doesn't move. |
+| v0.19.0: the owner asked "what is the point of the ice?" — once one plate broke, the core stayed open for good (my own timing had shown the core open 80% of the fight and I tuned health instead of asking why) | **Every boss part needs a reason to exist in play**: if a mechanic can be beaten once and then ignored, it's decoration. When a measurement looks odd (core open 80%), question the design, not just the numbers. Fixed by turning plates (the gap moves away), plates as its ammunition, and refreezing every gap. |
+| v0.19.1 (before release): a refreeze clock that kept counting while nothing was broken refroze the first gap instantly; and with the hub turning, 10-hit plates turned away before breaking, smearing damage over all six (8 s to the first core hit) | Timers for "after X happens" must start when X happens. When a target moves, check its hit points against how long it stays in your sights. |
 | LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
 
 ## 5. Our working process (what works)
@@ -368,6 +370,11 @@ fewer rounds are needed.
   autopilot caught a boss that could never be hurt, and comparing
   damage per minute with the Siege Crawler caught one that was too gentle
   — both before the owner saw it.
+- v0.19.1: the owner spotted that the Warden's ice plates had no real
+  purpose. Redesigned with their approval: the plates turn, the core is
+  only reachable through a gap facing you, the ice is its ammunition, and
+  every gap refreezes. Tuned on autopilot to the core being open 35–40% of
+  the time and the fight still about 1.2x the Siege Crawler's.
 **So far:** the owner's feedback has been about the world making sense
 (rocks on a planet, tanks on towers, enemies through towers) and about
 fairness (hidden or unreachable enemies) rather than raw difficulty.

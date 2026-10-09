@@ -1,5 +1,5 @@
-import { PAL } from './config.js?v=0.19.0';
-import { seeded } from './util.js?v=0.19.0';
+import { PAL } from './config.js?v=0.19.1';
+import { seeded } from './util.js?v=0.19.1';
 
 // THE GLACIER WARDEN, painted by code (the owner's chosen "Saw Crown"
 // design): the Ice Harvesters' flagship. A giant saw ring spins round a hub
@@ -26,7 +26,7 @@ const RING_OUT = 27;
 const TOOTH_R = 31;
 export const TEETH = 18;
 export const RING_FRAMES = 6; // rotation frames between one tooth and the next
-export const PLATE_HP = 10; // hits to break one plate of ice
+export const PLATE_HP = 6; // hits to break one plate of ice
 export const PLATES = 6;
 // Where things come out of it (inside its box).
 export const NOSE = { x: HUB.x - HUB_R, y: HUB.y }; // the hub's front edge
@@ -118,7 +118,6 @@ const hazard = (x, y) => (((x + y) >> 1) % 2 ? C.a : C.k);
 const hull = { fill: C.g, hi: C.h, shade: C.n, shadeW: 2 };
 const dark = { fill: C.n, hi: C.g, shade: C.k };
 const ice = { fill: C.j, border: C.q, hi: C.i, shade: C.m, shadeW: 2 };
-const ice2 = { fill: C.m, border: C.q, hi: C.j, shade: C.q };
 
 // The engine body, the two swept fins and the engines, behind the ring.
 // stage 1: clean; 2: the fins' ice tips have broken off, scorch marks;
@@ -201,51 +200,81 @@ function paintHub() {
   return g;
 }
 
-// Plate k covers the wedge from angle k*60 to (k+1)*60 degrees (0 = right,
-// clockwise), from the centre out to the rim. 2 is lower-left, 3 is
-// upper-left: the two facing you.
-const GAP = 0.06; // a thin seam between neighbouring plates
-function inPlate(k, x, y) {
-  const d = dist(x, y);
-  if (d > PLATE_R) return false;
-  const a = angle(x, y);
-  const a0 = (k * Math.PI) / 3;
-  const a1 = ((k + 1) * Math.PI) / 3;
-  const seam = d < CORE_R + 1.5 ? 0 : GAP; // (no seam over the core: it never glows through)
-  return a >= a0 + seam && a < a1 - seam;
-}
-// Cracks on a plate: jagged lines from near the centre outwards; `level`
-// 1 or 2 (more cracks as it's hit).
-function crackPixels(k, level) {
-  const rnd = seeded(97 + k * 13);
-  const out = [];
-  const mid = ((k + 0.5) * Math.PI) / 3;
-  for (let n = 0; n < level; n++) {
-    let a = mid + (n ? 0.35 : -0.2) + (rnd() - 0.5) * 0.3;
-    let r = 4 + n * 2;
-    while (r < PLATE_R - 1) {
-      out.push([Math.round(HUB.x - 0.5 + Math.cos(a) * r), Math.round(HUB.y - 0.5 + Math.sin(a) * r)]);
-      r += 1;
-      a += (rnd() - 0.5) * 0.25;
-    }
-  }
-  return out;
-}
-// A cheap fixed "random" per pixel, for the ragged edge of the frost.
+// The six plates sit round the core like the slices of a pie, and the
+// whole set TURNS (hubAng, radians, clockwise): plate k covers the wedge from
+// k*60 to (k+1)*60 degrees past hubAng (0 = pointing right). Because they
+// turn, they're drawn fresh every frame into a small picture of the hub.
+export const SECTOR = Math.PI / 3;
+const GAP = 0.09; // a thin seam between neighbouring plates (none over the core)
+const TAU = Math.PI * 2;
+// Which plate is at angle a (radians, 0 = right, clockwise) when the hub
+// has turned by hubAng.
+export const plateAtAngle = (a, hubAng) => Math.floor((((a - hubAng) % TAU) + TAU) % TAU / SECTOR) % PLATES;
+// A cheap fixed "random" per pixel, for the ragged edge of refreezing frost.
 const speckle = (x, y) => (((x * 73856093) ^ (y * 19349663)) >>> 0) % 100 / 100;
-// A plate freezing back over: frost creeps in from the rim towards the
-// centre, with a ragged edge.
-const frosted = (x, y, grow) => dist(x, y) + speckle(x, y) * 2.5 >= PLATE_R * (1 - grow) + 1;
-function paintPlate(k, { cracks = 0, grow = 1 } = {}) {
-  const g = grid();
-  const look = k % 2 ? ice2 : ice;
-  g.shape((x, y) => inPlate(k, x, y) && (grow >= 1 || frosted(x, y, grow)), {
-    ...look,
-    // While it refreezes it's all thin frost, no shading.
-    ...(grow < 1 ? { fill: C.j, hi: C.i, shade: null, border: null } : {}),
-  });
-  if (cracks) for (const [x, y] of crackPixels(k, cracks)) if (g.get(x, y)) g.set(x, y, C.q);
-  return g;
+
+const HALF = PLATE_R + 1;
+const SIZE = HALF * 2;
+const HUB_PIXELS = [];
+for (let py = 0; py < SIZE; py++) {
+  for (let px = 0; px < SIZE; px++) {
+    const x = HUB.x - HALF + px;
+    const y = HUB.y - HALF + py;
+    const d = dist(x, y);
+    if (d <= PLATE_R + 0.3) HUB_PIXELS.push({ i: py * SIZE + px, d, a: angle(x, y), s: speckle(x, y) });
+  }
+}
+// Colours as 32-bit pixels (the byte order canvas pixel data uses).
+const pix = (hex) => {
+  const n = parseInt(hex.slice(1), 16);
+  return (255 << 24) | ((n & 255) << 16) | (((n >> 8) & 255) << 8) | (n >> 16);
+};
+let layer = null;
+// Draw the plates (as they are now, turned by hubAng) with the hub's
+// centre at (cx, cy). plates: [{ hp, grow, flash }].
+export function drawWardenPlates(ctx, cx, cy, plates, hubAng) {
+  if (!layer) {
+    const canvas = document.createElement('canvas');
+    canvas.width = SIZE;
+    canvas.height = SIZE;
+    const c = canvas.getContext('2d');
+    const img = c.createImageData(SIZE, SIZE);
+    layer = { canvas, c, img, buf: new Uint32Array(img.data.buffer), col: {} };
+    for (const [k, v] of Object.entries({ i: C.i, j: C.j, m: C.m, q: C.q, cream: PAL.cream })) layer.col[k] = pix(v);
+  }
+  const { buf, col } = layer;
+  buf.fill(0);
+  for (const P of HUB_PIXELS) {
+    const rel = (((P.a - hubAng) % TAU) + TAU) % TAU;
+    const k = Math.floor(rel / SECTOR) % PLATES;
+    const w = rel - k * SECTOR; // how far round inside its own wedge
+    const plate = plates[k];
+    const seam = P.d > CORE_R + 1.5 && (w < GAP || w > SECTOR - GAP);
+    if (seam) continue;
+    let c = 0;
+    if (plate.hp > 0) {
+      if (plate.flash > 0) c = col.cream;
+      else if (P.d > PLATE_R - 1 || (P.d > CORE_R + 1.5 && (w < GAP + 0.1 || w > SECTOR - GAP - 0.1))) {
+        // Its rim and edges: lit on the upper left, dark elsewhere.
+        c = P.d > PLATE_R - 1 && P.a > Math.PI * 1.05 && P.a < Math.PI * 1.7 ? col.i : col.q;
+      } else {
+        c = k % 2 ? col.m : col.j;
+        if (P.d > PLATE_R - 3 && P.a > Math.PI * 1.05 && P.a < Math.PI * 1.7) c = k % 2 ? col.j : col.i;
+        // Cracks spread as it's hit: one at two-thirds strength, two at a third.
+        const level = plate.hp <= PLATE_HP * 0.34 ? 2 : plate.hp <= PLATE_HP * 0.67 ? 1 : 0;
+        for (let n = 0; n < level; n++) {
+          const cw = SECTOR * 0.5 + (n ? 0.2 : -0.14) + 0.06 * Math.sin(P.d * 1.7 + k * 2 + n * 3);
+          if (P.d >= 4 + n * 2 && Math.abs(w - cw) * P.d < 0.6) c = col.q;
+        }
+      }
+    } else if (plate.grow > 0) {
+      // Freezing back over: frost creeps in from the rim with a ragged edge.
+      if (P.d + P.s * 2.5 >= PLATE_R * (1 - plate.grow) + 1) c = plate.flash > 0 ? col.cream : P.s > 0.55 ? col.i : col.j;
+    }
+    buf[P.i] = c;
+  }
+  layer.c.putImageData(layer.img, 0, 0);
+  ctx.drawImage(layer.canvas, cx - HALF, cy - HALF);
 }
 
 export const WARDEN = {};
@@ -257,14 +286,6 @@ export function buildWardenArt() {
   for (let f = 0; f < RING_FRAMES; f++) WARDEN.ring.push(toCanvas(paintRing((f / RING_FRAMES) * ((Math.PI * 2) / TEETH))));
   WARDEN.ringFlash = toCanvas(paintRing(0), true);
   WARDEN.hub = toCanvas(paintHub());
-  WARDEN.plates = [];
-  for (let k = 0; k < PLATES; k++) {
-    WARDEN.plates.push({
-      looks: [0, 1, 2].map((c) => toCanvas(paintPlate(k, { cracks: c }))),
-      grow: [0.25, 0.5, 0.75].map((gr) => toCanvas(paintPlate(k, { grow: gr }))),
-      flash: toCanvas(paintPlate(k), true),
-    });
-  }
   return WARDEN;
 }
 
@@ -278,7 +299,7 @@ export const ARMOUR = 1;
 export const CORE = 2;
 export const PLATE = 5;
 const MAP = new Uint8Array(WARDEN_W * WARDEN_H);
-const PLATE_AT = new Int8Array(WARDEN_W * WARDEN_H).fill(-1);
+const ANGLE = new Float32Array(WARDEN_W * WARDEN_H).fill(-1); // round the hub, where the plates are
 (() => {
   const inBody = [poly(BODY), poly(FIN_TOP), poly(FIN_LOW)];
   for (let y = 0; y < WARDEN_H; y++) {
@@ -287,7 +308,7 @@ const PLATE_AT = new Int8Array(WARDEN_W * WARDEN_H).fill(-1);
       const d = dist(x, y);
       // (The thin seams between plates count as plate too, so no shot can
       // slip through a seam to the core.)
-      if (d <= PLATE_R + 0.5) PLATE_AT[i] = Math.floor(angle(x, y) / (Math.PI / 3)) % PLATES;
+      if (d <= PLATE_R + 0.5) ANGLE[i] = angle(x, y);
       if (d <= CORE_R) MAP[i] = CORE;
       else if (d <= PLATE_R + 0.5) MAP[i] = ARMOUR; // the hub's socket (under the plates)
       else if (d < TOOTH_R - 1.5) MAP[i] = RING; // the hub's rim and the saw ring
@@ -295,13 +316,14 @@ const PLATE_AT = new Int8Array(WARDEN_W * WARDEN_H).fill(-1);
     }
   }
 })();
-// What's at (x, y) inside the box, given which plates are still there.
-export function wardenAt(x, y, plateThere) {
+// What's at (x, y) inside the box, given which plates are still there and
+// how far the hub has turned.
+export function wardenAt(x, y, plateThere, hubAng = 0) {
   x = Math.floor(x);
   y = Math.floor(y);
   if (x < 0 || y < 0 || x >= WARDEN_W || y >= WARDEN_H) return 0;
   const i = y * WARDEN_W + x;
-  const k = PLATE_AT[i];
+  const k = ANGLE[i] >= 0 ? plateAtAngle(ANGLE[i], hubAng) : -1;
   if (k >= 0 && plateThere(k)) return PLATE + k;
   if (MAP[i] === ARMOUR && dist(x, y) <= PLATE_R + 0.5) return 0; // a hole where a plate was
   return MAP[i];
