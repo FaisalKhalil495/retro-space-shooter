@@ -1,4 +1,4 @@
-import { DETAIL } from './detail.js?v=0.21.0';
+import { DETAIL, fillCrisp } from './detail.js?v=0.21.1';
 
 // Small maths helpers shared across the game.
 export function clamp(v, lo, hi) {
@@ -20,9 +20,13 @@ export function fillDisc(ctx, cx, cy, r) {
   const ri = Math.max(1, Math.round(r * D));
   const x0 = Math.round(cx * D);
   const y0 = Math.round(cy * D);
+  // (Rows meet on whole screen pixels, so no seams show between them.)
+  const m = ctx.getTransform();
+  const crisp = !m.b && !m.c;
   for (let y = -ri; y <= ri; y++) {
     const half = Math.floor(Math.sqrt(ri * ri - y * y));
-    ctx.fillRect((x0 - half) / D, (y0 + y) / D, (half * 2 + 1) / D, 1 / D);
+    if (crisp) fillCrisp(ctx, m, (x0 - half) / D, (y0 + y) / D, (half * 2 + 1) / D, 1 / D);
+    else ctx.fillRect((x0 - half) / D, (y0 + y) / D, (half * 2 + 1) / D, 1 / D);
   }
 }
 
