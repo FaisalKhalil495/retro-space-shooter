@@ -238,6 +238,8 @@ Last updated: v0.17.0 (Stage 3, step 3C: the Frostring world).
 | v0.21.1 review: explosions and the engine flame showed faint stripes — half-pixel rows fall part-way through a screen pixel at scales like 7.5, leaving seams | At double detail, rows of a filled shape must meet on whole screen pixels (`fillCrisp`). Zoom right into screenshots of effects, not just sprites. |
 | v0.21.1 review: my first Rime Guard fix let a guard that was only making way get thrown out of the level, sometimes still frozen | A rule that removes or changes an enemy must only blame the one causing the problem, and should let it come back once the problem's gone (now: it backs out until clear, then holds again). |
 | v0.21.2 second review: with the processor slowed 4x the game drew about half as many frames as before double detail (64 vs 110 in a busy scene), yet the game's own code was only ~1 ms slower — the cost was the browser *painting*: mostly a full-screen sky gradient I'd added (one setting alone: 68 → 116 frames), plus the sun as 300 rows every frame | Measure frames per second on a slowed processor, not just how long our code takes; switch parts off one at a time to find the cost. Paint anything that never changes once into a picture (sky strip, sun, shot bodies) and copy it. Now level 1 draws faster than before double detail. Kept as `tools/speed-test.mjs`. |
+| v0.22.0 review: several of Rust Moon's hand-drawn sharp sprites came out a little smaller than the normal ones (the drawing shrank inside the same canvas), so shots could hit empty space around them; level 1's sniper had the same slip, unnoticed since v0.21.0 | A sharp picture must fill **exactly** the same outline box as the normal one, not just the same canvas size. Now a test compares the outline boxes, and it caught the old sniper the first time it ran. |
+| v0.22.0: speed checks of the same code differed by up to 10 frames from run to run, enough to look like a slowdown that wasn't there | Average several runs, or run the old version alongside, before deciding a change made the game slower. |
 | v0.21.2 second review: round shapes sat a quarter pixel off-centre (orbs spilled half a pixel past their box), and the wingman drone's outline had a notch | Small geometry slips show at double detail; check shapes against the box they're meant to fill. |
 | LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
 
@@ -422,6 +424,15 @@ rock, pickups reachable) before the first hand-over.
   face and a weaver that was just a cone — caught by looking at the sheet
   before sending it. Rockjaw's open-mouth fangs used to point into his
   jaw; at double detail they point into the mouth as intended.
+
+- Step 3 (v0.22.0): Rust Moon's thirteen sprites (hand-drawn), the spires
+  and canyon floor, and the Siege Crawler (painted by code). The review
+  before release found ten slips, all fixed: half the new sprites were
+  drawn a little smaller than their hit boxes, the cannon's light side
+  flipped when it aimed down, a line setting leaked into other drawing,
+  faint seams in the floor tiles and the hull's panel lines, and leg
+  joints sitting a quarter pixel off. A new outline check then found the
+  same slip in level 1's sniper (half a pixel short) from step 2.
 
 ### Carry into Stage 3 (checklist for the plan)
 - Each boss: 3+ phases, 5+ attacks, entrance + name card, roar, music,

@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.21.2';
-import { seeded } from './util.js?v=0.21.2';
-import { DETAIL, detailCanvas, pixels } from './detail.js?v=0.21.2';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.22.0';
+import { seeded } from './util.js?v=0.22.0';
+import { DETAIL, detailCanvas, pixels, grit } from './detail.js?v=0.22.0';
 
 // Solid things in the way, for levels that have them:
 //   - Rust Moon (and later the Ember Mines' tunnels): a floor strip along the
@@ -39,7 +39,6 @@ const SPIRE_COLORS = ['#2e1c1f', '#4a2a27', '#6b3d2e', '#8c5a3e', '#a8785a'];
 // (each spire keeps its own picture; nothing is kept after it scrolls away).
 // Double detail (v0.22.0): painted in half-pixel steps with the same shape
 // as before, plus thin dark strata lines, a lit left edge and grit.
-const grit = (fx, fy, seed) => ((((fx * 73856093) ^ (fy * 19349663) ^ (seed * 83492791)) >>> 0) % 1000) / 1000;
 export function spireImage(w, h, seed) {
   const { canvas } = detailCanvas(w, h);
   const px = pixels(canvas);
@@ -77,12 +76,24 @@ export function spireImage(w, h, seed) {
   return canvas;
 }
 
-// The canyon floor: one 16-pixel tile of layered ground with pebbles,
-// painted once at double detail and repeated as the ground scrolls.
+// The canyon floor: layered ground with pebbles, a pattern that repeats
+// every 16 pixels, painted once at double detail as one strip a screen and
+// a tile wide (drawn in one piece, so no seams show between tiles).
+const FLOOR_TILE = 16;
 const floorTiles = new Map();
 export function floorTile(h) {
   if (floorTiles.has(h)) return floorTiles.get(h);
-  const { canvas, ctx: c } = detailCanvas(16, h);
+  const { canvas, ctx: c } = detailCanvas(VIEW_W + FLOOR_TILE * 2, h);
+  for (let x0 = 0; x0 < VIEW_W + FLOOR_TILE * 2; x0 += FLOOR_TILE) {
+    c.save();
+    c.translate(x0, 0);
+    paintFloorTile(c, h);
+    c.restore();
+  }
+  floorTiles.set(h, canvas);
+  return canvas;
+}
+function paintFloorTile(c, h) {
   c.fillStyle = FLOOR_COLORS[0];
   c.fillRect(0, 0, 16, h);
   c.fillStyle = FLOOR_COLORS[2];
@@ -111,8 +122,6 @@ export function floorTile(h) {
   c.fillRect(9.5, 5.5, 0.5, 0.5);
   c.fillRect(4.5, 8, 0.5, 0.5);
   c.fillRect(12, 11.5, 0.5, 0.5);
-  floorTiles.set(h, canvas);
-  return canvas;
 }
 
 // A slab of ice, painted once: a pale block with bevelled edges, lit from the
@@ -412,8 +421,7 @@ export class Terrain {
     // The floor: a strip of layered ground with pebbles, scrolling along
     // (a tile painted once, repeated).
     const y0 = this.floorY;
-    const tile = floorTile(this.floor);
-    const off = Math.floor(this.scroll) % 16;
-    for (let x = -off; x < VIEW_W + 16; x += 16) ctx.drawImage(tile, x, y0);
+    const off = Math.floor(this.scroll) % FLOOR_TILE;
+    ctx.drawImage(floorTile(this.floor), -off, y0);
   }
 }

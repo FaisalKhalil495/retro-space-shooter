@@ -1,6 +1,6 @@
-import { PAL } from './config.js?v=0.21.2';
-import { seeded } from './util.js?v=0.21.2';
-import { DETAIL, FINE, detailCanvas, pixels } from './detail.js?v=0.21.2';
+import { PAL } from './config.js?v=0.22.0';
+import { seeded } from './util.js?v=0.22.0';
+import { DETAIL, FINE, detailCanvas, pixels, grit } from './detail.js?v=0.22.0';
 
 // Asteroids and Rockjaw are drawn by code rather than by hand: a lumpy
 // circle, shaded from the top-left with a pixel-art checkerboard "dither"
@@ -26,8 +26,6 @@ function eachFine(size, c0, fn) {
     for (let fx = 0; fx < n; fx++) fn(fx, fy, (fx + 0.5) / DETAIL - 0.5 - c0, (fy + 0.5) / DETAIL - 0.5 - c0);
   }
 }
-// A cheap fixed "random" per half pixel (grit, rough edges).
-const grit = (fx, fy, seed) => ((((fx * 73856093) ^ (fy * 19349663) ^ (seed * 83492791)) >>> 0) % 1000) / 1000;
 
 // Radius at a given angle: a circle with smooth bumps.
 function lumpy(rand, r, bumps = 5, amount = 0.16) {

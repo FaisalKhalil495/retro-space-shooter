@@ -1,6 +1,6 @@
-import { PAL } from './config.js?v=0.21.2';
-import { seeded, fillDisc } from './util.js?v=0.21.2';
-import { DETAIL, FINE, detailCanvas, pixels, snapFine } from './detail.js?v=0.21.2';
+import { PAL } from './config.js?v=0.22.0';
+import { seeded, fillDisc } from './util.js?v=0.22.0';
+import { DETAIL, FINE, detailCanvas, pixels, snapFine, grit } from './detail.js?v=0.22.0';
 
 // THE SIEGE CRAWLER, painted by code: a rusty iron war machine on six legs.
 // The hull (with its turret, flak guns and mortar rack) is painted once for
@@ -75,8 +75,6 @@ const HOLES = [
   [[31, 30, 2.6], [55, 22, 2.2], [46, 35, 2], [39, 9, 1.8], [20, 22, 2.4], [62, 31, 2.6], [36, 25, 1.8], [30, 15, 1.6]],
 ];
 
-// A cheap fixed "random" per half pixel (rust, scorch marks).
-const grit = (fx, fy, seed) => ((((fx * 73856093) ^ (fy * 19349663) ^ (seed * 83492791)) >>> 0) % 1000) / 1000;
 
 function paintBody(stage) {
   const { canvas, ctx: c } = detailCanvas(CRAWLER_W, BODY_H);
@@ -108,27 +106,26 @@ function paintBody(stage) {
         s = y <= 20.25 ? 3 : y <= 31.25 ? 2 : 1;
         if ((yi === 21 || yi === 32) && (fx + fy) % 2 === 0) s += 1; // dithered band edge
         if (x < hullLeft(y) + 3 && y < 30) s = 3; // the lit nose
+        // (Each old pixel is two half pixels: x - xi is -0.25 or +0.25.)
         for (const sx of [26, 38, 50, 60]) {
-          if (y > 20.25 && Math.abs(x - sx) < 0.3) s = 0; // plate seams...
-          else if (y > 20.25 && Math.abs(x - sx - 0.5) < 0.3) s = Math.min(4, s + 1); // ...with a lit lip
+          if (y > 20.25 && xi === sx) s = x < sx ? 0 : Math.min(4, s + 1); // plate seams, with a lit lip
         }
-        if (Math.abs(y - 31) < 0.3) s = 0;
-        else if (Math.abs(y - 31.5) < 0.3) s = Math.min(4, s + 1);
+        if (yi === 31) s = y < 31 ? 0 : Math.min(4, s + 1);
         if ((yi === 22 || yi === 35) && xi % 4 === 0) {
           // Rivets: a lit dot with a shadow below-right.
-          if (Math.abs(x - xi) < 0.3 && Math.abs(y - yi) < 0.3) s = 4;
-          else if (x - xi > 0.2 && x - xi < 0.8 && y - yi > 0.2 && y - yi < 0.8) s = 0;
+          if (x < xi && y < yi) s = 4;
+          else if (x > xi && y > yi) s = 0;
         }
         if (litEdge && s > 0) s = Math.min(4, s + 1);
       } else if (inTurret(x, y)) {
         const hw = turretHalf(yi);
         s = x + 0.5 < 34 - hw * 0.3 ? 3 : x + 0.5 > 34 + hw * 0.5 ? 1 : 2;
         if (y <= 6.25 && fx % 3 === 0) s = 4;
-        if (yi === 14) s = Math.abs(y - 14) < 0.3 ? 0 : 1;
+        if (yi === 14) s = y < 14 ? 0 : 1; // a seam, and the shaded band below it
         if (litEdge) s = Math.min(4, s + 1);
       } else if (inMantlet(x, y)) {
         s = x < 24 ? 2 : 1;
-        if (Math.abs(y - 12) < 0.3) s = 0; // a seam across it
+        if (yi === 12 && y < 12) s = 0; // a seam across it
         if (litEdge) s = 3;
       } else {
         s = fx % 4 < 2 ? 3 : 2; // guns and racks, ribbed
@@ -163,8 +160,8 @@ function paintBody(stage) {
   c.fillRect(SLIT.x, SLIT.y, SLIT.w, FINE);
   // Gun muzzles and mortar tubes: dark mouths with a lit rim.
   c.fillStyle = PAL.ink;
-  for (const g of FLAK_GUNS) c.fillRect(g.x + FINE / 2, g.y, 1, 1.5);
-  for (const tx of [59, 62, 65]) c.fillRect(tx + FINE / 2, 9, 1, 1);
+  for (const g of FLAK_GUNS) c.fillRect(g.x, g.y, 1, 1.5);
+  for (const tx of [59, 62, 65]) c.fillRect(tx, 9, 1.5, 1);
   // The drone bay door (two leaves with a seam) and the mine hatch.
   c.fillStyle = PAL.ink;
   c.fillRect(DRONE_BAY.x - 4.5, DRONE_BAY.y - 2.5, 10, 6);
@@ -173,8 +170,8 @@ function paintBody(stage) {
   c.fillStyle = IRON[2];
   c.fillRect(DRONE_BAY.x - 4, DRONE_BAY.y - 2, 9, FINE);
   c.fillStyle = PAL.ink;
-  c.fillRect(DRONE_BAY.x + FINE / 2, DRONE_BAY.y - 2, FINE, 5);
-  c.fillRect(MINE_HATCH.x - 3, MINE_HATCH.y, 7, FINE * 1.5);
+  c.fillRect(DRONE_BAY.x, DRONE_BAY.y - 2, FINE, 5);
+  c.fillRect(MINE_HATCH.x - 3, MINE_HATCH.y, 7, FINE);
   // The recess the core sits in: a dark socket with a steel rim.
   c.fillStyle = IRON[0];
   fillDisc(c, CORE.x + 0.5, CORE.y + 0.5, CORE.r + 0.5);
@@ -225,15 +222,18 @@ function line(ctx, x0, y0, x1, y1, w, color) {
 // Six legs: the far three darker, behind; the near three in front. `step`
 // is the walk cycle (radians) and `walking` (0..1) how much the feet lift.
 export function drawLegs(ctx, ox, oy, step, walking, front) {
+  ctx.save(); // (line() sets the stroke style; keep it to the legs)
   const hips = front ? [16, 36, 56] : [22, 42, 62];
   hips.forEach((hx, i) => {
     const ph = step + i * 2.1 + (front ? 0 : Math.PI);
     const sway = Math.sin(ph) * 3 * walking;
     const lift = Math.max(0, Math.cos(ph)) * 3 * walking;
-    const kx = ox + hx - 4 + sway;
-    const ky = oy + 29 - lift;
-    const fx = ox + hx - 8 + sway * 1.6;
-    const fy = oy + CRAWLER_H - 1 - lift;
+    // (Joints sit on whole half pixels, so the legs don't shimmer as they
+    // move.)
+    const kx = snapFine(ox + hx - 4 + sway);
+    const ky = snapFine(oy + 29 - lift);
+    const fx = snapFine(ox + hx - 8 + sway * 1.6);
+    const fy = snapFine(oy + CRAWLER_H - 1 - lift);
     const hx0 = ox + hx;
     const hy0 = oy + 35;
     if (front) {
@@ -251,16 +251,16 @@ export function drawLegs(ctx, ox, oy, step, walking, front) {
       ctx.fillStyle = IRON[3];
       fillDisc(ctx, kx, ky, 2);
       ctx.fillStyle = IRON[4];
-      ctx.fillRect(snapFine(kx) - 1, snapFine(ky) - 1, 1, FINE);
+      ctx.fillRect(kx - 1, ky - 1, 1, FINE);
       ctx.fillStyle = PAL.ink;
-      ctx.fillRect(snapFine(kx) - FINE / 2, snapFine(ky) - FINE / 2, FINE, FINE);
+      ctx.fillRect(kx - FINE, ky - FINE, FINE, FINE);
       // The foot: a splayed claw.
       ctx.fillStyle = PAL.ink;
-      ctx.fillRect(snapFine(fx) - 3.5, snapFine(fy) - 1, 7, 2);
+      ctx.fillRect(fx - 3.5, fy - 1, 7, 2);
       ctx.fillStyle = IRON[2];
-      ctx.fillRect(snapFine(fx) - 3, snapFine(fy) - 0.5, 6, 1);
+      ctx.fillRect(fx - 3, fy - 0.5, 6, 1);
       ctx.fillStyle = IRON[4];
-      ctx.fillRect(snapFine(fx) - 3, snapFine(fy) - 0.5, 6, FINE);
+      ctx.fillRect(fx - 3, fy - 0.5, 6, FINE);
     } else {
       line(ctx, hx0, hy0, kx, ky, 3, PAL.ink);
       line(ctx, kx, ky, fx, fy, 3, PAL.ink);
@@ -269,6 +269,7 @@ export function drawLegs(ctx, ox, oy, step, walking, front) {
       line(ctx, kx - 0.5, ky, fx - 0.5, fy, FINE, IRON[2]);
     }
   });
+  ctx.restore();
 }
 
 // The cannon: a thick barrel from the pivot along `ang`, with a muzzle brake.
@@ -276,20 +277,26 @@ export function drawLegs(ctx, ox, oy, step, walking, front) {
 export function drawBarrel(ctx, px, py, ang, len, recoil = 0) {
   const ux = Math.cos(ang);
   const uy = Math.sin(ang);
-  const x0 = px - ux * recoil;
-  const y0 = py - uy * recoil;
-  const x1 = x0 + ux * len;
-  const y1 = y0 + uy * len;
+  const x0 = snapFine(px - ux * recoil);
+  const y0 = snapFine(py - uy * recoil);
+  const x1 = snapFine(x0 + ux * len);
+  const y1 = snapFine(y0 + uy * len);
+  ctx.save(); // (line() sets the stroke style; keep it to the barrel)
   line(ctx, x0, y0, x1, y1, 5, PAL.ink);
   ctx.fillStyle = PAL.ink;
   ctx.fillRect(snapFine(x1) - 3.5, snapFine(y1) - 3.5, 7, 7);
   line(ctx, x0, y0, x1, y1, 4, IRON[2]);
-  // Shading across the barrel: a lit side and a dark side.
-  line(ctx, x0 - uy * 1.25, y0 + ux * 1.25, x1 - uy * 1.25, y1 + ux * 1.25, FINE, IRON[1]);
-  line(ctx, x0 + uy * 1.25, y0 - ux * 1.25, x1 + uy * 1.25, y1 - ux * 1.25, FINE, IRON[4]);
+  // Shading across the barrel: the side facing up-left (towards the light)
+  // is lit, the other dark, whichever way it points.
+  const lit = uy - ux > 0 ? 1 : -1; // which of the two sides faces up-left
+  const nx = -uy * lit * 1.25;
+  const ny = ux * lit * 1.25;
+  line(ctx, x0 + nx, y0 + ny, x1 + nx, y1 + ny, FINE, IRON[4]);
+  line(ctx, x0 - nx, y0 - ny, x1 - nx, y1 - ny, FINE, IRON[1]);
+  ctx.restore();
   // Muzzle brake: a heavy block with a lit top edge and a dark bore.
-  const mx = snapFine(x1);
-  const my = snapFine(y1);
+  const mx = x1;
+  const my = y1;
   ctx.fillStyle = IRON[3];
   ctx.fillRect(mx - 3, my - 3, 6, 6);
   ctx.fillStyle = IRON[4];
@@ -325,6 +332,7 @@ export function drawCore(ctx, cx, cy, open, t, hit) {
   ctx.fillStyle = IRON[2];
   ctx.fillRect(cx - 5.5, cy - 5.5, 12, plate - 0.5);
   ctx.fillRect(cx - 5.5, cy + 7 - plate, 12, plate - 0.5);
+  if (plate < 1) return;
   ctx.fillStyle = IRON[4];
   ctx.fillRect(cx - 5.5, cy - 5.5, 12, FINE);
   ctx.fillRect(cx - 5.5, cy + 7 - plate, 12, FINE);

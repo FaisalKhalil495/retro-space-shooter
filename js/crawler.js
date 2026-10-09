@@ -1,14 +1,14 @@
-import { VIEW_W, HUD_H, PAL } from './config.js?v=0.21.2';
-import { sfx } from './audio.js?v=0.21.2';
-import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.21.2';
-import { FINE, snapFine } from './detail.js?v=0.21.2';
-import { METAL, MOLTEN } from './gore.js?v=0.21.2';
-import { GROUND_SPEED } from './terrain.js?v=0.21.2';
-import { drawText } from './font.js?v=0.21.2';
+import { VIEW_W, HUD_H, PAL } from './config.js?v=0.22.0';
+import { sfx } from './audio.js?v=0.22.0';
+import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.22.0';
+import { FINE, snapFine } from './detail.js?v=0.22.0';
+import { METAL, MOLTEN } from './gore.js?v=0.22.0';
+import { GROUND_SPEED } from './terrain.js?v=0.22.0';
+import { drawText } from './font.js?v=0.22.0';
 import {
   CRAWLER, CRAWLER_W, CRAWLER_H, PIVOT, CORE, MORTAR_RACK, FLAK_GUNS, DRONE_BAY, MINE_HATCH, SLIT,
   drawLegs, drawBarrel, drawCore,
-} from './crawlerart.js?v=0.21.2';
+} from './crawlerart.js?v=0.22.0';
 
 // THE SIEGE CRAWLER · THE WALKING FORTRESS — boss of Rust Moon.
 //
@@ -38,6 +38,7 @@ const MOVESETS = [
   ['cannon', 'charge', 'allguns', 'mines', 'cannon', 'drones', 'stomp', 'mortars', 'flak'],
 ];
 const DUST = ['#6b4a3a', '#9a6a4a', '#c4a68e'];
+const CREST = '#dcc8a8'; // the sunlit top of the dust wave's front
 // Its solid parts (relative to its body), following the drawing: turret,
 // the hull in three bands (its nose slopes back at the top), and the legs.
 const ARMOUR = [[21, 5, 26, 14], [14, 18, 52, 6], [7, 24, 63, 10], [8, 34, 58, 4], [6, 38, 62, 14]];
@@ -711,7 +712,7 @@ function drawWaves(e, ctx, g) {
       ctx.fillStyle = DUST[i < 2 ? 2 : i < 6 ? 1 : 0];
       ctx.fillRect(px, floorY - h, FINE, h);
       if (h > 1) {
-        ctx.fillStyle = DUST[Math.min(2, (i < 2 ? 2 : i < 6 ? 1 : 0) + 1)];
+        ctx.fillStyle = i < 2 ? CREST : DUST[i < 6 ? 2 : 1];
         ctx.fillRect(px, floorY - h, FINE, FINE); // a lit crest
       }
     }

@@ -2231,6 +2231,29 @@ for (const phone of PHONES) {
         if (!s || !s.hi || s.hi.width !== s.width * DETAIL || s.hi.height !== s.height * DETAIL) out.wrongSize.push(n);
       }
     }
+    // A sharp picture fills exactly the same outline box as its normal one
+    // (hit boxes come from the normal picture, so a smaller drawing would
+    // be hit by shots that seem to miss it). Not the player's ship: its
+    // sharp nose reaches one pixel further, and its hit box is meant to be
+    // smaller than its drawing anyway.
+    const box = (cv) => {
+      const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
+      let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1;
+      for (let y = 0; y < cv.height; y++) {
+        for (let x = 0; x < cv.width; x++) {
+          if (!d[(y * cv.width + x) * 4 + 3]) continue;
+          x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
+        }
+      }
+      return [x0, y0, x1 + 1, y1 + 1];
+    };
+    out.wrongOutline = HI_NAMES.filter((n) => n !== 'player').filter((n) => {
+      const s = SPRITES[n];
+      if (!s || !s.hi) return false; // (counted in wrongSize)
+      const a = box(s).map((k) => k * DETAIL);
+      const b = box(s.hi);
+      return a.some((k, i) => k !== b[i]);
+    });
     // Pictures painted by code (rocks, Rockjaw) carry sharp versions too,
     // exactly double size and not blank; level 1's enemies are all redrawn.
     const { ROCKS, ROCKJAW, FAR_ROCKS } = await import('/js/rockart.js' + v);
@@ -2302,7 +2325,7 @@ for (const phone of PHONES) {
   }
   r.missingLetters = [...missing].join('');
   delete r.glyphs;
-  const ok = r.hi >= 22 && r.wrongSize.length === 0 && r.shimDiff === 0 && r.screenSharp &&
+  const ok = r.hi >= 22 && r.wrongSize.length === 0 && r.wrongOutline.length === 0 && r.shimDiff === 0 && r.screenSharp &&
     r.painted === 39 && r.paintedWrong === 0 && r.blankHi === 0 && r.level1Missing.length === 0 &&
     r.level2Missing.length === 0 && r.seams === 0 &&
     r.shipSize[0] === 18 && r.shipSize[1] === 11 && r.missingLetters === '' && errs.length === 0;
