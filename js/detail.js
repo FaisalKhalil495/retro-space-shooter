@@ -10,6 +10,10 @@ export const DETAIL = 2; // pixels per game pixel in the sharper pictures
 
 // The smallest step for things drawn by code (half a game pixel).
 export const FINE = 1 / DETAIL;
+// A cheap fixed "random" number (0..1) for each sharp pixel: grit, rust,
+// scorch marks in pictures painted by code.
+export const grit = (fx, fy, seed) => ((((fx * 73856093) ^ (fy * 19349663) ^ (seed * 83492791)) >>> 0) % 1000) / 1000;
+
 // Round to the nearest half pixel.
 export const snapFine = (v) => Math.round(v / FINE) * FINE;
 

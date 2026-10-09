@@ -1,12 +1,13 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.21.2';
-import { ROCKS } from './rockart.js?v=0.21.2';
-import { SPRITES } from './sprites.js?v=0.21.2';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.21.2';
-import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.21.2';
-import { GLACIER_WARDEN_TYPE, WARDEN_MINIONS } from './warden.js?v=0.21.2';
-import { clamp, rectHitsCircle, rectsOverlap, fillDisc } from './util.js?v=0.21.2';
-import { GROUND_SPEED, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.21.2';
-import { sfx } from './audio.js?v=0.21.2';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.22.0';
+import { ROCKS } from './rockart.js?v=0.22.0';
+import { SPRITES } from './sprites.js?v=0.22.0';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.22.0';
+import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.22.0';
+import { GLACIER_WARDEN_TYPE, WARDEN_MINIONS } from './warden.js?v=0.22.0';
+import { clamp, rectHitsCircle, rectsOverlap, fillDisc } from './util.js?v=0.22.0';
+import { FINE, snapFine } from './detail.js?v=0.22.0';
+import { GROUND_SPEED, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.22.0';
+import { sfx } from './audio.js?v=0.22.0';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -704,12 +705,16 @@ export const ENEMY_TYPES = {
       }
       // Tunnelling: a little mound of churned-up dirt moving along the floor
       // (only in the open — under a spire, it's hidden by the rock).
+      // (Columns of half a pixel, rising and falling as it churns.)
       const floorY = game.terrain.floorY;
-      for (let i = 0; i < e.w; i += 2) {
-        if (game.terrain.hits(e.x + i, floorY - 4, 2, 4)) continue;
-        const h = 1 + ((i + Math.floor(game.time * 20)) % 3 === 0 ? 1 : 0);
-        ctx.fillStyle = DIRT[(i >> 1) % 3];
-        ctx.fillRect(snap(e.x) + i, floorY - h, 2, h);
+      let hidden = false;
+      for (let i = 0; i < e.w; i += FINE) {
+        if (i % 1 === 0) hidden = !!game.terrain.hits(e.x + i, floorY - 4, 1, 4); // (once per pixel)
+        if (hidden) continue;
+        const k = Math.round(i / FINE);
+        const h = 1 + Math.sin(i * 0.9) * 0.5 + ((k + Math.floor(game.time * 20)) % 3 === 0 ? 0.5 : 0);
+        ctx.fillStyle = DIRT[k % 3];
+        ctx.fillRect(snap(e.x) + i, floorY - snapFine(h), FINE, snapFine(h));
       }
     },
   },
@@ -758,22 +763,28 @@ export const ENEMY_TYPES = {
       const r = 7 + 5 * (left / SHELL_TIME);
       const tx = Math.round(e.tx);
       const ty = Math.round(e.ty);
+      // (A ring of one-pixel dots, twice as many as before so it reads as a
+      // smooth circle, and a cross.)
       ctx.fillStyle = Math.floor(e.t * 12) % 2 === 0 ? PAL.red : PAL.redSoft;
-      for (let i = 0; i < 20; i++) {
-        const a = (i * Math.PI) / 10;
-        ctx.fillRect(Math.round(tx + Math.cos(a) * r), Math.round(ty + Math.sin(a) * r), 1, 1);
+      for (let i = 0; i < 40; i++) {
+        const a = (i * Math.PI) / 20;
+        if (i % 4 === 3) continue;
+        ctx.fillRect(snapFine(tx + Math.cos(a) * r) - 0.5, snapFine(ty + Math.sin(a) * r) - 0.5, 1, 1);
       }
-      ctx.fillRect(tx - 2, ty, 5, 1);
-      ctx.fillRect(tx, ty - 2, 1, 5);
+      ctx.fillRect(tx - 2.5, ty - 0.5, 5, 1);
+      ctx.fillRect(tx - 0.5, ty - 2.5, 1, 5);
+      // The shell: a round iron ball with a lit fuse.
       const x = snap(e.x);
       const y = snap(e.y);
       ctx.fillStyle = PAL.ink;
-      ctx.fillRect(x, y, 4, 4);
+      fillDisc(ctx, x + 2, y + 2, 2);
       ctx.fillStyle = e.flash > 0 ? PAL.cream : PAL.amberDark;
-      ctx.fillRect(x + 1, y + 1, 2, 2);
+      fillDisc(ctx, x + 2, y + 2, 1.5);
+      ctx.fillStyle = PAL.amberSoft;
+      ctx.fillRect(x + 1, y + 1, 1, FINE);
       if (Math.floor(game.time * 16) % 2 === 0) {
         ctx.fillStyle = PAL.amberLight;
-        ctx.fillRect(x + 1, y + 1, 1, 1);
+        ctx.fillRect(x + 1.5, y + 0.5, 1, 1);
       }
     },
   },
