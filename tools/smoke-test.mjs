@@ -2319,7 +2319,9 @@ for (const phone of PHONES) {
   await page.waitForTimeout(300);
   await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
   await page.waitForTimeout(300);
-  r.stripes = await page.evaluate(() => {
+  r.stripes = await page.evaluate(async () => {
+    const v = new URL(document.querySelector('script[type=module]').src).search;
+    const { useDetail } = await import('/js/detail.js' + v);
     window.__ember.frozen = true;
     const g = window.__ember.game;
     for (let i = 0; i < 20 * 120; i++) {
@@ -2338,7 +2340,7 @@ for (const phone of PHONES) {
     const cv = document.createElement('canvas');
     cv.width = 1600;
     cv.height = 1100;
-    const ctx = cv.getContext('2d');
+    const ctx = useDetail(cv.getContext('2d')); // (drawn like the real screen)
     ctx.setTransform(k, 0, 0, k, 3, 2);
     ctx.imageSmoothingEnabled = false;
     const snap = (v) => Math.round(v * k) / k;

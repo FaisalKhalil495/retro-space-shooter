@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.22.1';
-import { seeded } from './util.js?v=0.22.1';
-import { DETAIL, detailCanvas, pixels, grit } from './detail.js?v=0.22.1';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.22.2';
+import { seeded } from './util.js?v=0.22.2';
+import { DETAIL, detailCanvas, pixels, grit } from './detail.js?v=0.22.2';
 
 // Solid things in the way, for levels that have them:
 //   - Rust Moon (and later the Ember Mines' tunnels): a floor strip along the

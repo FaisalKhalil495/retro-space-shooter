@@ -1,20 +1,20 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.22.1';
-import { SPRITES } from './sprites.js?v=0.22.1';
-import { ENEMY_TYPES } from './enemies.js?v=0.22.1';
-import { LEVELS, LevelRunner } from './levels.js?v=0.22.1';
-import { Background } from './background.js?v=0.22.1';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.22.1';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.22.1';
-import { buzz, HAPTIC } from './feedback.js?v=0.22.1';
-import { sfx } from './audio.js?v=0.22.1';
-import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.22.1';
-import { FINE, snapFine, fillCrisp, detailCanvas } from './detail.js?v=0.22.1';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.22.1';
-import { Blasts } from './blasts.js?v=0.22.1';
-import { Speech } from './speech.js?v=0.22.1';
-import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.22.1';
-import { startBossMusic, stopMusic } from './music.js?v=0.22.1';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.22.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.22.2';
+import { SPRITES } from './sprites.js?v=0.22.2';
+import { ENEMY_TYPES } from './enemies.js?v=0.22.2';
+import { LEVELS, LevelRunner } from './levels.js?v=0.22.2';
+import { Background } from './background.js?v=0.22.2';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.22.2';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.22.2';
+import { buzz, HAPTIC } from './feedback.js?v=0.22.2';
+import { sfx } from './audio.js?v=0.22.2';
+import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.22.2';
+import { FINE, snapFine, fillCrisp, crispOf, detailCanvas } from './detail.js?v=0.22.2';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.22.2';
+import { Blasts } from './blasts.js?v=0.22.2';
+import { Speech } from './speech.js?v=0.22.2';
+import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.22.2';
+import { startBossMusic, stopMusic } from './music.js?v=0.22.2';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.22.2';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -1203,7 +1203,7 @@ export class Game {
     // A tapered flame in half-pixel rows: longest in the middle, with a
     // bright core and a white-hot spot at the nozzle.
     // (Rows meet on whole screen pixels, so no seams show between them.)
-    const m = ctx.getTransform();
+    const m = crispOf(ctx);
     for (let r = 0; r < 6; r++) {
       const k = 1 - Math.abs(r + 0.5 - 3) / 3.2;
       const L = snapFine(len * (0.45 + 0.55 * k));

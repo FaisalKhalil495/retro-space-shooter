@@ -1,5 +1,5 @@
-import { PAL } from './config.js?v=0.22.1';
-import { seeded } from './util.js?v=0.22.1';
+import { PAL } from './config.js?v=0.22.2';
+import { seeded } from './util.js?v=0.22.2';
 
 // THE GLACIER WARDEN, painted by code (the owner's chosen "Saw Crown"
 // design): the Ice Harvesters' flagship. A giant saw ring spins round a hub

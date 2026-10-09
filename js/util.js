@@ -1,4 +1,4 @@
-import { DETAIL, fillCrisp } from './detail.js?v=0.22.1';
+import { DETAIL, fillCrisp, crispOf } from './detail.js?v=0.22.2';
 
 // Small maths helpers shared across the game.
 export function clamp(v, lo, hi) {
@@ -16,7 +16,7 @@ export function rectHitsCircle(x, y, w, h, cx, cy, r) {
 // rows of half-pixel steps (double detail), so its edge is stepped like
 // pixel art rather than smooth. Uses the current fill colour. m: the
 // context's transform, if the caller already has it.
-export function fillDisc(ctx, cx, cy, r, m = ctx.getTransform()) {
+export function fillDisc(ctx, cx, cy, r, m = crispOf(ctx)) {
   const D = DETAIL;
   const ri = Math.max(1, Math.round(r * D));
   const x0 = Math.round(cx * D);

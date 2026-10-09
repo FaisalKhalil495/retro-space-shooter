@@ -20,14 +20,23 @@ export const snapFine = (v) => Math.round(v / FINE) * FINE;
 // Fill a rectangle with its edges moved to the nearest real screen pixel,
 // so rectangles that touch meet exactly. (At, say, 7.5 screen pixels per
 // game pixel, a half-pixel edge falls part-way through a screen pixel, and
-// rows of a filled shape would show faint seams.) m = ctx.getTransform(),
-// taken once for a batch of rectangles; no rotation.
+// rows of a filled shape would show faint seams.) m = crispOf(ctx), taken
+// once for a batch of rectangles; no rotation.
 export function fillCrisp(ctx, m, x, y, w, h) {
+  // (m should come from crispOf: reading a DOMMatrix's numbers makes
+  // garbage every time, and this runs hundreds of times a frame.)
   const x0 = Math.round(x * m.a + m.e);
   const x1 = Math.round((x + w) * m.a + m.e);
   const y0 = Math.round(y * m.d + m.f);
   const y1 = Math.round((y + h) * m.d + m.f);
   ctx.fillRect((x0 - m.e) / m.a, (y0 - m.f) / m.d, (x1 - x0) / m.a, (y1 - y0) / m.d);
+}
+
+// The context's current transform as plain numbers, for fillCrisp and
+// fillDisc. Take it once per batch of shapes.
+export function crispOf(ctx) {
+  const t = ctx.getTransform();
+  return { a: t.a, b: t.b, c: t.c, d: t.d, e: t.e, f: t.f };
 }
 
 export function useDetail(ctx) {

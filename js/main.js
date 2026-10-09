@@ -1,9 +1,9 @@
-import { VERSION, STAGE_LABEL, VIEW_W, VIEW_H, PAL } from './config.js?v=0.22.1';
-import { readSafeArea, computeLayout } from './layout.js?v=0.22.1';
-import { Controls } from './controls.js?v=0.22.1';
-import { Game } from './game.js?v=0.22.1';
-import { unlockAudio, suspendAudio, resumeAudio } from './audio.js?v=0.22.1';
-import { useDetail } from './detail.js?v=0.22.1';
+import { VERSION, STAGE_LABEL, VIEW_W, VIEW_H, PAL } from './config.js?v=0.22.2';
+import { readSafeArea, computeLayout } from './layout.js?v=0.22.2';
+import { Controls } from './controls.js?v=0.22.2';
+import { Game } from './game.js?v=0.22.2';
+import { unlockAudio, suspendAudio, resumeAudio } from './audio.js?v=0.22.2';
+import { useDetail } from './detail.js?v=0.22.2';
 
 const canvas = document.getElementById('screen');
 const ctx = useDetail(canvas.getContext('2d', { alpha: false }));
@@ -124,7 +124,27 @@ for (const type of ['touchstart', 'touchmove', 'gesturestart', 'dblclick', 'cont
 const STEP = 1 / 120; // physics runs in small fixed steps for smooth, even motion
 let lastTime = performance.now();
 
+// Testing aid: ?fps shows how smoothly the game runs on this phone: frames
+// a second, how many frames came late while playing (each one is a small
+// stutter) and the longest one. Any screen refresh rate (60, 90, 120 Hz).
+const meter = params.has('fps') ? { n: 0, t0: 0, fps: 0, avg: 16.7, late: 0, worst: 0 } : null;
+function measure(now, ms) {
+  meter.n++;
+  if (now - meter.t0 >= 1000) {
+    meter.fps = Math.round((meter.n * 1000) / (now - meter.t0));
+    meter.n = 0;
+    meter.t0 = now;
+  }
+  const playing = started && !paused && game.state === 'playing';
+  if (playing && ms > meter.avg * 1.7 && ms > 20 && ms < 1000) {
+    meter.late++;
+    meter.worst = Math.max(meter.worst, Math.round(ms));
+  }
+  if (ms < meter.avg * 2) meter.avg += (ms - meter.avg) * 0.05;
+}
+
 function frame(now) {
+  if (meter) measure(now, now - lastTime);
   const dt = Math.min((now - lastTime) / 1000, 0.05);
   lastTime = now;
 
@@ -185,6 +205,11 @@ function render(dt) {
   ctx.globalAlpha = 0.7;
   ctx.font = '10px ui-monospace, Menlo, monospace';
   ctx.fillText('v' + VERSION, L.leftZone.x + 8, L.leftZone.y + L.leftZone.h - 8);
+  if (meter) {
+    ctx.fillText(`${meter.fps} fps`, L.leftZone.x + 8, L.leftZone.y + 18);
+    ctx.fillText(`late ${meter.late}`, L.leftZone.x + 8, L.leftZone.y + 30);
+    ctx.fillText(`worst ${meter.worst} ms`, L.leftZone.x + 8, L.leftZone.y + 42);
+  }
   ctx.globalAlpha = 1;
 }
 

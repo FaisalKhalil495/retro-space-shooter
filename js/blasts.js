@@ -1,7 +1,7 @@
-import { PAL } from './config.js?v=0.22.1';
-import { ROCK } from './gore.js?v=0.22.1';
-import { fillDisc } from './util.js?v=0.22.1';
-import { FINE, snapFine } from './detail.js?v=0.22.1';
+import { PAL } from './config.js?v=0.22.2';
+import { ROCK } from './gore.js?v=0.22.2';
+import { fillDisc } from './util.js?v=0.22.2';
+import { FINE, snapFine, crispOf } from './detail.js?v=0.22.2';
 
 // Explosions, drawn as chunky pixel art in the warm palette (no neon, no
 // glow). A blast is a quick white-hot flash, a fireball that swells and cools
@@ -137,14 +137,17 @@ export class Blasts {
 // 2 keeps one in four, so things look like they're breaking up as they fade.
 // Dithered rows are filled with a repeating pattern: one draw call per row
 // instead of one per pixel, which keeps big explosions cheap on phones.
+const CELL = new DOMMatrix(); // (reused: no new object per explosion puff)
 function disc(ctx, cx, cy, r, color, dither = 0) {
-  const m = ctx.getTransform();
+  const m = crispOf(ctx);
   if (dither) {
     // Checkerboard cells of half a pixel, rounded to whole screen pixels so
     // every cell is the same size (the rows they fill are too).
     const pat = ditherPattern(ctx, color, dither);
     const cell = Math.max(1, Math.round(m.a * FINE)) / m.a;
-    pat.setTransform(new DOMMatrix([cell, 0, 0, cell, 0, 0]));
+    CELL.a = cell;
+    CELL.d = cell;
+    pat.setTransform(CELL);
     ctx.fillStyle = pat;
   } else ctx.fillStyle = color;
   fillDisc(ctx, cx, cy, r, m);

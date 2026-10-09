@@ -1,14 +1,14 @@
-import { VIEW_W, HUD_H, PAL } from './config.js?v=0.22.1';
-import { sfx } from './audio.js?v=0.22.1';
-import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.22.1';
-import { FINE, snapFine, fillCrisp } from './detail.js?v=0.22.1';
-import { METAL, MOLTEN } from './gore.js?v=0.22.1';
-import { GROUND_SPEED } from './terrain.js?v=0.22.1';
-import { drawText } from './font.js?v=0.22.1';
+import { VIEW_W, HUD_H, PAL } from './config.js?v=0.22.2';
+import { sfx } from './audio.js?v=0.22.2';
+import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.22.2';
+import { FINE, snapFine, fillCrisp, crispOf, detailCanvas } from './detail.js?v=0.22.2';
+import { METAL, MOLTEN } from './gore.js?v=0.22.2';
+import { GROUND_SPEED } from './terrain.js?v=0.22.2';
+import { drawText } from './font.js?v=0.22.2';
 import {
   CRAWLER, CRAWLER_W, CRAWLER_H, PIVOT, CORE, MORTAR_RACK, FLAK_GUNS, DRONE_BAY, MINE_HATCH, SLIT,
   drawLegs, drawBarrel, drawCore,
-} from './crawlerart.js?v=0.22.1';
+} from './crawlerart.js?v=0.22.2';
 
 // THE SIEGE CRAWLER · THE WALKING FORTRESS — boss of Rust Moon.
 //
@@ -704,7 +704,7 @@ function drawWaves(e, ctx, g) {
   const floorY = g.terrain.floorY;
   // (Columns meet on whole screen pixels, so no faint seams show between
   // them; the same for the cracks and spikes below.)
-  const m = ctx.getTransform();
+  const m = crispOf(ctx);
   for (const w of e.waves) {
     const dir = Math.sign(w.vx);
     for (let i = 0; i < 12; i += FINE) {
@@ -764,7 +764,7 @@ function updateSpikes(e, dt, g) {
 
 function drawSpikes(e, ctx, snap, g) {
   const floorY = g.terrain.floorY;
-  const m = ctx.getTransform();
+  const m = crispOf(ctx);
   for (const s of e.spikes) {
     if (s.t < 0) continue;
     const h = Math.round(spikeHeight(s));
@@ -796,23 +796,32 @@ function drawSpikes(e, ctx, snap, g) {
       }
       continue;
     }
-    // The spike: a jagged column of rock, wide at the base, pointed on top.
-    // (In half-pixel rows: a thin dark edge, a lit left face and a shaded
-    // right face.)
-    // (Placed like the spires, so it doesn't slide on the scrolling floor.)
-    const sx = snap(s.x);
-    for (let y = 0; y < h; y += FINE) {
-      const half = snapFine(Math.max(0.5, (SPIKE_W / 2) * (y / h)) + ((Math.round(y / FINE) * 7) % 5 === 0 ? 0.5 : 0));
-      const py = floorY - h + y;
-      ctx.fillStyle = SPIKE_ROCK[0];
-      fillCrisp(ctx, m, sx - half - FINE, py, half * 2 + FINE * 2, FINE);
-      ctx.fillStyle = SPIKE_ROCK[y < 3 ? 3 : 2];
-      fillCrisp(ctx, m, sx - half, py, Math.max(FINE, half), FINE);
-      ctx.fillStyle = SPIKE_ROCK[1];
-      fillCrisp(ctx, m, sx, py, Math.max(FINE, half), FINE);
-    }
+    // The spike, bursting up out of the ground: its picture, painted once,
+    // shown from the tip down as far as it has risen. (Placed like the
+    // spires, so it doesn't slide on the scrolling floor.)
+    ctx.drawImage(SPIKE_PIC, 0, 0, SPIKE_PIC_W, h, snap(s.x) - SPIKE_PIC_W / 2, floorY - h, SPIKE_PIC_W, h);
   }
 }
+
+// The spike's picture: a jagged column of rock, wide at the base, pointed on
+// top, in half-pixel rows: a thin dark edge, a lit left face and a shaded
+// right face. (One picture instead of 150 strips a frame for each spike.)
+const SPIKE_PIC_W = SPIKE_W + 2;
+const SPIKE_PIC = (() => {
+  const { canvas, ctx } = detailCanvas(SPIKE_PIC_W, SPIKE_H);
+  const sx = SPIKE_PIC_W / 2;
+  const h = SPIKE_H;
+  for (let y = 0; y < h; y += FINE) {
+    const half = snapFine(Math.max(0.5, (SPIKE_W / 2) * (y / h)) + ((Math.round(y / FINE) * 7) % 5 === 0 ? 0.5 : 0));
+    ctx.fillStyle = SPIKE_ROCK[0];
+    ctx.fillRect(sx - half - FINE, y, half * 2 + FINE * 2, FINE);
+    ctx.fillStyle = SPIKE_ROCK[y < 3 ? 3 : 2];
+    ctx.fillRect(sx - half, y, Math.max(FINE, half), FINE);
+    ctx.fillStyle = SPIKE_ROCK[1];
+    ctx.fillRect(sx, y, Math.max(FINE, half), FINE);
+  }
+  return canvas;
+})();
 
 // Stage 3: fires and smoke pour out of the holes in its hull.
 function burning(e, g) {
