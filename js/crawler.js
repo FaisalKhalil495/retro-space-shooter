@@ -1,14 +1,14 @@
-import { VIEW_W, HUD_H, PAL } from './config.js?v=0.22.0';
-import { sfx } from './audio.js?v=0.22.0';
-import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.22.0';
-import { FINE, snapFine } from './detail.js?v=0.22.0';
-import { METAL, MOLTEN } from './gore.js?v=0.22.0';
-import { GROUND_SPEED } from './terrain.js?v=0.22.0';
-import { drawText } from './font.js?v=0.22.0';
+import { VIEW_W, HUD_H, PAL } from './config.js?v=0.22.1';
+import { sfx } from './audio.js?v=0.22.1';
+import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.22.1';
+import { FINE, snapFine, fillCrisp } from './detail.js?v=0.22.1';
+import { METAL, MOLTEN } from './gore.js?v=0.22.1';
+import { GROUND_SPEED } from './terrain.js?v=0.22.1';
+import { drawText } from './font.js?v=0.22.1';
 import {
   CRAWLER, CRAWLER_W, CRAWLER_H, PIVOT, CORE, MORTAR_RACK, FLAK_GUNS, DRONE_BAY, MINE_HATCH, SLIT,
   drawLegs, drawBarrel, drawCore,
-} from './crawlerart.js?v=0.22.0';
+} from './crawlerart.js?v=0.22.1';
 
 // THE SIEGE CRAWLER · THE WALKING FORTRESS — boss of Rust Moon.
 //
@@ -627,7 +627,7 @@ export const SIEGE_CRAWLER_TYPE = {
     const x = snap(e.x) + wx;
     const y = snap(bodyY(e));
     drawWaves(e, ctx, g);
-    drawSpikes(e, ctx, g);
+    drawSpikes(e, ctx, snap, g);
     drawLegs(ctx, x, y, e.step, Math.min(1, e.walk), false);
     if (e.turretGone) {
       ctx.drawImage(CRAWLER.bodies[2], 0, 17, CRAWLER_W, 23, x, y + 17, CRAWLER_W, 23);
@@ -702,6 +702,9 @@ function updateWaves(e, dt, g) {
 
 function drawWaves(e, ctx, g) {
   const floorY = g.terrain.floorY;
+  // (Columns meet on whole screen pixels, so no faint seams show between
+  // them; the same for the cracks and spikes below.)
+  const m = ctx.getTransform();
   for (const w of e.waves) {
     const dir = Math.sign(w.vx);
     for (let i = 0; i < 12; i += FINE) {
@@ -710,10 +713,10 @@ function drawWaves(e, ctx, g) {
       const h = snapFine(WAVE_H * (1 - i / 12) * (0.75 + 0.25 * Math.sin(g.time * 30 + i)));
       const px = snapFine(w.x - dir * i);
       ctx.fillStyle = DUST[i < 2 ? 2 : i < 6 ? 1 : 0];
-      ctx.fillRect(px, floorY - h, FINE, h);
+      fillCrisp(ctx, m, px, floorY - h, FINE, h);
       if (h > 1) {
         ctx.fillStyle = i < 2 ? CREST : DUST[i < 6 ? 2 : 1];
-        ctx.fillRect(px, floorY - h, FINE, FINE); // a lit crest
+        fillCrisp(ctx, m, px, floorY - h, FINE, FINE); // a lit crest
       }
     }
   }
@@ -759,8 +762,9 @@ function updateSpikes(e, dt, g) {
   if (finished) e.spikes = e.spikes.filter((s) => !s.done);
 }
 
-function drawSpikes(e, ctx, g) {
+function drawSpikes(e, ctx, snap, g) {
   const floorY = g.terrain.floorY;
+  const m = ctx.getTransform();
   for (const s of e.spikes) {
     if (s.t < 0) continue;
     const h = Math.round(spikeHeight(s));
@@ -771,7 +775,7 @@ function drawSpikes(e, ctx, g) {
       for (let i = -4; i <= 4; i += FINE) {
         if (Math.abs(i) > 1 + open * 3) continue;
         const k = Math.round(i / FINE);
-        ctx.fillRect(snapFine(s.x) + i, floorY + (((k % 5) + 5) % 5) * FINE, FINE, 2 - Math.abs(i) * 0.25);
+        fillCrisp(ctx, m, snap(s.x) + i, floorY + (((k % 5) + 5) % 5) * FINE, FINE, snapFine(2 - Math.abs(i) * 0.25));
       }
       if (Math.floor(g.time * 12) % 2 === 0) {
         ctx.fillStyle = DUST[1];
@@ -795,16 +799,17 @@ function drawSpikes(e, ctx, g) {
     // The spike: a jagged column of rock, wide at the base, pointed on top.
     // (In half-pixel rows: a thin dark edge, a lit left face and a shaded
     // right face.)
-    const sx = snapFine(s.x);
+    // (Placed like the spires, so it doesn't slide on the scrolling floor.)
+    const sx = snap(s.x);
     for (let y = 0; y < h; y += FINE) {
       const half = snapFine(Math.max(0.5, (SPIKE_W / 2) * (y / h)) + ((Math.round(y / FINE) * 7) % 5 === 0 ? 0.5 : 0));
       const py = floorY - h + y;
       ctx.fillStyle = SPIKE_ROCK[0];
-      ctx.fillRect(sx - half - FINE, py, half * 2 + FINE * 2, FINE);
+      fillCrisp(ctx, m, sx - half - FINE, py, half * 2 + FINE * 2, FINE);
       ctx.fillStyle = SPIKE_ROCK[y < 3 ? 3 : 2];
-      ctx.fillRect(sx - half, py, Math.max(FINE, half), FINE);
+      fillCrisp(ctx, m, sx - half, py, Math.max(FINE, half), FINE);
       ctx.fillStyle = SPIKE_ROCK[1];
-      ctx.fillRect(sx, py, Math.max(FINE, half), FINE);
+      fillCrisp(ctx, m, sx, py, Math.max(FINE, half), FINE);
     }
   }
 }

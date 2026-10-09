@@ -1,13 +1,13 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.22.0';
-import { ROCKS } from './rockart.js?v=0.22.0';
-import { SPRITES } from './sprites.js?v=0.22.0';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.22.0';
-import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.22.0';
-import { GLACIER_WARDEN_TYPE, WARDEN_MINIONS } from './warden.js?v=0.22.0';
-import { clamp, rectHitsCircle, rectsOverlap, fillDisc } from './util.js?v=0.22.0';
-import { FINE, snapFine } from './detail.js?v=0.22.0';
-import { GROUND_SPEED, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.22.0';
-import { sfx } from './audio.js?v=0.22.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.22.1';
+import { ROCKS } from './rockart.js?v=0.22.1';
+import { SPRITES } from './sprites.js?v=0.22.1';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.22.1';
+import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.22.1';
+import { GLACIER_WARDEN_TYPE, WARDEN_MINIONS } from './warden.js?v=0.22.1';
+import { clamp, rectHitsCircle, rectsOverlap, fillDisc } from './util.js?v=0.22.1';
+import { FINE, snapFine, fillCrisp } from './detail.js?v=0.22.1';
+import { GROUND_SPEED, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.22.1';
+import { sfx } from './audio.js?v=0.22.1';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -708,13 +708,14 @@ export const ENEMY_TYPES = {
       // (Columns of half a pixel, rising and falling as it churns.)
       const floorY = game.terrain.floorY;
       let hidden = false;
+      const m = ctx.getTransform(); // (columns meet on whole screen pixels: no seams)
       for (let i = 0; i < e.w; i += FINE) {
         if (i % 1 === 0) hidden = !!game.terrain.hits(e.x + i, floorY - 4, 1, 4); // (once per pixel)
         if (hidden) continue;
         const k = Math.round(i / FINE);
         const h = 1 + Math.sin(i * 0.9) * 0.5 + ((k + Math.floor(game.time * 20)) % 3 === 0 ? 0.5 : 0);
         ctx.fillStyle = DIRT[k % 3];
-        ctx.fillRect(snap(e.x) + i, floorY - snapFine(h), FINE, snapFine(h));
+        fillCrisp(ctx, m, snap(e.x) + i, floorY - snapFine(h), FINE, snapFine(h));
       }
     },
   },

@@ -560,7 +560,9 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
   rock layers and a lit edge; the canyon floor; the Siege Crawler's hull
   (rivets, rust streaks, portholes, drone bay, mine hatch, core recess),
   thinner legs and barrel, a muzzle with a dark bore; finer dust waves,
-  cracks, spikes, mortar rings and aim lines (dotted). Every hand-drawn
+  cracks, spikes, mortar rings and aim lines (dotted). Shapes drawn every
+  frame from half-pixel rows or columns use `fillCrisp` (no stripes); the
+  floor scrolls as smoothly as the spires on it. Every hand-drawn
   sharp picture fills **exactly** the same outline box as its normal one
   (hit areas come from the normal one; a test checks).
 - Your ship: **"B: detailed"** (owner's pick, v0.20.0): glass canopy with a
@@ -631,7 +633,7 @@ Approved by the owner. Keep the status column up to date.
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
 | 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C built (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2; owner testing) |
-| G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | In progress — step 1 done (v0.20.0), step 2 done (v0.21.0: level 1 enemies, cargo pod, asteroids, Rockjaw; review fixes v0.21.1–v0.21.2), step 3 built (v0.22.0: Rust Moon set, spires, floor, Siege Crawler; owner testing) |
+| G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | In progress — step 1 done (v0.20.0), step 2 done (v0.21.0: level 1 enemies, cargo pod, asteroids, Rockjaw; review fixes v0.21.1–v0.21.2), step 3 built (v0.22.0: Rust Moon set, spires, floor, Siege Crawler; review fixes v0.22.1; owner testing) |
 | 4 | **Levels 6–9** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |
@@ -713,14 +715,20 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   `PLAYWRIGHT_PATH=/opt/node22/lib/node_modules/playwright node tools/smoke-test.mjs <screenshot-dir>`
 - The smoke test's "double detail" check: sharp pictures exactly twice
   the size and (except your ship) filling the same outline box, the screen
-  draws them, and every all-capitals string in the code uses letters the
-  font has.
+  draws them, the Siege Crawler's rock spikes and dust waves show no faint
+  stripes at a screen scale like 7.5, and every all-capitals string in the
+  code uses letters the font has.
 - `tools/level-test.mjs` — invincible autopilot plays levels 1, 2 and 3
   (with all three bosses) at high speed; checks pickups, specials, bosses,
   talking, stage bonuses, new enemies and level clears (same command
   style).
-  It freezes the live game loop (`window.__ember.frozen = true`) and drives
-  the game itself, so results are repeatable.
+  It freezes the live game loop (`window.__ember.frozen = true`; while
+  frozen nothing moves, not even the background) and drives the game
+  itself. The game's dice come from a seed, printed at the top of every
+  run: a fresh one each time for variety, and `SEED=n` before the command
+  replays a run exactly (v0.22.1; before that, rare failures couldn't be
+  replayed). Its autopilot shoots open cargo pods ahead of it before
+  chasing loose items.
 - `tools/speed-test.mjs` — how fast the game draws on a slow phone (five
   busy scenes, processor slowed 4x, frames in 3 s). Run it before and after
   any change to drawing and compare; v0.21.2: 114 / 102 / 92 / 97 / 91.

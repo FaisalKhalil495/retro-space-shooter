@@ -1,9 +1,9 @@
-import { VERSION, STAGE_LABEL, VIEW_W, VIEW_H, PAL } from './config.js?v=0.22.0';
-import { readSafeArea, computeLayout } from './layout.js?v=0.22.0';
-import { Controls } from './controls.js?v=0.22.0';
-import { Game } from './game.js?v=0.22.0';
-import { unlockAudio, suspendAudio, resumeAudio } from './audio.js?v=0.22.0';
-import { useDetail } from './detail.js?v=0.22.0';
+import { VERSION, STAGE_LABEL, VIEW_W, VIEW_H, PAL } from './config.js?v=0.22.1';
+import { readSafeArea, computeLayout } from './layout.js?v=0.22.1';
+import { Controls } from './controls.js?v=0.22.1';
+import { Game } from './game.js?v=0.22.1';
+import { unlockAudio, suspendAudio, resumeAudio } from './audio.js?v=0.22.1';
+import { useDetail } from './detail.js?v=0.22.1';
 
 const canvas = document.getElementById('screen');
 const ctx = useDetail(canvas.getContext('2d', { alpha: false }));
@@ -139,8 +139,10 @@ function frame(now) {
       input.tap = false;
       left -= step;
     }
-  } else {
-    // Keep the starfield drifting behind menus.
+  } else if (!testFreeze) {
+    // Keep the starfield drifting behind menus. (Not while a test drives the
+    // game: the background rolls the game's dice, and a test must be able to
+    // replay a run exactly.)
     game.bg.update(dt);
   }
 

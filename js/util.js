@@ -1,4 +1,4 @@
-import { DETAIL, fillCrisp } from './detail.js?v=0.22.0';
+import { DETAIL, fillCrisp } from './detail.js?v=0.22.1';
 
 // Small maths helpers shared across the game.
 export function clamp(v, lo, hi) {
