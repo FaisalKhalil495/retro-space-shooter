@@ -1,12 +1,12 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.19.2';
-import { ROCKS } from './rockart.js?v=0.19.2';
-import { SPRITES } from './sprites.js?v=0.19.2';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.19.2';
-import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.19.2';
-import { GLACIER_WARDEN_TYPE, WARDEN_MINIONS } from './warden.js?v=0.19.2';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.19.2';
-import { GROUND_SPEED, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.19.2';
-import { sfx } from './audio.js?v=0.19.2';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.20.0';
+import { ROCKS } from './rockart.js?v=0.20.0';
+import { SPRITES } from './sprites.js?v=0.20.0';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.20.0';
+import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.20.0';
+import { GLACIER_WARDEN_TYPE, WARDEN_MINIONS } from './warden.js?v=0.20.0';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.20.0';
+import { GROUND_SPEED, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.20.0';
+import { sfx } from './audio.js?v=0.20.0';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),

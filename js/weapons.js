@@ -1,7 +1,8 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.19.2';
-import { drawText } from './font.js?v=0.19.2';
-import { sfx } from './audio.js?v=0.19.2';
-import { buzz } from './feedback.js?v=0.19.2';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.20.0';
+import { drawText } from './font.js?v=0.20.0';
+import { FINE } from './detail.js?v=0.20.0';
+import { sfx } from './audio.js?v=0.20.0';
+import { buzz } from './feedback.js?v=0.20.0';
 
 // Special weapons and pickups.
 // The player carries ONE special at a time. A pickup gives some shots;
@@ -29,13 +30,20 @@ export function pickupInfo(kind) {
 }
 
 // Draw a pickup capsule (also used for the corner icon).
+// A rounded square with a thin ink edge, a lit top edge and its letter.
 export function drawCapsule(ctx, kind, x, y, blink = false, dim = false) {
   const info = pickupInfo(kind);
+  const F = FINE;
   ctx.fillStyle = PAL.ink;
-  ctx.fillRect(x + 1, y, 7, 9);
-  ctx.fillRect(x, y + 1, 9, 7);
+  ctx.fillRect(x + F, y, 9 - F * 2, 9);
+  ctx.fillRect(x, y + F, 9, 9 - F * 2);
   ctx.fillStyle = dim ? PAL.blueDark : blink ? info.light : info.color;
-  ctx.fillRect(x + 1, y + 1, 7, 7);
+  ctx.fillRect(x + F * 2, y + F, 9 - F * 4, 9 - F * 2);
+  ctx.fillRect(x + F, y + F * 2, 9 - F * 2, 9 - F * 4);
+  if (!dim && !blink) {
+    ctx.fillStyle = info.light;
+    ctx.fillRect(x + F * 2, y + F, 9 - F * 4, F);
+  }
   drawText(ctx, info.label, x + 2, y + 2, dim ? PAL.blue : PAL.ink);
 }
 
@@ -230,12 +238,19 @@ export class Weapons {
     for (const r of this.rockets) {
       r.trail.forEach((t, i) => {
         ctx.fillStyle = i % 2 ? PAL.amberSoft : PAL.grey;
-        ctx.fillRect(snap(t.x), snap(t.y), 1, 1);
+        ctx.fillRect(snap(t.x), snap(t.y), FINE, FINE);
       });
+      // A slim rocket: cream body with little fins and a red nose.
+      const x = snap(r.x);
+      const y = snap(r.y);
       ctx.fillStyle = PAL.cream;
-      ctx.fillRect(snap(r.x) - 2, snap(r.y) - 1, 4, 2);
+      ctx.fillRect(x - 2, y - 0.75, 3.5, 1.5);
+      ctx.fillStyle = PAL.grey;
+      ctx.fillRect(x - 2, y - 1.25, 1, FINE);
+      ctx.fillRect(x - 2, y + 0.75, 1, FINE);
       ctx.fillStyle = PAL.red;
-      ctx.fillRect(snap(r.x) + 1, snap(r.y) - 1, 2, 2);
+      ctx.fillRect(x + 1, y - 0.75, 1.5, 1.5);
+      ctx.fillRect(x + 2.5, y - 0.25, FINE, FINE);
     }
 
     if (this.laser && this.laser.x0 !== undefined) {
@@ -243,14 +258,19 @@ export class Weapons {
       const x0 = snap(L.x0);
       const y = snap(L.y);
       const fade = L.t > LASER_TIME - 0.15 ? 1 : Math.floor(L.t * 30) % 2;
+      // The beam in half-pixel bands, from a blue edge to a white core.
       ctx.fillStyle = PAL.blue;
       ctx.fillRect(x0, y - 2, VIEW_W - x0, 4);
+      ctx.fillStyle = '#7d96c4';
+      ctx.fillRect(x0, y - 1.5, VIEW_W - x0, 3);
       ctx.fillStyle = PAL.bluePale;
       ctx.fillRect(x0, y - 1, VIEW_W - x0, 2);
       ctx.fillStyle = fade ? PAL.cream : PAL.bluePale;
-      ctx.fillRect(x0, y - 1 + (fade ? 0 : 1), VIEW_W - x0, 1);
+      ctx.fillRect(x0, y - (fade ? 0.5 : 0), VIEW_W - x0, fade ? 1 : FINE);
+      // A rounded flare at the muzzle.
       ctx.fillStyle = PAL.cream;
-      ctx.fillRect(x0 - 1, y - 3, 3, 6);
+      ctx.fillRect(x0 - 1, y - 3, 2, 6);
+      ctx.fillRect(x0 - 1.5, y - 2.5, 3, 5);
     }
   }
 
@@ -264,7 +284,7 @@ export class Weapons {
     }
     drawCapsule(ctx, this.kind, x, y);
     const text = 'X' + this.ammo;
-    drawText(ctx, text, x + 12, y + 3, PAL.ink);
+    drawText(ctx, text, x + 11.5, y + 2.5, PAL.ink);
     drawText(ctx, text, x + 11, y + 2, PAL.cream);
   }
 }

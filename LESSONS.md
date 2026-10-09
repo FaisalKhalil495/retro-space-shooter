@@ -165,6 +165,12 @@ Last updated: v0.17.0 (Stage 3, step 3C: the Frostring world).
   white light = survival pod; a pod's light always shows what it gives.
 - **Nothing may hide a threat**: effects, smoke and speech bubbles are drawn
   *under* bullets, rocks, enemies and pickups.
+- **Double detail** (v0.20.0 on): pictures have twice the pixels each way
+  but the game grid, sizes and hit areas never change. The owner chose it
+  after seeing the *same moment* three ways (today / sharper scene only /
+  everything redrawn) and then the current boss before-and-after: show
+  real game moments, not separate sprites, when the question is "how will
+  the game look".
 - Swearing is welcome in boss lines and death quips (adult game).
 - All sound is synthesised in code (warm, filtered, 16-bit feel).
 
@@ -223,6 +229,8 @@ Last updated: v0.17.0 (Stage 3, step 3C: the Frostring world).
 | v0.19.1 (before release): a refreeze clock that kept counting while nothing was broken refroze the first gap instantly; and with the hub turning, 10-hit plates turned away before breaking, smearing damage over all six (8 s to the first core hit) | Timers for "after X happens" must start when X happens. When a target moves, check its hit points against how long it stays in your sights. |
 | v0.19.2 review: when the Warden's ice ran out, its blizzard still glowed and whined for a fan it couldn't fire | When an attack can come to nothing (no ammunition, no target), make sure its **warning** is skipped too: a warning that's followed by nothing teaches the player to ignore warnings. |
 | v0.19.2 review: a Prism check failed about 1 run in 30 — the Prism bobs, and now and then it sat just above the test ship's fixed line of fire for the whole second | Caught by looping the one check 30 times. A test of "shoot the thing" must aim at it the way a player would (track it), not fire along a fixed line and hope. |
+| v0.20.0 (design): a double-detail version of the old blocky letters looked almost exactly like the old ones — same stroke, same square shapes — so it wouldn't have delivered the "sharper, more modern" look the owner had approved in the mock-up | Check a design against the picture that sold it before building it. Here the fix was smooth letters drawn as lines (our own design), which match what the owner saw. |
+| v0.20.0 (before release): the score's 1-pixel text shadow, fine for blocky letters, smudged the thin smooth letters into dark blobs; a slashed zero read like a row of "no entry" signs | Shadows and details sized for chunky pixels need halving at double detail. Look at the real screen (screenshots), not just the design sheet. |
 | LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
 
 ## 5. Our working process (what works)
@@ -284,6 +292,14 @@ Last updated: v0.17.0 (Stage 3, step 3C: the Frostring world).
   shift its own planned path. `terrain.tallestOnScreen()` and
   `turretPerch()` let patterns choose lanes and perches that suit the
   towers on screen right now.
+- **Double detail without touching game logic** (v0.20.0): every picture
+  keeps its normal-size canvas (so all measuring code is unchanged) and
+  carries a sharp version as `.hi`; one wrapper on the screen's drawing
+  context (`useDetail`) draws the sharp one in its place, including part-
+  of-picture draws (wreckage). Pictures painted by code use
+  `detailCanvas(w, h)`, which paints in game pixels at double resolution.
+  No game rule, speed or hit area had to change, and every old test still
+  applied.
 - **Per-level difficulty**: `shotSpeed` on a level scales every enemy shot
   (Rust Moon 1.1). An enemy whose gun isn't at its front-middle gives a
   `muzzle(e)` so the warning blink shows in the right place.
@@ -383,6 +399,14 @@ fairness (hidden or unreachable enemies) rather than raw difficulty.
 **For 3C/3D:** design each new level's enemies around its terrain from the
 start, and run the whole-level checks (reachable targets, nothing inside
 rock, pickups reachable) before the first hand-over.
+
+### Double detail (in progress, v0.20.0 → )
+- Step 1 (v0.20.0): foundation, lettering, skies of all three levels,
+  shots, sparks, explosions, HUD, pickups, power-up orbs and the player's
+  ship. Pictures first (letters + two ships), owner picked ship B; then
+  built in one release. New checks were each proven to fail on a
+  deliberately broken copy (wrong-size picture, screen not wrapped, a
+  missing letter, the wrapper drawing at the wrong size).
 
 ### Carry into Stage 3 (checklist for the plan)
 - Each boss: 3+ phases, 5+ attacks, entrance + name card, roar, music,

@@ -1,4 +1,4 @@
-import { PAL } from './config.js?v=0.19.2';
+import { PAL } from './config.js?v=0.20.0';
 
 // Pixel art is written as text grids: each character is one pixel and maps
 // to a palette colour ('.' is transparent). Each sprite is drawn once onto
@@ -28,6 +28,9 @@ const KEY = {
   j: '#b8cde3',
   m: '#7f9cc0',
   q: '#4d6890',
+  // Double-detail extras: the palest glass highlight and the deepest hull shade.
+  P: '#c8d4ec',
+  D: '#232b4a',
 };
 
 const ART = {
@@ -443,6 +446,51 @@ ART.prismShard = [
     '..k..',
 ];
 
+// The same pictures at double detail (twice the pixels each way, so each
+// grid is exactly twice the size of its normal one). The game draws these
+// instead wherever they exist (see detail.js); the normal grids above still
+// set every size and hit area.
+const HI_ART = {
+  // The player's ship, "B: detailed" (owner's pick, v0.20.0): glass canopy
+  // with a frame, rivets, a lit fin edge and a glowing engine ring.
+  player: [
+    '........kkkkk.......................',
+    '......kkpPPPpkk.....................',
+    '.....kBpPPcPPbpk....................',
+    '.....kBppPccbpppk...................',
+    '.....kBBpppPbppppk..................',
+    '....kkbbbbbbbbbbbbkk................',
+    'kkkkkBBBBPPPPPPPPPPPPkkkk...........',
+    'koAAkBBBBBpppppppppppppppkkk........',
+    'kAlAkBBBBBBpppppppppppaaaallckk.....',
+    'kAclkBBBBBBBpppppppppppoooaacccPkk..',
+    'kAcckBBBBBBBBBpppppppppppppppccccPkk',
+    'kAclkBBpBBBBBpBBBBBpBBBBBbbbbcccckk.',
+    'kAlAkbBBBBBBBBBBBBBBBBBBbbbkkkkk....',
+    'koAAkbbBBDBBBBBBBBBBbbbkkk..........',
+    'kAAAkbpbBBDBBBBBBBbbkk..............',
+    'kkkkkkbpbBBDBBBBbbk.................',
+    '....kkbbpbBBDBbbk...................',
+    '.....kbbbpbBBbbk....................',
+    '......kbbbbbbbk.....................',
+    '......kDbbbbbDk.....................',
+    '.......kDDDDDk......................',
+    '........kkkkk.......................',
+  ],
+  lifeIcon: [
+    '....kkk.......',
+    '...kpPPk......',
+    'kkkBppPpkkkk..',
+    'kAkBBppppppPkk',
+    'klkBBBpppaalck',
+    'kckBBBBBBBBcck',
+    'kAkbBBBBBbkkk.',
+    'kkkbbBBBbk....',
+    '...kbbbbk.....',
+    '....kkkk......',
+  ],
+};
+
 function build(rows, colorOverride) {
   const w = Math.max(...rows.map((r) => r.length));
   const h = rows.length;
@@ -465,4 +513,11 @@ export const SPRITES = {};
 for (const [name, rows] of Object.entries(ART)) {
   SPRITES[name] = build(rows);
   SPRITES[name + 'Flash'] = build(rows, PAL.cream);
+  const hi = HI_ART[name];
+  if (hi) {
+    SPRITES[name].hi = build(hi);
+    SPRITES[name + 'Flash'].hi = build(hi, PAL.cream);
+  }
 }
+// For the tests: which pictures have a double-detail version.
+export const HI_NAMES = Object.keys(HI_ART);

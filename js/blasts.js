@@ -1,6 +1,7 @@
-import { PAL } from './config.js?v=0.19.2';
-import { ROCK } from './gore.js?v=0.19.2';
-import { fillDisc } from './util.js?v=0.19.2';
+import { PAL } from './config.js?v=0.20.0';
+import { ROCK } from './gore.js?v=0.20.0';
+import { fillDisc } from './util.js?v=0.20.0';
+import { FINE } from './detail.js?v=0.20.0';
 
 // Explosions, drawn as chunky pixel art in the warm palette (no neon, no
 // glow). A blast is a quick white-hot flash, a fireball that swells and cools
@@ -154,17 +155,18 @@ function ditherPattern(ctx, color, dither) {
     c.fillRect(0, 0, 1, 1);
     if (dither === 1) c.fillRect(1, 1, 1, 1);
     pat = ctx.createPattern(cv, 'repeat');
+    pat.setTransform(new DOMMatrix([FINE, 0, 0, FINE, 0, 0])); // dither in half pixels
     patterns.set(key, pat);
   }
   return pat;
 }
 
-// A one-pixel circle outline (optionally dotted).
+// A thin circle outline in half-pixel dots (optionally dotted).
 function ring(ctx, cx, cy, r, dotted) {
-  const steps = Math.max(12, Math.round(r * 6));
+  const steps = Math.max(24, Math.round(r * 12));
   for (let i = 0; i < steps; i++) {
-    if (dotted && i % 2) continue;
+    if (dotted && i % 4 > 1) continue;
     const a = (i / steps) * Math.PI * 2;
-    ctx.fillRect(Math.round(cx + Math.cos(a) * r), Math.round(cy + Math.sin(a) * r), 1, 1);
+    ctx.fillRect(Math.round((cx + Math.cos(a) * r) / FINE) * FINE, Math.round((cy + Math.sin(a) * r) / FINE) * FINE, FINE, FINE);
   }
 }

@@ -1,6 +1,8 @@
-import { PAL, PLAYER } from './config.js?v=0.19.2';
-import { sfx } from './audio.js?v=0.19.2';
-import { buzz } from './feedback.js?v=0.19.2';
+import { PAL, PLAYER } from './config.js?v=0.20.0';
+import { sfx } from './audio.js?v=0.20.0';
+import { buzz } from './feedback.js?v=0.20.0';
+import { fillDisc } from './util.js?v=0.20.0';
+import { FINE } from './detail.js?v=0.20.0';
 
 // Automatic power-ups: they work the moment you fly into them, no button.
 // They're drawn as ROUND orbs, so they never get mixed up with the square
@@ -41,35 +43,46 @@ export function randomPowerup(rand, fullHealth = false) {
   return entries[entries.length - 1][0];
 }
 
-// 5x5 pixel icons shown inside the orbs.
+// The icons inside the orbs, drawn as lines (or filled shapes) on a 10x10
+// grid of half pixels, like the lettering, so they stay crisp.
 const ICONS = {
-  shield: ['.###.', '#...#', '#.#.#', '#...#', '.###.'],
-  plus: ['..#..', '..#..', '#####', '..#..', '..#..'],
-  fan: ['....#', '..##.', '#####', '..##.', '....#'],
-  bolt: ['..##.', '.##..', '#####', '..##.', '.##..'],
-  ship: ['##...', '.###.', '#####', '.###.', '##...'],
+  shield: { d: 'M5 1 L8.8 2.4 L8.4 5.8 Q7.6 8.4 5 9.4 Q2.4 8.4 1.6 5.8 L1.2 2.4 Z', fill: false },
+  plus: { d: 'M5 1 L5 9 M1 5 L9 5', fill: false },
+  fan: { d: 'M1.2 5 L9 5 M1.2 5 L8.6 1.4 M1.2 5 L8.6 8.6', fill: false },
+  bolt: { d: 'M6.6 0.6 L2.2 5.6 L5.2 5.6 L3.4 9.6 L8.2 4 L5.2 4 Z', fill: true },
+  ship: { d: 'M1 1.2 L9.4 5 L1 8.8 L3.2 5 Z', fill: true },
 };
+for (const icon of Object.values(ICONS)) icon.path = new Path2D(icon.d);
 
-const ORB = ['..#####..', '.#######.', '#########', '#########', '#########', '#########', '#########', '.#######.', '..#####..'];
-
-// A 9x9 round orb with its icon. `fade` (0..1) dims it, for running-out timers.
+// A 9x9 round orb with its icon: a thin ink edge, a lit upper-left and the
+// icon in the middle (double detail).
 export function drawOrb(ctx, kind, x, y, blink = false) {
   const info = POWERUPS[kind];
+  const cx = x + 4.5;
+  const cy = y + 4.5;
   ctx.fillStyle = PAL.ink;
-  ORB.forEach((row, ry) => {
-    for (let rx = 0; rx < 9; rx++) if (row[rx] === '#') ctx.fillRect(x + rx, y + ry, 1, 1);
-  });
+  fillDisc(ctx, cx, cy, 4.5);
   ctx.fillStyle = blink ? info.light : info.color;
-  ORB.forEach((row, ry) => {
-    if (ry === 0 || ry === 8) return;
-    for (let rx = 1; rx < 8; rx++) {
-      if (row[rx] === '#' && row[rx - 1] === '#' && row[rx + 1] === '#') ctx.fillRect(x + rx, y + ry, 1, 1);
-    }
-  });
-  ctx.fillStyle = blink ? PAL.ink : PAL.cream;
-  ICONS[info.icon].forEach((row, ry) => {
-    for (let rx = 0; rx < 5; rx++) if (row[rx] === '#') ctx.fillRect(x + 2 + rx, y + 2 + ry, 1, 1);
-  });
+  fillDisc(ctx, cx, cy, 4);
+  if (!blink) {
+    ctx.fillStyle = info.light;
+    ctx.fillRect(cx - 2.5, cy - 3.5, 1.5, FINE);
+    ctx.fillRect(cx - 3.5, cy - 2.5, FINE, 1.5);
+  }
+  const icon = ICONS[info.icon];
+  ctx.save();
+  ctx.translate(x + 2, y + 2);
+  ctx.scale(FINE, FINE);
+  if (icon.fill) {
+    ctx.fillStyle = blink ? PAL.ink : PAL.cream;
+    ctx.fill(icon.path);
+  } else {
+    ctx.strokeStyle = blink ? PAL.ink : PAL.cream;
+    ctx.lineWidth = 2;
+    ctx.lineJoin = 'round';
+    ctx.stroke(icon.path);
+  }
+  ctx.restore();
 }
 
 export class PowerUps {
@@ -171,7 +184,7 @@ export class PowerUps {
         const cy = snap(p.y + p.h / 2);
         ctx.strokeStyle = this.shieldFlash > 0 ? PAL.cream : PAL.bluePale;
         ctx.globalAlpha = this.shieldFlash > 0 ? 1 : 0.7;
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 0.75;
         ctx.beginPath();
         ctx.arc(cx, cy, 12, 0, Math.PI * 2);
         ctx.stroke();
@@ -191,16 +204,23 @@ export class PowerUps {
       const y = snap(this.drone.y);
       const ending = this.timers.wingman < 2 && Math.floor(g.time * 10) % 2 === 0;
       if (!ending) {
+        // A little rounded pod with a thin ink edge (double detail).
+        const F = FINE;
         ctx.fillStyle = PAL.ink;
-        ctx.fillRect(x - 1, y - 1, 9, 6);
+        ctx.fillRect(x - F, y - F, 7.5, 5);
+        ctx.fillRect(x - 1, y, 8.5, 3);
         ctx.fillStyle = PAL.blue;
-        ctx.fillRect(x, y, 6, 4);
+        ctx.fillRect(x, y, 6.5, 4);
+        ctx.fillRect(x - F, y + F, 7.5, 3);
         ctx.fillStyle = PAL.bluePale;
-        ctx.fillRect(x + 1, y, 4, 1);
+        ctx.fillRect(x + F, y, 5, F);
+        ctx.fillStyle = PAL.blueDark;
+        ctx.fillRect(x + F, y + 3.5, 5.5, F);
         ctx.fillStyle = PAL.cream;
         ctx.fillRect(x + 6, y + 1, 1, 2);
         ctx.fillStyle = Math.floor(g.time * 30) % 2 ? PAL.amber : PAL.amberSoft;
-        ctx.fillRect(x - 2, y + 1, 2, 2);
+        ctx.fillRect(x - 2, y + 1.5, 1.5, 1);
+        ctx.fillRect(x - 1.5, y + 1, 1, 2);
       }
     }
   }

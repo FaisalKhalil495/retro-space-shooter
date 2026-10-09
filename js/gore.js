@@ -1,5 +1,6 @@
-import { VIEW_H, BLOOD } from './config.js?v=0.19.2';
-import { fillDisc } from './util.js?v=0.19.2';
+import { VIEW_H, BLOOD } from './config.js?v=0.20.0';
+import { fillDisc } from './util.js?v=0.20.0';
+import { FINE } from './detail.js?v=0.20.0';
 
 // Blood, gore and debris. Only living creatures bleed: weavers lightly,
 // Rockjaw fully. Machines and the player explode instead (see blasts.js).
@@ -218,7 +219,7 @@ export class Gore {
     for (const d of this.drops) {
       ctx.globalAlpha = Math.min(1, (d.life / d.max) * 2);
       ctx.fillStyle = d.color;
-      ctx.fillRect(snap(d.x), snap(d.y), d.size, d.size);
+      ctx.fillRect(snap(d.x), snap(d.y), d.size * FINE, d.size * FINE); // fine drops (double detail)
     }
     ctx.globalAlpha = 1;
   }

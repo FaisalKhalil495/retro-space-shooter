@@ -2203,6 +2203,75 @@ for (const phone of PHONES) {
   await context.close();
 }
 
+// Stage 4 step 1 (v0.20.0): double detail. Sharper pictures are exactly
+// twice the size of the normal ones (so nothing changes size or hit area),
+// the screen draws the sharper ones, and every word the game shows uses
+// letters the new font has.
+{
+  const context = await browser.newContext({ viewport: { width: 915, height: 412 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  const errs = [];
+  page.on('pageerror', (e) => errs.push(String(e)));
+  const r = {};
+  for (const level of [1, 2, 3]) {
+    await page.goto(base + `?level=${level}&start=${level === 3 ? 'boss' : 40}`);
+    await page.waitForTimeout(300);
+    await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+    await page.waitForTimeout(1500); // let the live game draw for a while (every new drawing path runs)
+  }
+  Object.assign(r, await page.evaluate(async () => {
+    const v = new URL(document.querySelector('script[type=module]').src).search;
+    const { SPRITES, HI_NAMES } = await import('/js/sprites.js' + v);
+    const { useDetail, DETAIL } = await import('/js/detail.js' + v);
+    const { GLYPH_CHARS } = await import('/js/font.js' + v);
+    const out = { hi: HI_NAMES.length, wrongSize: [] };
+    for (const name of HI_NAMES) {
+      for (const n of [name, name + 'Flash']) {
+        const s = SPRITES[n];
+        if (!s.hi || s.hi.width !== s.width * DETAIL || s.hi.height !== s.height * DETAIL) out.wrongSize.push(n);
+      }
+    }
+    // Drawing through useDetail gives exactly the sharp picture.
+    const c = document.createElement('canvas');
+    c.width = SPRITES.player.hi.width;
+    c.height = SPRITES.player.hi.height;
+    const ctx = useDetail(c.getContext('2d'));
+    ctx.imageSmoothingEnabled = false;
+    ctx.scale(DETAIL, DETAIL);
+    ctx.drawImage(SPRITES.player, 0, 0);
+    const a = ctx.getImageData(0, 0, c.width, c.height).data;
+    const b = SPRITES.player.hi.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+    let diff = 0;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) diff++;
+    out.shimDiff = diff;
+    const screen = document.getElementById('screen').getContext('2d');
+    out.screenSharp = screen.drawImage !== CanvasRenderingContext2D.prototype.drawImage;
+    const g = window.__ember.game;
+    out.shipSize = [g.player.w, g.player.h];
+    out.glyphs = GLYPH_CHARS;
+    return out;
+  }));
+  // Every all-capitals string in the game's code is something it shows on
+  // screen; each of its characters must be in the font.
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const missing = new Set();
+  for (const f of readdirSync(new URL('../js/', import.meta.url))) {
+    const src = readFileSync(new URL('../js/' + f, import.meta.url), 'utf8');
+    for (const m of src.matchAll(/'([^'\n]*)'|`([^`\n]*)`/g)) {
+      const str = (m[1] ?? m[2]).replace(/\$\{[^}]*\}/g, '');
+      if ((str.match(/[A-Z]/g) || []).length < 3 || /[a-z]/.test(str)) continue;
+      for (const ch of str) if (ch !== ' ' && !r.glyphs.includes(ch)) missing.add(ch);
+    }
+  }
+  r.missingLetters = [...missing].join('');
+  delete r.glyphs;
+  const ok = r.hi >= 2 && r.wrongSize.length === 0 && r.shimDiff === 0 && r.screenSharp &&
+    r.shipSize[0] === 18 && r.shipSize[1] === 11 && r.missingLetters === '' && errs.length === 0;
+  console.log(`${ok ? 'PASS' : 'FAIL'}  double detail ${JSON.stringify(r)} ${errs.join(' ')}`);
+  if (!ok) failures++;
+  await context.close();
+}
+
 // The test web server must refuse paths outside the game folder.
 const escape = await fetch(base + '..%2f..%2f..%2fetc%2fpasswd');
 const serverOk = escape.status === 403;

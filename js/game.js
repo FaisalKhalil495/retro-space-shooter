@@ -1,19 +1,20 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.19.2';
-import { SPRITES } from './sprites.js?v=0.19.2';
-import { ENEMY_TYPES } from './enemies.js?v=0.19.2';
-import { LEVELS, LevelRunner } from './levels.js?v=0.19.2';
-import { Background } from './background.js?v=0.19.2';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.19.2';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.19.2';
-import { buzz, HAPTIC } from './feedback.js?v=0.19.2';
-import { sfx } from './audio.js?v=0.19.2';
-import { clamp, rectsOverlap } from './util.js?v=0.19.2';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.19.2';
-import { Blasts } from './blasts.js?v=0.19.2';
-import { Speech } from './speech.js?v=0.19.2';
-import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.19.2';
-import { startBossMusic, stopMusic } from './music.js?v=0.19.2';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.19.2';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.20.0';
+import { SPRITES } from './sprites.js?v=0.20.0';
+import { ENEMY_TYPES } from './enemies.js?v=0.20.0';
+import { LEVELS, LevelRunner } from './levels.js?v=0.20.0';
+import { Background } from './background.js?v=0.20.0';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.20.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.20.0';
+import { buzz, HAPTIC } from './feedback.js?v=0.20.0';
+import { sfx } from './audio.js?v=0.20.0';
+import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.20.0';
+import { FINE } from './detail.js?v=0.20.0';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.20.0';
+import { Blasts } from './blasts.js?v=0.20.0';
+import { Speech } from './speech.js?v=0.20.0';
+import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.20.0';
+import { startBossMusic, stopMusic } from './music.js?v=0.20.0';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.20.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -39,6 +40,9 @@ const DEATH_LINES = [
   'SHIT. TRY AGAIN.',
   'THEY WILL NEED A MOP',
 ];
+
+// Round to the nearest half pixel (the step things drawn by code use).
+const snapFine = (v) => Math.round(v / FINE) * FINE;
 
 export class Game {
   constructor({ startAt = 0, level = 1 } = {}) {
@@ -1011,7 +1015,7 @@ export class Game {
       else drawCapsule(ctx, kind, snap(pk.x), snap(pk.y), lit);
       if (blink) {
         ctx.fillStyle = PAL.cream;
-        ctx.fillRect(snap(pk.x) + 3, snap(pk.y) - 2, 3, 1);
+        ctx.fillRect(snap(pk.x) + 3, snap(pk.y) - 1.5, 3, FINE);
       }
     }
 
@@ -1030,7 +1034,8 @@ export class Game {
         // (An enemy whose gun isn't at its front-middle says where it is.)
         const m = e.T.muzzle ? e.T.muzzle(e) : { x: e.flip ? e.x + e.w : e.x - 2, y: e.y + e.h / 2 - 1 };
         ctx.fillStyle = PAL.amberLight;
-        ctx.fillRect(snap(m.x), snap(m.y), 2, 2);
+        ctx.fillRect(snap(m.x) + FINE, snap(m.y), 1, 2);
+        ctx.fillRect(snap(m.x), snap(m.y) + FINE, 2, 1);
       }
     }
 
@@ -1040,13 +1045,15 @@ export class Game {
     for (const s of this.enemyShots) {
       const x = snap(s.x);
       const y = snap(s.y);
+      // Shots are drawn in half-pixel steps (double detail).
       if (s.kind === 'gravel') {
+        // A chip of rock.
         ctx.fillStyle = PAL.ink;
-        ctx.fillRect(x - 2, y - 2, 4, 4);
+        fillDisc(ctx, x, y, 2);
         ctx.fillStyle = '#9c8478';
-        ctx.fillRect(x - 1, y - 1, 2, 2);
+        fillDisc(ctx, x, y, 1.25);
         ctx.fillStyle = '#c4a68e';
-        ctx.fillRect(x - 1, y - 1, 1, 1);
+        ctx.fillRect(x - 1, y - 1, 1, FINE);
         continue;
       }
       if (s.kind === 'shell') {
@@ -1054,52 +1061,57 @@ export class Game {
         const sp = Math.hypot(s.vx, s.vy) || 1;
         const dx = s.vx / sp;
         const dy = s.vy / sp;
-        for (let i = 6; i >= 1; i--) {
-          ctx.fillStyle = i > 3 ? '#4d3f45' : PAL.redDark;
-          ctx.fillRect(snap(s.x - dx * i * 2) - 1, snap(s.y - dy * i * 2) - 1, 2, 2);
+        for (let i = 12; i >= 1; i--) {
+          ctx.fillStyle = i > 6 ? '#4d3f45' : PAL.redDark;
+          const sz = i > 8 ? FINE * 2 : FINE * 3;
+          ctx.fillRect(snapFine(s.x - dx * i) - sz / 2, snapFine(s.y - dy * i) - sz / 2, sz, sz);
         }
         ctx.fillStyle = PAL.ink;
-        ctx.fillRect(x - 3, y - 3, 6, 6);
+        fillDisc(ctx, x, y, 3);
         ctx.fillStyle = PAL.red;
-        ctx.fillRect(x - 2, y - 2, 4, 4);
+        fillDisc(ctx, x, y, 2.25);
         ctx.fillStyle = Math.floor(s.t * 12) % 2 ? PAL.amberLight : PAL.cream;
-        ctx.fillRect(x - 1, y - 1, 2, 2);
+        fillDisc(ctx, x, y, 1);
         continue;
       }
       if (s.kind === 'icicle') {
         // A shard of ice: a dark-edged pale spike pointing the way it flies
-        // (dark edges so it shows on ice as well as on space).
+        // (dark edges so it shows on ice as well as on space), tapering to
+        // its tail.
         const sp = Math.hypot(s.vx, s.vy) || 1;
         const dx = s.vx / sp;
         const dy = s.vy / sp;
-        for (let i = 3; i >= 0; i--) {
-          const px = snap(s.x - dx * i * 1.5);
-          const py = snap(s.y - dy * i * 1.5);
+        for (let i = 6; i >= 0; i--) {
+          const sz = snapFine(2.5 - i * 0.2);
           ctx.fillStyle = PAL.ink;
-          ctx.fillRect(px - 1, py - 1, 3, 3);
+          ctx.fillRect(snapFine(s.x - dx * i * 0.75) + 0.5 - sz / 2, snapFine(s.y - dy * i * 0.75) + 0.5 - sz / 2, sz, sz);
         }
-        for (let i = 3; i >= 0; i--) {
-          ctx.fillStyle = i === 0 ? ICE_COLORS[4] : i < 2 ? ICE_COLORS[3] : ICE_COLORS[2];
-          ctx.fillRect(snap(s.x - dx * i * 1.5), snap(s.y - dy * i * 1.5), 1, 1);
+        for (let i = 6; i >= 0; i--) {
+          const sz = i < 2 ? 1 : FINE;
+          ctx.fillStyle = i === 0 ? ICE_COLORS[4] : i < 3 ? ICE_COLORS[3] : ICE_COLORS[2];
+          ctx.fillRect(snapFine(s.x - dx * i * 0.75) + 0.5 - sz / 2, snapFine(s.y - dy * i * 0.75) + 0.5 - sz / 2, sz, sz);
         }
         continue;
       }
       if (s.kind === 'fast') {
-        // Sniper round: a short streak with a trail along its path.
+        // Sniper round: a short streak with a tapering trail along its path.
         const sp = Math.hypot(s.vx, s.vy) || 1;
         const dx = s.vx / sp;
         const dy = s.vy / sp;
-        for (let i = 4; i >= 0; i--) {
-          ctx.fillStyle = i === 0 ? PAL.cream : i < 3 ? PAL.redSoft : PAL.redDark;
-          ctx.fillRect(snap(s.x - dx * i * 1.5) - 1, snap(s.y - dy * i * 1.5) - 1, 2, 2);
+        for (let i = 9; i >= 0; i--) {
+          ctx.fillStyle = i < 2 ? PAL.cream : i < 5 ? PAL.redSoft : PAL.redDark;
+          const sz = i < 5 ? 2 : i < 8 ? 1.5 : 1;
+          ctx.fillRect(snapFine(s.x - dx * i * 0.75) - sz / 2, snapFine(s.y - dy * i * 0.75) - sz / 2, sz, sz);
         }
         continue;
       }
+      // An ordinary round: a red ball with a blinking hot core.
+      ctx.fillStyle = PAL.redDark;
+      fillDisc(ctx, x, y, 2);
       ctx.fillStyle = PAL.red;
-      ctx.fillRect(x - 2, y - 1, 4, 2);
-      ctx.fillRect(x - 1, y - 2, 2, 4);
+      fillDisc(ctx, x, y, 1.5);
       ctx.fillStyle = Math.floor(s.t * 12) % 2 ? PAL.amberLight : PAL.cream;
-      ctx.fillRect(x - 1, y - 1, 2, 2);
+      fillDisc(ctx, x, y, 0.75);
     }
 
     this.weapons.draw(ctx, snap);
@@ -1109,16 +1121,21 @@ export class Game {
     for (const b of this.bullets) {
       const x = snap(b.x);
       const y = snap(b.y);
+      // A bolt: a thin amber tail into a rounded cream head.
       ctx.fillStyle = PAL.amberSoft;
-      ctx.fillRect(x, y, 3, 2);
+      ctx.fillRect(x, y + FINE, 4, 1);
+      ctx.fillStyle = PAL.amber;
+      ctx.fillRect(x + 2.5, y + FINE, 1.5, 1);
       ctx.fillStyle = PAL.cream;
-      ctx.fillRect(x + 3, y, 4, 2);
+      ctx.fillRect(x + 3.5, y, 3, 2);
+      ctx.fillRect(x + 6.5, y + FINE, FINE, 1);
     }
 
     for (const q of this.particles) {
       ctx.globalAlpha = Math.min(1, (q.life / q.max) * 1.6);
       ctx.fillStyle = q.color;
-      ctx.fillRect(snap(q.x), snap(q.y), q.size, q.size);
+      // Sparks are half the size they used to be (double detail).
+      ctx.fillRect(snap(q.x), snap(q.y), q.size * FINE, q.size * FINE);
     }
     ctx.globalAlpha = 1;
     this.gore.draw(ctx, snap);
@@ -1127,10 +1144,13 @@ export class Game {
       if (Math.floor(m.t * 10) % 2) continue;
       const x = Math.round(m.x);
       const y = Math.round(m.y);
+      // A red tag with rounded corners and a thin ink edge.
       ctx.fillStyle = PAL.ink;
-      ctx.fillRect(x - 3, y - 1, 7, 9);
+      ctx.fillRect(x - 2.5, y - 1, 6, 9);
+      ctx.fillRect(x - 3, y - FINE, 7, 8);
       ctx.fillStyle = PAL.red;
-      ctx.fillRect(x - 2, y, 5, 7);
+      ctx.fillRect(x - 2, y - FINE, 5, 8);
+      ctx.fillRect(x - 2.5, y, 6, 7);
       drawText(ctx, '!', x - 2, y + 1, PAL.cream);
     }
 
@@ -1172,16 +1192,30 @@ export class Game {
     const y = snap(p.y);
     // Engine flame flickers, longer when pushing forward.
     const len = 2 + (p.moveX > 0 ? 3 : p.moveX < 0 ? 0 : 1) + (Math.floor(this.time * 30) % 2);
-    ctx.fillStyle = PAL.amberSoft;
-    ctx.fillRect(x - len, y + 4, len, 3);
-    ctx.fillStyle = PAL.amberLight;
-    ctx.fillRect(x - Math.ceil(len / 2), y + 5, Math.ceil(len / 2), 1);
+    // A tapered flame in half-pixel rows: longest in the middle, with a
+    // bright core and a white-hot spot at the nozzle.
+    for (let r = 0; r < 6; r++) {
+      const k = 1 - Math.abs(r + 0.5 - 3) / 3.2;
+      const L = snapFine(len * (0.45 + 0.55 * k));
+      const ry = y + 4 + r * FINE;
+      ctx.fillStyle = PAL.amberSoft;
+      ctx.fillRect(x - L, ry, L, FINE);
+      if (r >= 1 && r <= 4) {
+        const L2 = snapFine(L * 0.6);
+        ctx.fillStyle = PAL.amberLight;
+        ctx.fillRect(x - L2, ry, L2, FINE);
+      }
+      if (r === 2 || r === 3) {
+        ctx.fillStyle = PAL.cream;
+        ctx.fillRect(x - 1, ry, 1, FINE);
+      }
+    }
     ctx.drawImage(SPRITES.player, x, y);
   }
 
   drawHud(ctx) {
     const score = String(this.score).padStart(6, '0');
-    drawText(ctx, score, 4, 3, PAL.ink);
+    drawText(ctx, score, 3.5, 2.5, PAL.ink); // a half-pixel shadow
     drawText(ctx, score, 3, 2, PAL.cream);
 
     // Health: 5 blocks next to the score. Amber when healthy, red when low,
@@ -1190,15 +1224,18 @@ export class Game {
     const low = this.health <= 2;
     for (let i = 0; i < PLAYER.health; i++) {
       const x = hx + i * 6;
+      // A small rounded block with a thin ink edge, lit along the top.
       ctx.fillStyle = PAL.ink;
-      ctx.fillRect(x - 1, 1, 7, 7);
+      ctx.fillRect(x - FINE, 2 - FINE, 6, 6);
       const full = i < this.health;
       const blinkOff = this.health === 1 && Math.floor(this.time * 6) % 2 === 0;
       ctx.fillStyle = !full ? '#232c4a' : blinkOff ? PAL.redDark : low ? PAL.red : PAL.amber;
       ctx.fillRect(x, 2, 5, 5);
       if (full && !low) {
         ctx.fillStyle = PAL.amberLight;
-        ctx.fillRect(x, 2, 5, 1);
+        ctx.fillRect(x, 2, 5, FINE);
+        ctx.fillStyle = PAL.amberDark;
+        ctx.fillRect(x, 6.5, 5, FINE);
       }
     }
     this.powerups.drawHud(ctx, hx + PLAYER.health * 6 + 5);

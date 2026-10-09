@@ -530,6 +530,20 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
 
 ### Look
 - Modern retro **pixel art in colour**.
+- **Double detail** (owner's choice after comparison pictures, after
+  v0.19.2: "Option 2"): every picture is drawn with **twice the pixels each
+  way** (half-pixel steps), while the game still works on its 208x144 grid —
+  sizes, speeds and hit areas never change. A picture keeps its normal-size
+  canvas and carries the sharp one as `.hi` (`js/detail.js`); things drawn
+  by code use half-pixel steps (`FINE`). Outlines are one sharp pixel thin.
+  New levels (4–9) are drawn at double detail from the start. Before each
+  batch is built, the owner sees every redrawn picture beside the old one.
+- **Lettering** (v0.20.0): our own smooth letters drawn as lines by the game
+  (`js/font.js`), same on every phone, in the same 5x5 space as the old
+  blocky ones (owner approved; a blocky double-detail font looked no
+  different). Shadows are half a pixel.
+- Your ship: **"B: detailed"** (owner's pick, v0.20.0): glass canopy with a
+  frame, rivets, lit fin edge, glowing engine ring, smooth tapered flame.
 - **Every level has its own look** (owner, v0.16.0): enemy types shared
   between levels get new shapes *and* colours that belong to that world
   (`level.skin`: '<sprite>_<skin>' art, e.g. 'gunner_rust'), same size
@@ -596,6 +610,7 @@ Approved by the owner. Keep the status column up to date.
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
 | 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C built (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2; owner testing) |
+| G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | In progress — step 1 built (v0.20.0; owner testing) |
 | 4 | **Levels 6–9** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |
@@ -645,8 +660,14 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   `canPlace`, `freeBand`, `slabAt`, `freeY`/`clearOfIce`); `solid()` for
   shots, `tallestOnScreen()`, `openAtEdge()`, `turretPerch()`.
 - `js/sprites.js` — pixel art as text grids (plus each level's own look
-  for shared enemy types, e.g. Rust Moon's `RUST_ART`). `js/rockart.js` — asteroids and
-  Rockjaw drawn by code. `js/font.js` — 5×5 pixel font.
+  for shared enemy types, e.g. Rust Moon's `RUST_ART`), and `HI_ART`: the
+  double-detail grids (exactly twice the size; a test checks).
+  `js/rockart.js` — asteroids and Rockjaw drawn by code.
+- `js/font.js` — the lettering: our own smooth letters drawn as lines
+  (paths on a 10x10 half-pixel grid), in the old 5x5 space.
+- `js/detail.js` — double detail: `useDetail(ctx)` (the screen draws a
+  picture's sharp `.hi` version in its place), `detailCanvas(w, h)` (paint a
+  picture by code at double detail), `DETAIL`, `FINE` (half a pixel).
 - `js/audio.js` — all sound effects, synthesised in code (incl. boss roar,
   growl, jaw snap, inhale, splat).
 - `js/music.js` — boss music, generated live (Rockjaw's, the Siege
@@ -660,6 +681,9 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   release so phones fetch fresh files).
 - `tools/smoke-test.mjs` — simulated-phone test (Android + iPhone sizes):
   `PLAYWRIGHT_PATH=/opt/node22/lib/node_modules/playwright node tools/smoke-test.mjs <screenshot-dir>`
+- The smoke test's "double detail" check: sharp pictures exactly twice
+  the size, the screen draws them, and every all-capitals string in the
+  code uses letters the font has.
 - `tools/level-test.mjs` — invincible autopilot plays levels 1, 2 and 3
   (with all three bosses) at high speed; checks pickups, specials, bosses,
   talking, stage bonuses, new enemies and level clears (same command
