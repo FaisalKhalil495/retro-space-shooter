@@ -1203,31 +1203,9 @@ export class Game {
     if (this.state === 'playing' && p.invuln > 0 && p.entering <= 0 && Math.floor(p.invuln * 12) % 2 === 0) {
       return;
     }
-    const x = snap(p.x);
-    const y = snap(p.y);
     // Engine flame flickers, longer when pushing forward.
     const len = 2 + (p.moveX > 0 ? 3 : p.moveX < 0 ? 0 : 1) + (Math.floor(this.time * 30) % 2);
-    // A tapered flame in half-pixel rows: longest in the middle, with a
-    // bright core and a white-hot spot at the nozzle.
-    // (Rows meet on whole screen pixels, so no seams show between them.)
-    const m = crispOf(ctx);
-    for (let r = 0; r < 6; r++) {
-      const k = 1 - Math.abs(r + 0.5 - 3) / 3.2;
-      const L = snapFine(len * (0.45 + 0.55 * k));
-      const ry = y + 4 + r * FINE;
-      ctx.fillStyle = PAL.amberSoft;
-      fillCrisp(ctx, m, x - L, ry, L, FINE);
-      if (r >= 1 && r <= 4) {
-        const L2 = snapFine(L * 0.6);
-        ctx.fillStyle = PAL.amberLight;
-        fillCrisp(ctx, m, x - L2, ry, L2, FINE);
-      }
-      if (r === 2 || r === 3) {
-        ctx.fillStyle = PAL.cream;
-        fillCrisp(ctx, m, x - 1, ry, 1, FINE);
-      }
-    }
-    ctx.drawImage(SPRITES.player, x, y);
+    drawShip(ctx, snap(p.x), snap(p.y), len);
   }
 
   drawHud(ctx) {
@@ -1363,4 +1341,30 @@ export class Game {
       }
     }
   }
+}
+
+// Your ship with its engine flame (len: how long the flame is, 2..6), its
+// top-left at (x, y). Also drawn on the title screen.
+export function drawShip(ctx, x, y, len) {
+  // A tapered flame in half-pixel rows: longest in the middle, with a
+  // bright core and a white-hot spot at the nozzle.
+  // (Rows meet on whole screen pixels, so no seams show between them.)
+  const m = crispOf(ctx);
+  for (let r = 0; r < 6; r++) {
+    const k = 1 - Math.abs(r + 0.5 - 3) / 3.2;
+    const L = snapFine(len * (0.45 + 0.55 * k));
+    const ry = y + 4 + r * FINE;
+    ctx.fillStyle = PAL.amberSoft;
+    fillCrisp(ctx, m, x - L, ry, L, FINE);
+    if (r >= 1 && r <= 4) {
+      const L2 = snapFine(L * 0.6);
+      ctx.fillStyle = PAL.amberLight;
+      fillCrisp(ctx, m, x - L2, ry, L2, FINE);
+    }
+    if (r === 2 || r === 3) {
+      ctx.fillStyle = PAL.cream;
+      fillCrisp(ctx, m, x - 1, ry, 1, FINE);
+    }
+  }
+  ctx.drawImage(SPRITES.player, x, y);
 }
