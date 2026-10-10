@@ -574,7 +574,16 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
   rim, a lit bevel and frost specks; cracks as thin splits with a pale lip,
   kept as a picture repainted only when a slab is hit; a Rime Guard's
   shell cracks pale with a blue edge (they show over the ship inside);
-  thin meltwater drips. The Glacier Warden follows in v0.23.1.
+  thin meltwater drips.
+- The Glacier Warden at double detail (v0.23.1): the same shapes painted
+  in half-pixel steps (its hit map, `wardenAt`, is unchanged: checked
+  pixel for pixel against the old one), with bolts on the saw ring, panel
+  seams and rivets on the hull, glowing engine nozzles, bolts on the fins,
+  ragged burning holes; plates with a facet line, glints and cracks with a
+  lit edge; the core in a lit housing (painted once in its three looks);
+  thrown saw blades as toothed discs painted in rotation frames; the frost
+  beam, its dotted guide lines and the entrance block's cracks drawn as
+  lines; thinner blizzard streaks with a bright head.
 - Your ship: **"B: detailed"** (owner's pick, v0.20.0): glass canopy with a
   frame, rivets, lit fin edge, glowing engine ring, smooth tapered flame.
 - **Every level has its own look** (owner, v0.16.0): enemy types shared
@@ -643,7 +652,7 @@ Approved by the owner. Keep the status column up to date.
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
 | 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C built (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2; owner testing) |
-| G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | In progress — step 1 done (v0.20.0), step 2 done (v0.21.0: level 1 enemies, cargo pod, asteroids, Rockjaw; review fixes v0.21.1–v0.21.2), step 3 built (v0.22.0: Rust Moon set, spires, floor, Siege Crawler; review fixes v0.22.1, smoother stage 2 v0.22.2), step 4 in progress (v0.23.0: Frostring's enemies and ice; the Glacier Warden next, v0.23.1) |
+| G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | In progress — step 1 done (v0.20.0), step 2 done (v0.21.0: level 1 enemies, cargo pod, asteroids, Rockjaw; review fixes v0.21.1–v0.21.2), step 3 built (v0.22.0: Rust Moon set, spires, floor, Siege Crawler; review fixes v0.22.1, smoother stage 2 v0.22.2), step 4 built (v0.23.0: Frostring's enemies and ice; v0.23.1: the Glacier Warden; owner testing) |
 | 4 | **Levels 6–9** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |
@@ -677,9 +686,11 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - `js/warden.js` — the Glacier Warden (3 stages, 7 attacks, plates that
   refreeze, entrance from a slab of ice, transitions, death) and its saw
   blades. `js/wardenart.js` — its body (3 damage looks), the saw ring in
-  rotation frames, the six plates (whole, cracked, refreezing, hit) and
-  the core, painted by code, plus the hit map (`wardenAt`) that says what a
-  shot reaches.
+  rotation frames, the six plates (whole, cracked, refreezing, hit; painted
+  each frame into one small picture), the core (3 looks) and the thrown
+  saw blade (rotation frames), all painted by code at double detail, plus
+  the hit map (`wardenAt`, in whole game pixels) that says what a shot
+  reaches.
 - `js/weapons.js` — special weapons (bombs, rockets, laser), pickups, corner icon.
 - `js/powerups.js` — automatic power-ups (shield, repair, spread, rapid,
   wingman), their orbs, timers and HUD icons.
@@ -752,7 +763,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   compare against a copy of the old version run alongside). Run it before
   and after any change to drawing and compare; v0.23.0: frames about
   128 / 124 / 120 / 95 / 90, calls 299 / 354 / 294 / 586 / 692, garbage
-  4.4 / 3.1 / 3.0 / 4.5 / 4.5 MB a second.
+  4.4 / 3.1 / 3.0 / 4.5 / 4.5 MB a second; v0.23.1: the Glacier Warden
+  341 calls, 4.2 MB.
   Rule: nothing big is repainted every frame if it never changes (paint it
   once into a picture), and no full-screen gradients per frame.
 - `tools/serve.mjs` — the tests' tiny web server (this computer only; refuses
