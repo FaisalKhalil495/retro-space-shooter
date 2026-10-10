@@ -1,6 +1,6 @@
 import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.22.2';
 import { seeded } from './util.js?v=0.22.2';
-import { DETAIL, detailCanvas, pixels, grit } from './detail.js?v=0.22.2';
+import { DETAIL, FINE, detailCanvas, pixels, grit } from './detail.js?v=0.22.2';
 
 // Solid things in the way, for levels that have them:
 //   - Rust Moon (and later the Ember Mines' tunnels): a floor strip along the
@@ -124,64 +124,104 @@ function paintFloorTile(c, h) {
   c.fillRect(12, 11.5, 0.5, 0.5);
 }
 
-// A slab of ice, painted once: a pale block with bevelled edges, lit from the
-// upper left, with a few facet lines and frost specks.
+// A slab of ice, painted once at double detail: a pale block with clipped
+// corners, a deep blue rim (so it shows against anything), a lit bevel on
+// the upper left, a few facet lines and frost specks.
 export function slabImage(w, h, seed) {
-  const cv = document.createElement('canvas');
-  cv.width = w;
-  cv.height = h;
-  const c = cv.getContext('2d');
+  const { canvas } = detailCanvas(w, h);
+  const px = pixels(canvas);
   const r = seeded(seed);
   const cut = Math.min(3, Math.floor(Math.min(w, h) / 4)); // clipped corners
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const cx = Math.min(x, w - 1 - x);
-      const cy = Math.min(y, h - 1 - y);
-      if (cx + cy < cut) continue;
-      const edge = cx + cy === cut || x === 0 || y === 0 || x === w - 1 || y === h - 1;
-      let shade = 3;
-      if (x + y < (w + h) * 0.3) shade = 4; // lit corner
-      else if (x + y > (w + h) * 0.72) shade = 2; // shaded corner
-      if (edge) shade = x + y < (w + h) / 2 ? 3 : 1;
-      c.fillStyle = edge ? (x === w - 1 || y === h - 1 ? ICE_COLORS[0] : ICE_COLORS[shade]) : ICE_COLORS[shade];
-      c.fillRect(x, y, 1, 1);
+  const inside = (X, Y) => X > 0 && Y > 0 && X < w && Y < h && Math.min(X, w - X) + Math.min(Y, h - Y) >= cut + 1;
+  // Facet lines: short diagonals running down to the right.
+  const facets = [];
+  for (let i = 0; i < Math.max(1, Math.floor(w / 12)); i++) {
+    facets.push({ x: 2 + r() * (w - 6), y: 1.5 + r() * Math.max(0, h / 3 - 1.5), len: Math.min(h - 3, 4 + r() * 5) });
+  }
+  const W2 = w * DETAIL;
+  const H2 = h * DETAIL;
+  for (let fy = 0; fy < H2; fy++) {
+    for (let fx = 0; fx < W2; fx++) {
+      const X = (fx + 0.5) / DETAIL;
+      const Y = (fy + 0.5) / DETAIL;
+      if (!inside(X, Y)) continue;
+      const lower = X + Y > (w + h) / 2; // the lower-right half of the block
+      let c;
+      if (!inside(X + FINE, Y) || !inside(X, Y + FINE)) c = 0; // dark rim, lower right
+      else if (!inside(X - FINE, Y) || !inside(X, Y - FINE)) c = 1; // deep blue rim, upper left
+      else if (!inside(X - 1, Y) || !inside(X, Y - 1)) c = lower ? 2 : 4; // the bevel
+      else if (!inside(X + 1, Y) || !inside(X, Y + 1)) c = 1;
+      else {
+        c = X + Y < (w + h) * 0.3 ? 4 : X + Y > (w + h) * 0.72 ? 2 : 3;
+        for (const f of facets) {
+          const t = Y - f.y;
+          if (t < 0 || t > f.len) continue;
+          const d = X - (f.x + t / 2);
+          if (d >= 0 && d < FINE) c = 4;
+          else if (d >= FINE && d < FINE * 2) c = 2;
+        }
+        const g = grit(fx, fy, seed);
+        if (g < 0.025) c = 2;
+        else if (g > 0.99) c = 4;
+      }
+      px.set(fx, fy, ICE_COLORS[c]);
     }
   }
-  // Facet lines and frost.
-  c.fillStyle = ICE_COLORS[4];
-  for (let i = 0; i < Math.max(1, Math.floor(w / 14)); i++) {
-    const fx = 2 + Math.floor(r() * (w - 6));
-    for (let k = 0; k < Math.min(h - 3, 6); k++) c.fillRect(fx + Math.floor(k / 2), 2 + k, 1, 1);
-  }
-  c.fillStyle = ICE_COLORS[2];
-  for (let i = 0; i < (w * h) / 40; i++) c.fillRect(2 + Math.floor(r() * (w - 4)), 2 + Math.floor(r() * (h - 4)), 1, 1);
-  return cv;
+  px.done();
+  return canvas;
 }
 
 // Where a slab will crack: a few jagged lines spreading from a point, as a
-// list of pixels in the order they appear (more show as the slab weakens).
+// list of half pixels in the order they appear (more show as the slab
+// weakens).
 function slabCracks(w, h, seed) {
   const r = seeded(seed * 7 + 3);
   const px = [];
-  const ox = Math.floor(w * (0.3 + r() * 0.4));
-  const oy = Math.floor(h * (0.3 + r() * 0.4));
+  const W2 = w * DETAIL;
+  const H2 = h * DETAIL;
+  const ox = Math.floor(W2 * (0.3 + r() * 0.4));
+  const oy = Math.floor(H2 * (0.3 + r() * 0.4));
   const arms = 3 + Math.floor(r() * 2);
   for (let a = 0; a < arms; a++) {
     let x = ox;
     let y = oy;
     const ang = (a / arms) * Math.PI * 2 + r() * 0.8;
-    const len = Math.max(w, h) * (0.35 + r() * 0.3);
+    const len = Math.max(W2, H2) * (0.35 + r() * 0.3);
     for (let i = 0; i < len; i++) {
       x += Math.cos(ang) + (r() - 0.5) * 0.9;
       y += Math.sin(ang) + (r() - 0.5) * 0.9;
       const ix = Math.round(x);
       const iy = Math.round(y);
-      if (ix < 1 || iy < 1 || ix > w - 2 || iy > h - 2) break;
+      if (ix < 2 || iy < 2 || ix > W2 - 3 || iy > H2 - 3) break;
       px.push([ix, iy, i / len]);
     }
   }
   // Inner cracks first, then the outer reaches.
   return px.sort((p, q) => p[2] - q[2]);
+}
+
+// The cracks showing on a slab right now, kept as a picture and repainted
+// only when they change (when it's hit), not drawn dot by dot every frame.
+function slabCrackImage(s, shown) {
+  const flash = s.flash > 0;
+  const key = shown * 2 + (flash ? 1 : 0);
+  if (s.crackKey === key) return s.crackImg;
+  if (!s.crackImg) s.crackImg = detailCanvas(s.w, s.h);
+  const { canvas, ctx } = s.crackImg;
+  ctx.clearRect(0, 0, s.w, s.h);
+  const px = pixels(canvas);
+  const W2 = s.w * DETAIL;
+  const on = new Set();
+  for (let i = 0; i < shown; i++) on.add(s.cracks[i][1] * W2 + s.cracks[i][0]);
+  for (let i = 0; i < shown; i++) {
+    const [fx, fy] = s.cracks[i];
+    px.set(fx, fy, flash ? ICE_COLORS[4] : ICE_COLORS[0]);
+    // A pale lip along each crack, so it reads as a split in the ice.
+    if (!flash && !on.has((fy + 1) * W2 + fx + 1)) px.set(fx + 1, fy + 1, ICE_COLORS[4]);
+  }
+  px.done();
+  s.crackKey = key;
+  return s.crackImg;
 }
 
 export class Terrain {
@@ -413,8 +453,7 @@ export class Terrain {
       ctx.drawImage(s.img, x, y);
       // Cracks spread as it weakens; it flashes pale for a moment when hit.
       const shown = Math.floor(s.cracks.length * (1 - s.hp / s.maxHp));
-      ctx.fillStyle = s.flash > 0 ? ICE_COLORS[4] : ICE_COLORS[0];
-      for (let i = 0; i < shown; i++) ctx.fillRect(x + s.cracks[i][0], y + s.cracks[i][1], 1, 1);
+      if (shown > 0) ctx.drawImage(slabCrackImage(s, shown).canvas, x, y);
     }
     if (!this.floor) return;
     for (const s of this.spires) ctx.drawImage(s.img, snap(s.x), snap(s.top));
