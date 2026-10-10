@@ -1,5 +1,5 @@
-import { PAL } from './config.js?v=0.23.0';
-import { seeded } from './util.js?v=0.23.0';
+import { PAL } from './config.js?v=0.23.1';
+import { DETAIL, FINE, detailCanvas, pixels, grit } from './detail.js?v=0.23.1';
 
 // THE GLACIER WARDEN, painted by code (the owner's chosen "Saw Crown"
 // design): the Ice Harvesters' flagship. A giant saw ring spins round a hub
@@ -7,9 +7,14 @@ import { seeded } from './util.js?v=0.23.0';
 // body with two swept fins sits behind the ring, in hazard paint.
 //
 // The body and fins are painted once for each of 3 damage stages; the ring
-// is painted in a few rotation frames so it can spin; the six ice plates
-// (whole, cracked, badly cracked, refreezing, hit-flash) turn, so they're
-// drawn fresh every frame, and so is the core (it glows).
+// is painted in a few rotation frames so it can spin; the core in its three
+// looks (dim, bright, hit). The six ice plates (whole, cracked, badly
+// cracked, refreezing, hit-flash) turn, so they're painted fresh every frame
+// into one small picture.
+//
+// Double detail (v0.23.0): everything is painted in half-pixel steps, with
+// the same shapes as before (so what your shots hit hasn't moved), plus
+// finer edges, panel seams, rivets, bolts on the ring and glints in the ice.
 //
 // Layout inside the boss's box (80 x 68 game pixels): the ring's centre at
 // HUB, the hub (plates over the core) out to radius 17, the ring out to the
@@ -33,70 +38,75 @@ export const NOSE = { x: HUB.x - HUB_R, y: HUB.y }; // the hub's front edge
 
 const C = {
   k: PAL.ink, a: PAL.amber, A: PAL.amberSoft, o: PAL.amberDark, l: PAL.amberLight, c: PAL.cream,
-  s: PAL.redSoft, r: PAL.red, R: PAL.redDark, g: PAL.grey, n: '#46444d', h: '#a7a4ad',
-  i: '#e6eef7', j: '#b8cde3', m: '#7f9cc0', q: '#4d6890', d: '#2a3a58',
+  s: PAL.redSoft, r: PAL.red, R: PAL.redDark, g: PAL.grey, n: '#46444d', h: '#a7a4ad', G: '#8c8992',
+  i: '#e6eef7', j: '#b8cde3', m: '#7f9cc0', q: '#4d6890', d: '#2a3a58', y: '#f6dcae',
 };
-const HOLE = ['#140e10', '#b5562a', '#d9813f'];
+const HOLE = ['#140e10', '#b5562a', '#d9813f', '#4a2a22'];
 
 // ---------------------------------------------------------------- painting
-// A grid of colours with a "shape" brush: a filled shape with a border, a
-// light top-left edge and a dark bottom-right edge (like the rest of the
-// game's pixel art). Coordinates are inside the boss's box.
+// A grid of colours, one cell per half pixel, with a "shape" brush: a
+// filled shape with a border, a light top-left edge and a dark bottom-right
+// edge (like the rest of the game's pixel art). Shapes are tested at each
+// half pixel's centre (X, Y) in game pixels inside the boss's box, so they
+// keep exactly the size and place they had before double detail.
+const W2 = WARDEN_W * DETAIL;
+const H2 = WARDEN_H * DETAIL;
+const at = (f) => (f + 0.5) / DETAIL; // a half pixel's centre, in game pixels
 function grid() {
-  const px = Array.from({ length: WARDEN_H }, () => Array(WARDEN_W).fill(null));
+  const px = Array.from({ length: H2 }, () => Array(W2).fill(null));
   const g = {
     px,
-    set(x, y, col) {
-      if (x >= 0 && y >= 0 && x < WARDEN_W && y < WARDEN_H) px[y][x] = col;
+    set(fx, fy, col) {
+      if (fx >= 0 && fy >= 0 && fx < W2 && fy < H2) px[fy][fx] = col;
     },
-    get(x, y) {
-      return x >= 0 && y >= 0 && x < WARDEN_W && y < WARDEN_H ? px[y][x] : null;
+    get(fx, fy) {
+      return fx >= 0 && fy >= 0 && fx < W2 && fy < H2 ? px[fy][fx] : null;
     },
     shape(inside, { fill, border = C.k, hi, shade, shadeW = 1, pattern }) {
-      for (let y = 0; y < WARDEN_H; y++) {
-        for (let x = 0; x < WARDEN_W; x++) {
-          if (!inside(x, y)) continue;
-          let col = (pattern && pattern(x, y)) || fill;
-          if (shade) for (let d = 1; d <= shadeW; d++) if (!inside(x + d, y + d) || !inside(x, y + d)) col = shade;
-          if (hi && (!inside(x - 1, y - 1) || !inside(x, y - 1))) col = hi;
-          if (border && (!inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1))) col = border;
-          g.set(x, y, col);
+      for (let fy = 0; fy < H2; fy++) {
+        for (let fx = 0; fx < W2; fx++) {
+          const X = at(fx);
+          const Y = at(fy);
+          if (!inside(X, Y)) continue;
+          let col = (pattern && pattern(X, Y, fx, fy)) || fill;
+          if (shade) {
+            for (let d = FINE; d <= shadeW; d += FINE) if (!inside(X + d, Y + d) || !inside(X, Y + d)) col = shade;
+          }
+          if (hi && (!inside(X - FINE, Y - FINE) || !inside(X, Y - FINE))) col = hi;
+          if (border && (!inside(X - FINE, Y) || !inside(X + FINE, Y) || !inside(X, Y - FINE) || !inside(X, Y + FINE))) col = border;
+          g.set(fx, fy, col);
         }
       }
     },
-    // An ink outline round everything painted so far.
+    // An ink outline (one half pixel) round everything painted so far.
     outline() {
       const add = [];
-      for (let y = 0; y < WARDEN_H; y++) {
-        for (let x = 0; x < WARDEN_W; x++) {
-          if (!px[y][x] && (g.get(x - 1, y) || g.get(x + 1, y) || g.get(x, y - 1) || g.get(x, y + 1))) add.push([x, y]);
+      for (let fy = 0; fy < H2; fy++) {
+        for (let fx = 0; fx < W2; fx++) {
+          if (!px[fy][fx] && (g.get(fx - 1, fy) || g.get(fx + 1, fy) || g.get(fx, fy - 1) || g.get(fx, fy + 1))) add.push([fx, fy]);
         }
       }
-      for (const [x, y] of add) px[y][x] = C.k;
+      for (const [fx, fy] of add) px[fy][fx] = C.k;
     },
   };
   return g;
 }
 
 function toCanvas(g) {
-  const c = document.createElement('canvas');
-  c.width = WARDEN_W;
-  c.height = WARDEN_H;
-  const ctx = c.getContext('2d');
-  for (let y = 0; y < WARDEN_H; y++) {
-    for (let x = 0; x < WARDEN_W; x++) {
-      const col = g.px[y][x];
-      if (!col) continue;
-      ctx.fillStyle = col;
-      ctx.fillRect(x, y, 1, 1);
+  const { canvas } = detailCanvas(WARDEN_W, WARDEN_H);
+  const p = pixels(canvas);
+  for (let fy = 0; fy < H2; fy++) {
+    for (let fx = 0; fx < W2; fx++) {
+      const col = g.px[fy][fx];
+      if (col) p.set(fx, fy, col);
     }
   }
-  return c;
+  p.done();
+  return canvas;
 }
 
-const poly = (pts) => (x, y) => {
-  const X = x + 0.5;
-  const Y = y + 0.5;
+// Shapes, tested at a point (X, Y) in game pixels.
+const poly = (pts) => (X, Y) => {
   let inn = false;
   for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
     const [xi, yi] = pts[i];
@@ -105,14 +115,15 @@ const poly = (pts) => (x, y) => {
   }
   return inn;
 };
-const rect = (x0, y0, w, h) => (x, y) => x >= x0 && x < x0 + w && y >= y0 && y < y0 + h;
-const dist = (x, y) => Math.hypot(x + 0.5 - HUB.x, y + 0.5 - HUB.y);
+const rect = (x0, y0, w, h) => (X, Y) => X >= x0 && X < x0 + w && Y >= y0 && Y < y0 + h;
+const dist = (X, Y) => Math.hypot(X - HUB.x, Y - HUB.y);
 // Angle round the hub, 0 = right, growing clockwise (screen y points down).
-const angle = (x, y) => {
-  const a = Math.atan2(y + 0.5 - HUB.y, x + 0.5 - HUB.x);
+const angle = (X, Y) => {
+  const a = Math.atan2(Y - HUB.y, X - HUB.x);
   return a < 0 ? a + Math.PI * 2 : a;
 };
-const hazard = (x, y) => (((x + y) >> 1) % 2 ? C.a : C.k);
+// Hazard stripes two pixels wide, leaning like "\".
+const hazard = (X, Y) => (Math.floor((X + Y) / 2) % 2 ? C.a : C.k);
 const hull = { fill: C.g, hi: C.h, shade: C.n, shadeW: 2 };
 const dark = { fill: C.n, hi: C.g, shade: C.k };
 const ice = { fill: C.j, border: C.q, hi: C.i, shade: C.m, shadeW: 2 };
@@ -129,34 +140,69 @@ const TIP_LOW = [[61, 64], [71, 65], [69, 58], [63, 57]];
 export const HOLES = [[52, 36], [64, 26], [70, 42], [58, 21]];
 function paintBody(stage) {
   const g = grid();
-  g.shape(poly(FIN_TOP), dark);
-  g.shape(poly(FIN_LOW), dark);
-  if (stage === 1) {
-    g.shape(poly(TIP_TOP), ice);
-    g.shape(poly(TIP_LOW), ice);
+  const inBody = poly(BODY);
+  // The fins: dark steel with a row of bolts along each.
+  for (const fin of [FIN_TOP, FIN_LOW]) {
+    const inFin = poly(fin);
+    g.shape(inFin, { ...dark, pattern: (X, Y) => {
+      // A spar down the middle of the fin, with bolts on it.
+      const [p0, p1] = [fin[0], fin[1]];
+      const t = ((X - p0[0]) * (p1[0] - p0[0]) + (Y - p0[1]) * (p1[1] - p0[1])) / ((p1[0] - p0[0]) ** 2 + (p1[1] - p0[1]) ** 2);
+      const ox = p0[0] + t * (p1[0] - p0[0]) + 3.5;
+      const oy = p0[1] + t * (p1[1] - p0[1]);
+      if (Math.hypot(X - ox, Y - oy) < 0.6 && Math.floor(t * 8) % 2 === 0) return C.G;
+      return null;
+    } });
   }
-  g.shape(poly(BODY), hull);
+  if (stage === 1) {
+    for (const tip of [TIP_TOP, TIP_LOW]) {
+      g.shape(poly(tip), { ...ice, pattern: (X, Y) => (Math.abs(X - Y * 0.3 - (tip === TIP_TOP ? 65 : 47)) < 0.4 ? C.i : null) });
+    }
+  }
+  // The hull: plates with seams and rivets, lit along its top.
+  g.shape(inBody, { ...hull, pattern: (X, Y) => {
+    for (const sx of [56, 66]) {
+      if (X > sx - 0.5 && X < sx) return C.n; // a seam
+      if (X > sx && X < sx + 0.5) return C.h; // its lit lip
+      if (Math.abs(X - (sx + 1.5)) < 0.3 && (Math.abs(Y - 24.5) < 0.3 || Math.abs(Y - 43.5) < 0.3)) return C.h; // rivets
+    }
+    if (Y > 33 && Y < 35 && X > 44 && X < 70) return Y < 34 ? C.n : C.G; // a vent between the stripes
+    return null;
+  } });
   g.shape(rect(49, 27, 22, 4), { fill: C.a, pattern: hazard });
   g.shape(rect(49, 37, 22, 4), { fill: C.a, pattern: hazard });
+  // The engines: heavy nozzles with a dark mouth and a warm glow inside.
   for (const [ex, ey] of [[77, 29], [77, 39]]) {
-    g.shape(rect(ex, ey - 2, 3, 5), { fill: C.n, hi: C.g, shade: C.k });
+    g.shape(rect(ex, ey - 2, 3, 5), { fill: C.n, hi: C.g, shade: C.k, pattern: (X, Y) => {
+      if (X > ex + 1.5 && Math.abs(Y - (ey + 0.5)) < 1.5) return Math.abs(Y - (ey + 0.5)) < 0.75 ? C.l : C.A;
+      return null;
+    } });
   }
-  const rnd = seeded(41 + stage);
   if (stage >= 2) {
-    // Scorch marks.
+    // Scorch marks: soot speckled round where it's been hit.
     for (const [hx, hy] of HOLES.slice(0, stage === 2 ? 2 : 4)) {
-      for (let i = 0; i < 9; i++) {
-        const x = hx + Math.round((rnd() - 0.5) * 6);
-        const y = hy + Math.round((rnd() - 0.5) * 4);
-        if (g.get(x, y) && g.get(x, y) !== C.k) g.set(x, y, i % 3 ? C.n : C.k);
+      for (let fy = (hy - 4) * DETAIL; fy < (hy + 4) * DETAIL; fy++) {
+        for (let fx = (hx - 5) * DETAIL; fx < (hx + 5) * DETAIL; fx++) {
+          const d = Math.hypot((at(fx) - hx) / 1.4, at(fy) - hy);
+          const c = g.get(fx, fy);
+          if (!c || c === C.k || d > 3) continue;
+          const r = grit(fx, fy, hx + stage);
+          if (r < 0.55 - d * 0.15) g.set(fx, fy, r < 0.2 ? C.k : C.n);
+        }
       }
     }
   }
   if (stage === 3) {
-    // Holes blown in the hull, glowing inside.
+    // Holes blown in the hull: ragged, scorched round the edge, glowing inside.
     for (const [hx, hy] of HOLES.slice(0, 3)) {
-      g.shape((x, y) => Math.hypot(x + 0.5 - hx, y + 0.5 - hy) < 2.6, { fill: HOLE[1], border: HOLE[0] });
-      g.set(hx, hy, HOLE[2]);
+      const inHole = (X, Y) => {
+        const a = Math.atan2(Y - hy, X - hx);
+        return Math.hypot(X - hx, Y - hy) < 2.6 + 0.4 * Math.sin(a * 5 + hx);
+      };
+      g.shape(inHole, { fill: HOLE[1], border: HOLE[0], pattern: (X, Y) => {
+        const d = Math.hypot(X - hx, Y - hy);
+        return d < 1 ? HOLE[2] : d > 1.8 ? HOLE[3] : null;
+      } });
     }
   }
   g.outline();
@@ -164,7 +210,8 @@ function paintBody(stage) {
 }
 
 // The saw ring at one rotation (ph radians): 18 teeth leaning the way it
-// spins, a steel band and a hazard-striped inner rim, all turning together.
+// spins, a steel band with a bolt by each tooth, and a hazard-striped
+// inner rim, all turning together.
 function paintRing(ph) {
   const g = grid();
   for (let t = 0; t < TEETH; t++) {
@@ -172,28 +219,35 @@ function paintRing(ph) {
     const tip = [HUB.x + Math.cos(a) * TOOTH_R, HUB.y + Math.sin(a) * TOOTH_R];
     const b1 = [HUB.x + Math.cos(a - 0.17) * (RING_OUT - 1), HUB.y + Math.sin(a - 0.17) * (RING_OUT - 1)];
     const b2 = [HUB.x + Math.cos(a + 0.12) * (RING_OUT - 1), HUB.y + Math.sin(a + 0.12) * (RING_OUT - 1)];
-    g.shape(poly([tip, b1, b2]), { fill: C.h, hi: C.c });
+    g.shape(poly([tip, b1, b2]), { fill: C.h, hi: C.c, shade: C.G, shadeW: FINE });
   }
   const seg = (Math.PI * 2) / TEETH;
-  g.shape((x, y) => dist(x, y) >= RING_IN && dist(x, y) <= RING_OUT, {
+  g.shape((X, Y) => dist(X, Y) >= RING_IN && dist(X, Y) <= RING_OUT, {
     fill: C.h, hi: C.c, shade: C.g,
-    pattern: (x, y) => ((((angle(x, y) - ph) / seg) % 1) + 1) % 1 < 0.5 ? C.g : null,
+    pattern: (X, Y) => {
+      const f = ((((angle(X, Y) - ph) / seg) % 1) + 1) % 1;
+      const d = dist(X, Y);
+      // A bolt in the middle of each light segment.
+      if (Math.abs(d - (RING_IN + RING_OUT) / 2) < 0.8 && Math.abs(f - 0.75) * seg * d < 0.8) return Math.abs(f - 0.75) * seg * d < 0.3 && d < 23.6 ? C.c : C.n;
+      if (f < 0.5) return Math.abs(d - (RING_IN + RING_OUT) / 2) < 0.3 ? C.n : C.g; // dark segments, with a groove
+      return null;
+    },
   });
-  g.shape((x, y) => dist(x, y) >= HUB_R && dist(x, y) < RING_IN + 0.5, {
+  g.shape((X, Y) => dist(X, Y) >= HUB_R && dist(X, Y) < RING_IN + 0.5, {
     fill: C.a,
-    pattern: (x, y) => (Math.floor((((angle(x, y) - ph) / (seg / 2)) % (TEETH * 2) + TEETH * 2) % (TEETH * 2)) % 2 ? C.k : C.a),
+    pattern: (X, Y) => (Math.floor((((angle(X, Y) - ph) / (seg / 2)) % (TEETH * 2) + TEETH * 2) % (TEETH * 2)) % 2 ? C.k : C.a),
   });
   g.outline();
   return g;
 }
 
 // The hub: a dark socket under the plates (what you see where a plate has
-// broken off), with a rim.
+// broken off), with a rim and fine rings.
 function paintHub() {
   const g = grid();
-  g.shape((x, y) => dist(x, y) < HUB_R, { fill: C.n, border: C.k, shade: C.k });
+  g.shape((X, Y) => dist(X, Y) < HUB_R, { fill: C.n, border: C.k, shade: C.k, shadeW: FINE });
   for (let r = 10; r < HUB_R - 1; r += 3) {
-    g.shape((x, y) => Math.abs(dist(x, y) - r) < 0.5, { fill: '#3a3940', border: null });
+    g.shape((X, Y) => Math.abs(dist(X, Y) - r) < 0.25, { fill: '#3a3940', border: null });
   }
   return g;
 }
@@ -201,25 +255,27 @@ function paintHub() {
 // The six plates sit round the core like the slices of a pie, and the
 // whole set TURNS (hubAng, radians, clockwise): plate k covers the wedge from
 // k*60 to (k+1)*60 degrees past hubAng (0 = pointing right). Because they
-// turn, they're drawn fresh every frame into a small picture of the hub.
+// turn, they're painted fresh every frame into a small picture of the hub.
 export const SECTOR = Math.PI / 3;
 const GAP = 0.09; // a thin seam between neighbouring plates (none over the core)
 const TAU = Math.PI * 2;
 // Which plate is at angle a (radians, 0 = right, clockwise) when the hub
 // has turned by hubAng.
 export const plateAtAngle = (a, hubAng) => Math.floor((((a - hubAng) % TAU) + TAU) % TAU / SECTOR) % PLATES;
-// A cheap fixed "random" per pixel, for the ragged edge of refreezing frost.
-const speckle = (x, y) => (((x * 73856093) ^ (y * 19349663)) >>> 0) % 100 / 100;
+// A cheap fixed "random" per half pixel, for frost glints and the ragged
+// edge of refreezing frost.
+const speckle = (fx, fy) => grit(fx, fy, 5);
 
 const HALF = PLATE_R + 1;
 const SIZE = HALF * 2;
+const SIZE2 = SIZE * DETAIL;
 const HUB_PIXELS = [];
-for (let py = 0; py < SIZE; py++) {
-  for (let px = 0; px < SIZE; px++) {
-    const x = HUB.x - HALF + px;
-    const y = HUB.y - HALF + py;
-    const d = dist(x, y);
-    if (d <= PLATE_R + 0.3) HUB_PIXELS.push({ i: py * SIZE + px, d, a: angle(x, y), s: speckle(x, y) });
+for (let py = 0; py < SIZE2; py++) {
+  for (let px = 0; px < SIZE2; px++) {
+    const X = HUB.x - HALF + at(px);
+    const Y = HUB.y - HALF + at(py);
+    const d = dist(X, Y);
+    if (d <= PLATE_R + 0.3) HUB_PIXELS.push({ i: py * SIZE2 + px, d, a: angle(X, Y), s: speckle(px, py) });
   }
 }
 // Colours as 32-bit pixels (the byte order canvas pixel data uses).
@@ -233,12 +289,12 @@ let layer = null;
 export function drawWardenPlates(ctx, cx, cy, plates, hubAng) {
   if (!layer) {
     const canvas = document.createElement('canvas');
-    canvas.width = SIZE;
-    canvas.height = SIZE;
+    canvas.width = SIZE2;
+    canvas.height = SIZE2;
     const c = canvas.getContext('2d');
-    const img = c.createImageData(SIZE, SIZE);
+    const img = c.createImageData(SIZE2, SIZE2);
     layer = { canvas, c, img, buf: new Uint32Array(img.data.buffer), col: {} };
-    for (const [k, v] of Object.entries({ i: C.i, j: C.j, m: C.m, q: C.q, cream: PAL.cream })) layer.col[k] = pix(v);
+    for (const [k, v] of Object.entries({ i: C.i, j: C.j, m: C.m, q: C.q, P: '#c8d4ec', cream: PAL.cream })) layer.col[k] = pix(v);
   }
   const { buf, col } = layer;
   buf.fill(0);
@@ -250,19 +306,26 @@ export function drawWardenPlates(ctx, cx, cy, plates, hubAng) {
     const seam = P.d > CORE_R + 1.5 && (w < GAP || w > SECTOR - GAP);
     if (seam) continue;
     let c = 0;
+    const lit = P.a > Math.PI * 1.05 && P.a < Math.PI * 1.7; // facing the upper left
     if (plate.hp > 0) {
       if (plate.flash > 0) c = col.cream;
-      else if (P.d > PLATE_R - 1 || (P.d > CORE_R + 1.5 && (w < GAP + 0.1 || w > SECTOR - GAP - 0.1))) {
+      else if (P.d > PLATE_R - 0.5 || (P.d > CORE_R + 1.5 && (w < GAP + 0.06 || w > SECTOR - GAP - 0.06))) {
         // Its rim and edges: lit on the upper left, dark elsewhere.
-        c = P.d > PLATE_R - 1 && P.a > Math.PI * 1.05 && P.a < Math.PI * 1.7 ? col.i : col.q;
+        c = P.d > PLATE_R - 0.5 && lit ? col.i : col.q;
       } else {
         c = k % 2 ? col.m : col.j;
-        if (P.d > PLATE_R - 3 && P.a > Math.PI * 1.05 && P.a < Math.PI * 1.7) c = k % 2 ? col.j : col.i;
+        if (P.d > PLATE_R - 2.5 && lit) c = k % 2 ? col.j : col.i; // a bright bevel
+        else if (P.d > PLATE_R - 1.5 && !lit) c = k % 2 ? col.q : col.m; // the shaded bevel
+        // A facet line down the middle of each plate, and glints in the ice.
+        if (Math.abs(w - SECTOR / 2) * P.d < 0.25 && P.d > CORE_R + 3) c = k % 2 ? col.j : col.P;
+        if (P.s > 0.985) c = col.i;
         // Cracks spread as it's hit: one at two-thirds strength, two at a third.
         const level = plate.hp <= PLATE_HP * 0.34 ? 2 : plate.hp <= PLATE_HP * 0.67 ? 1 : 0;
         for (let n = 0; n < level; n++) {
           const cw = SECTOR * 0.5 + (n ? 0.2 : -0.14) + 0.06 * Math.sin(P.d * 1.7 + k * 2 + n * 3);
-          if (P.d >= 4 + n * 2 && Math.abs(w - cw) * P.d < 0.6) c = col.q;
+          const off = Math.abs(w - cw) * P.d;
+          if (P.d >= 4 + n * 2 && off < 0.35) c = col.q;
+          else if (P.d >= 4 + n * 2 && off < 0.7 && w < cw) c = col.i; // the crack's lit lip
         }
       }
     } else if (plate.grow > 0) {
@@ -272,7 +335,40 @@ export function drawWardenPlates(ctx, cx, cy, plates, hubAng) {
     buf[P.i] = c;
   }
   layer.c.putImageData(layer.img, 0, 0);
-  ctx.drawImage(layer.canvas, cx - HALF, cy - HALF);
+  ctx.drawImage(layer.canvas, cx - HALF, cy - HALF, SIZE, SIZE);
+}
+
+// The furnace core: a warm glow in a dark housing, painted once in each of
+// its looks (dim, bright, and pale when hit).
+function paintCore(look) {
+  const n = (CORE_R * 2 + 1) * DETAIL;
+  const { canvas } = detailCanvas(CORE_R * 2 + 1, CORE_R * 2 + 1);
+  const p = pixels(canvas);
+  for (let fy = 0; fy < n; fy++) {
+    for (let fx = 0; fx < n; fx++) {
+      // (Centred CORE_R in from the picture's corner, where the hub is.)
+      const x = at(fx) - CORE_R;
+      const y = at(fy) - CORE_R;
+      const d = Math.hypot(x, y);
+      if (d > CORE_R + 0.3) continue;
+      let col;
+      if (d > 6.6) col = d > 7.8 ? C.k : d > 7.2 ? C.n : x + y < -2 ? C.G : C.n; // the housing, lit top-left
+      else if (look === 2) col = PAL.cream;
+      else if (d < 1.8) col = d < 0.8 && x < 0 && y < 0 ? '#ffffff' : look ? C.y : C.c;
+      else if (d < 3.6) col = look ? C.l : C.a;
+      else if (d < 5.2) col = C.s;
+      else col = d > 6.2 ? C.k : C.R;
+      p.set(fx, fy, col);
+    }
+  }
+  p.done();
+  return canvas;
+}
+let CORES = null;
+export function drawWardenCore(ctx, cx, cy, t, hit) {
+  if (!CORES) CORES = [0, 1, 2].map(paintCore);
+  const look = hit ? 2 : (Math.sin(t * 8) + 1) / 2 > 0.5 ? 1 : 0;
+  ctx.drawImage(CORES[look], cx - CORE_R, cy - CORE_R);
 }
 
 export const WARDEN = {};
@@ -290,6 +386,7 @@ export function buildWardenArt() {
 // ring: your shots fly through its open spokes, but your ship gets cut on
 // it), ARMOUR (hub rim, body, fins), CORE, or PLATE + k for plate k (which
 // counts only while that plate is there: a broken plate leaves a hole).
+// (Tested at each whole pixel's centre, exactly as before double detail.)
 export const RING = 4;
 export const ARMOUR = 1;
 export const CORE = 2;
@@ -301,14 +398,14 @@ const ANGLE = new Float32Array(WARDEN_W * WARDEN_H).fill(-1); // round the hub, 
   for (let y = 0; y < WARDEN_H; y++) {
     for (let x = 0; x < WARDEN_W; x++) {
       const i = y * WARDEN_W + x;
-      const d = dist(x, y);
+      const d = dist(x + 0.5, y + 0.5);
       // (The thin seams between plates count as plate too, so no shot can
       // slip through a seam to the core.)
-      if (d <= PLATE_R + 0.5) ANGLE[i] = angle(x, y);
+      if (d <= PLATE_R + 0.5) ANGLE[i] = angle(x + 0.5, y + 0.5);
       if (d <= CORE_R) MAP[i] = CORE;
       else if (d <= PLATE_R + 0.5) MAP[i] = ARMOUR; // the hub's socket (under the plates)
       else if (d < TOOTH_R - 1.5) MAP[i] = RING; // the hub's rim and the saw ring
-      else if (inBody.some((f) => f(x, y))) MAP[i] = ARMOUR;
+      else if (inBody.some((f) => f(x + 0.5, y + 0.5))) MAP[i] = ARMOUR;
     }
   }
 })();
@@ -321,27 +418,8 @@ export function wardenAt(x, y, plateThere, hubAng = 0) {
   const i = y * WARDEN_W + x;
   const k = ANGLE[i] >= 0 ? plateAtAngle(ANGLE[i], hubAng) : -1;
   if (k >= 0 && plateThere(k)) return PLATE + k;
-  if (MAP[i] === ARMOUR && dist(x, y) <= PLATE_R + 0.5) return 0; // a hole where a plate was
+  if (MAP[i] === ARMOUR && dist(x + 0.5, y + 0.5) <= PLATE_R + 0.5) return 0; // a hole where a plate was
   return MAP[i];
-}
-
-// The furnace core: a warm glow in a dark housing (pulsing; pale when hit).
-export function drawWardenCore(ctx, cx, cy, t, hit) {
-  const pulse = (Math.sin(t * 8) + 1) / 2;
-  for (let y = -CORE_R; y <= CORE_R; y++) {
-    for (let x = -CORE_R; x <= CORE_R; x++) {
-      const d = Math.hypot(x + 0.5, y + 0.5);
-      if (d > CORE_R + 0.3) continue;
-      let col;
-      if (d > 6.6) col = d > 7.6 ? C.k : C.n;
-      else if (hit) col = PAL.cream;
-      else if (d < 1.8) col = C.c;
-      else if (d < 3.6) col = pulse > 0.5 ? C.l : C.a;
-      else col = d < 5.2 ? C.s : C.R;
-      ctx.fillStyle = col;
-      ctx.fillRect(cx + x, cy + y, 1, 1);
-    }
-  }
 }
 
 // Where the saw teeth tips are at a ring angle (for their warning glint).
@@ -352,4 +430,42 @@ export function toothTips(ph) {
     out.push({ x: HUB.x + Math.cos(a) * (TOOTH_R - 1), y: HUB.y + Math.sin(a) * (TOOTH_R - 1) });
   }
   return out;
+}
+
+// A thrown saw blade (9 x 9 game pixels), painted in a few rotation frames
+// between one tooth and the next: a steel disc with six hooked teeth and a
+// hazard-striped hub.
+export const BLADE_FRAMES = 6;
+function paintBlade(ph) {
+  const { canvas } = detailCanvas(9, 9);
+  const p = pixels(canvas);
+  const n = 9 * DETAIL;
+  const inside = (X, Y) => {
+    const d = Math.hypot(X - 4.5, Y - 4.5);
+    const a = Math.atan2(Y - 4.5, X - 4.5) - ph;
+    const f = (((a / ((Math.PI * 2) / 6)) % 1) + 1) % 1; // round each tooth
+    return d <= 2.8 || d <= 2.8 + 1.4 * (1 - f);
+  };
+  for (let fy = 0; fy < n; fy++) {
+    for (let fx = 0; fx < n; fx++) {
+      const X = at(fx);
+      const Y = at(fy);
+      if (!inside(X, Y)) continue;
+      const d = Math.hypot(X - 4.5, Y - 4.5);
+      let col = X + Y < 8.4 ? C.c : C.h;
+      if (d > 1.6 && d < 2.4) col = X + Y < 9 ? C.G : C.g;
+      if (d <= 1.4) col = Math.floor((Math.atan2(Y - 4.5, X - 4.5) - ph) / (Math.PI / 3) + 12) % 2 ? C.a : C.k;
+      if (d <= 0.5) col = C.n;
+      if (!inside(X - FINE, Y) || !inside(X + FINE, Y) || !inside(X, Y - FINE) || !inside(X, Y + FINE)) col = C.k;
+      p.set(fx, fy, col);
+    }
+  }
+  p.done();
+  return canvas;
+}
+let BLADES = null;
+export function bladeFrame(spinA) {
+  if (!BLADES) BLADES = Array.from({ length: BLADE_FRAMES }, (_, f) => paintBlade((f / BLADE_FRAMES) * ((Math.PI * 2) / 6)));
+  const step = (Math.PI * 2) / 6 / BLADE_FRAMES;
+  return BLADES[((Math.floor(spinA / step) % BLADE_FRAMES) + BLADE_FRAMES) % BLADE_FRAMES];
 }

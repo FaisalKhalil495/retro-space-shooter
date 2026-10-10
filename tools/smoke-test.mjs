@@ -2259,8 +2259,11 @@ for (const phone of PHONES) {
     const { ROCKS, ROCKJAW, FAR_ROCKS } = await import('/js/rockart.js' + v);
     const { CRAWLER } = await import('/js/crawlerart.js' + v);
     const { spireImage, floorTile, slabImage } = await import('/js/terrain.js' + v);
+    const { buildWardenArt, bladeFrame } = await import('/js/wardenart.js' + v);
+    const W = buildWardenArt();
     const painted = [...ROCKS.big, ...ROCKS.small, ...ROCKS.bigFlash, ...ROCKS.smallFlash, ...FAR_ROCKS,
-      ...ROCKJAW.frames.flat(), ...ROCKJAW.flash, ...CRAWLER.bodies, spireImage(14, 40, 3), floorTile(14), slabImage(18, 13, 4)];
+      ...ROCKJAW.frames.flat(), ...ROCKJAW.flash, ...CRAWLER.bodies, spireImage(14, 40, 3), floorTile(14), slabImage(18, 13, 4),
+      ...W.bodies, ...W.ring, W.hub, bladeFrame(0)];
     out.painted = painted.length;
     out.paintedWrong = painted.filter((p) => !p.hi || p.hi.width !== p.width * DETAIL || p.hi.height !== p.height * DETAIL).length;
     out.blankHi = painted.filter((p) => {
@@ -2380,7 +2383,7 @@ for (const phone of PHONES) {
   r.missingLetters = [...missing].join('');
   delete r.glyphs;
   const ok = r.hi >= 34 && r.wrongSize.length === 0 && r.wrongOutline.length === 0 && r.shimDiff === 0 && r.screenSharp &&
-    r.painted === 40 && r.paintedWrong === 0 && r.blankHi === 0 && r.level1Missing.length === 0 &&
+    r.painted === 51 && r.paintedWrong === 0 && r.blankHi === 0 && r.level1Missing.length === 0 &&
     r.level2Missing.length === 0 && r.level3Missing.length === 0 && r.seams === 0 && r.stripes === 0 &&
     r.shipSize[0] === 18 && r.shipSize[1] === 11 && r.missingLetters === '' && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  double detail ${JSON.stringify(r)} ${errs.join(' ')}`);
