@@ -462,7 +462,8 @@ for (const phone of PHONES) {
 
 // Menus and saving (v0.25.0), played with real taps: options are saved,
 // the pause button pauses, a game over offers to save a high score (a name
-// typed on the game's keyboard) and to continue the level from score 0,
+// typed on the game's keyboard) and to continue the level from score 0
+// (from the boss, if you got that far),
 // clearing a level is remembered, practice goes back to the level list,
 // and after the last level comes "to be continued", then the table.
 {
@@ -514,6 +515,19 @@ for (const phone of PHONES) {
   r.table = (await saved()).scores;
   await tap(104, 95); // Continue
   r.continued = await st();
+  // Lose at the boss: Continue starts at the boss (the boss checkpoint).
+  await page.evaluate(() => { const g = window.__ember.game; g.runner.skipTo(g.runner.endsAt - 0.5); });
+  await page.waitForTimeout(1500);
+  await page.evaluate(() => {
+    const g = window.__ember.game;
+    g.lives = 1; g.health = 1; g.player.invuln = 0; g.player.entering = 0;
+    g.hurtPlayer(5);
+  });
+  await page.waitForTimeout(3200);
+  r.bossOver = await page.evaluate(() => window.__ember.menu.buttons().map((b) => b.sub).join());
+  await tap(104, 95); // Continue
+  r.checkpoint = await page.evaluate(() => { const g = window.__ember.game; return { nearEnd: g.runner.t >= g.runner.endsAt - 1, score: g.score, lives: g.lives, weapon: g.weapons.kind }; });
+  await page.evaluate(() => { const g = window.__ember.game; g.startAt = 0; g.reset(); });
   // Clear level 1: level 2 is remembered.
   await page.evaluate(() => window.__ember.game.levelClear());
   await page.waitForTimeout(3600);
@@ -550,11 +564,12 @@ for (const phone of PHONES) {
     r.resumed === 'play' && r.over.screen === 'gameover' && r.entry === 'entry' &&
     r.table.length === 1 && r.table[0].name === 'ABC' && r.table[0].score === 4321 &&
     r.continued.mode === 'play' && r.continued.score === 0 && r.continued.level === 1 &&
+    r.bossOver.includes('BOSS  SCORE FROM 0') && r.checkpoint.nearEnd && r.checkpoint.score === 0 && r.checkpoint.lives === 3 && !r.checkpoint.weapon &&
     r.next.level === 2 && r.next.mode === 'play' && r.reached === 2 &&
     r.end === 'end' && r.endEntry === 'entry' && r.endTable.screen === 'scores' && r.endTable.top.name === 'ABC' && r.endTable.top.score > 99999 &&
     r.title === 'title' && r.practice.practice && r.practice.level === 2 && r.afterPractice.screen === 'levels' && r.tableAfterPractice === 2 &&
     r.reloaded.buttons.startsWith('play,new,') && r.reloaded.blood === false && errs.length === 0;
-  console.log(`${ok ? 'PASS' : 'FAIL'}  menus: options saved, pause button, game over -> save score -> continue, level reached remembered, practice, "to be continued", kept after reopening ${ok ? '' : JSON.stringify(r)} ${errs.join(' ')}`);
+  console.log(`${ok ? 'PASS' : 'FAIL'}  menus: options saved, pause button, game over -> save score -> continue, boss checkpoint, level reached remembered, practice, "to be continued", kept after reopening ${ok ? '' : JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;
   await context.close();
 }

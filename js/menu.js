@@ -1,13 +1,13 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.25.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.25.0';
-import { FINE, detailCanvas, pixels, grit } from './detail.js?v=0.25.0';
-import { fillDisc } from './util.js?v=0.25.0';
-import { SPRITES } from './sprites.js?v=0.25.0';
-import { drawOrb } from './powerups.js?v=0.25.0';
-import { drawCapsule } from './weapons.js?v=0.25.0';
-import { LEVELS } from './levels.js?v=0.25.0';
-import { drawShip } from './game.js?v=0.25.0';
-import { save, TOP, bestScore } from './save.js?v=0.25.0';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.25.1';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.25.1';
+import { FINE, detailCanvas, pixels, grit } from './detail.js?v=0.25.1';
+import { fillDisc } from './util.js?v=0.25.1';
+import { SPRITES } from './sprites.js?v=0.25.1';
+import { drawOrb } from './powerups.js?v=0.25.1';
+import { drawCapsule } from './weapons.js?v=0.25.1';
+import { LEVELS } from './levels.js?v=0.25.1';
+import { drawShip } from './game.js?v=0.25.1';
+import { save, TOP, bestScore } from './save.js?v=0.25.1';
 
 // The menus: title screen, level select, high scores, options, how to play,
 // pause, game over, entering your initials and the "to be continued"
@@ -107,7 +107,8 @@ export class Menu {
         btn('save', 34, 84, 140, 22, 'SAVE MY SCORE', () => this.open('entry', { after: 'gameover' }), 'primary', 'NEW HIGH SCORE');
       } else if (ready) {
         const lv = LEVELS[(this.info.level || 1) - 1];
-        const sub = this.info.practice ? `LEVEL ${lv.number}  PRACTICE` : `LEVEL ${lv.number}  SCORE FROM 0`;
+        const where = this.info.boss ? 'BOSS' : `LEVEL ${lv.number}`;
+        const sub = this.info.practice ? `${where}  PRACTICE` : `${where}  SCORE FROM 0`;
         btn('continue', 34, 84, 140, 22, 'CONTINUE', () => h.continueLevel(), 'primary', sub);
         btn('quit', 34, 110, 140, 14, 'QUIT TO TITLE', () => h.quit());
       }

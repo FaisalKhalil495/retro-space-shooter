@@ -1,15 +1,15 @@
-import { VERSION, VIEW_W, VIEW_H, PAL } from './config.js?v=0.25.0';
-import { readSafeArea, computeLayout } from './layout.js?v=0.25.0';
-import { Controls } from './controls.js?v=0.25.0';
-import { Game } from './game.js?v=0.25.0';
-import { unlockAudio, suspendAudio, setVolumes, sfx } from './audio.js?v=0.25.0';
-import { stopMusic } from './music.js?v=0.25.0';
-import { useDetail } from './detail.js?v=0.25.0';
-import { Menu } from './menu.js?v=0.25.0';
-import { save, store, reachLevel, isHighScore, addScore } from './save.js?v=0.25.0';
-import { buzz, canVibrate, setVibrate, HAPTIC } from './feedback.js?v=0.25.0';
-import { Background } from './background.js?v=0.25.0';
-import { LEVELS } from './levels.js?v=0.25.0';
+import { VERSION, VIEW_W, VIEW_H, PAL } from './config.js?v=0.25.1';
+import { readSafeArea, computeLayout } from './layout.js?v=0.25.1';
+import { Controls } from './controls.js?v=0.25.1';
+import { Game } from './game.js?v=0.25.1';
+import { unlockAudio, suspendAudio, setVolumes, sfx } from './audio.js?v=0.25.1';
+import { stopMusic } from './music.js?v=0.25.1';
+import { useDetail } from './detail.js?v=0.25.1';
+import { Menu } from './menu.js?v=0.25.1';
+import { save, store, reachLevel, isHighScore, addScore } from './save.js?v=0.25.1';
+import { buzz, canVibrate, setVibrate, HAPTIC } from './feedback.js?v=0.25.1';
+import { Background } from './background.js?v=0.25.1';
+import { LEVELS } from './levels.js?v=0.25.1';
 
 const canvas = document.getElementById('screen');
 const ctx = useDetail(canvas.getContext('2d', { alpha: false }));
@@ -62,7 +62,11 @@ const menu = new Menu({
   },
   quit: () => showTitle(),
   continueLevel() {
-    game.reset(); // the same level, score from 0, 3 lives
+    // The same level, score from 0, 3 lives; from the boss if you got that
+    // far (the boss checkpoint).
+    game.startAt = menu.info.boss ? 'checkpoint' : 0;
+    game.reset();
+    game.startAt = 0;
     mode = 'play';
     menu.screen = null;
     controls.releaseAll();
@@ -270,7 +274,7 @@ function frame(now) {
     if (game.state === 'gameover') {
       mode = 'over';
       menu.open('gameover', {
-        level: game.level.number, score: game.score, quip: game.quip, practice: !!game.practice,
+        level: game.level.number, score: game.score, quip: game.quip, practice: !!game.practice, boss: game.reachedBoss,
         newBest: !game.practice && isHighScore(game.score), place: -1, after: 'gameover',
       });
     }
