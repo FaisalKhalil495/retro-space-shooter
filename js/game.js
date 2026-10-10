@@ -1,20 +1,20 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.25.1';
-import { SPRITES } from './sprites.js?v=0.25.1';
-import { ENEMY_TYPES } from './enemies.js?v=0.25.1';
-import { LEVELS, LevelRunner } from './levels.js?v=0.25.1';
-import { Background } from './background.js?v=0.25.1';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.25.1';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.25.1';
-import { buzz, HAPTIC } from './feedback.js?v=0.25.1';
-import { sfx } from './audio.js?v=0.25.1';
-import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.25.1';
-import { FINE, snapFine, fillCrisp, crispOf, detailCanvas } from './detail.js?v=0.25.1';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.25.1';
-import { Blasts } from './blasts.js?v=0.25.1';
-import { Speech } from './speech.js?v=0.25.1';
-import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.25.1';
-import { startBossMusic, stopMusic } from './music.js?v=0.25.1';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.25.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.26.0';
+import { SPRITES } from './sprites.js?v=0.26.0';
+import { ENEMY_TYPES } from './enemies.js?v=0.26.0';
+import { LEVELS, LevelRunner } from './levels.js?v=0.26.0';
+import { Background } from './background.js?v=0.26.0';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.26.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.26.0';
+import { buzz, HAPTIC } from './feedback.js?v=0.26.0';
+import { sfx } from './audio.js?v=0.26.0';
+import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.26.0';
+import { FINE, snapFine, fillCrisp, crispOf, detailCanvas } from './detail.js?v=0.26.0';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.26.0';
+import { Blasts } from './blasts.js?v=0.26.0';
+import { Speech } from './speech.js?v=0.26.0';
+import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.26.0';
+import { startMusic, startBossMusic, stopMusic } from './music.js?v=0.26.0';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.26.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -141,7 +141,7 @@ export class Game {
     this.gore.reset();
     this.blasts.reset();
     this.speech.reset();
-    stopMusic(0.3);
+    startMusic(this.level.music); // the level's theme (a restart keeps it playing)
     // The scenery stands on the same ground line as the solid terrain.
     this.bg = new Background(this.rand, { ...this.level.background, floor: this.level.floor || 0 });
     this.terrain = new Terrain(this.level.floor || 0);

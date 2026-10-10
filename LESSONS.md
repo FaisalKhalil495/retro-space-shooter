@@ -14,7 +14,7 @@ stage — and, one day, a system for building more games.
 - At the end of every stage also add a retrospective (section 7) and move
   anything reusable into section 8 ("Recipe for future games").
 
-Last updated: v0.25.0 (menus and saving: the game made presentable up to level 3).
+Last updated: v0.26.0 (level and title music, fades, home-screen app, link preview).
 
 ---
 
@@ -263,6 +263,8 @@ Last updated: v0.25.0 (menus and saving: the game made presentable up to level 3
 | v0.25.0: building menus as a picture sheet first and then as real code would have meant drawing everything twice | Build the menu screens as the real module from the start and render the picture sheet from it: the owner saw exactly what they got, and changes (names instead of initials) were made once. |
 | v0.25.0: the first menu draft had sub-lines spilling past their buttons and help text running into the next column — invisible until rendered | Render every screen at its real size and look before showing anyone; text in our 6-pixel letters needs counting (characters x 6 game pixels). |
 | v0.25.0: the Game Over buttons waited 1 s after opening (so a finger still holding Fire can't hit one) — and also after coming back from saving a score, where nothing was being held, so taps were silently ignored | A safety delay belongs to the moment it protects, not to every opening of the screen. The menus check plays every path with real taps, which is how this showed. |
+| v0.26.0: the new music couldn't be listened to here, only measured | Measure what you can't hear: an analyser on the music bus gave each song's loudness (themes about 0.024, bosses 0.029), so the themes sit just under the boss music. The owner's ears decide the rest. |
+| v0.26.0: the "every letter exists" check failed on note names like 'F#5' in the music | A check that scans all source text needs to know which text is never shown; say why where it skips a file. |
 | LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
 
 ## 5. Our working process (what works)

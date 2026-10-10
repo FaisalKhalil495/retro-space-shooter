@@ -8,7 +8,10 @@ import { extname, join, normalize, dirname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css' };
+const TYPES = {
+  '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
+  '.png': 'image/png', '.webmanifest': 'application/manifest+json',
+};
 
 export async function serve() {
   const server = createServer(async (req, res) => {

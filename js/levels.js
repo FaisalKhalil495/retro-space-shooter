@@ -1,4 +1,4 @@
-import { PATTERNS } from './waves.js?v=0.25.1';
+import { PATTERNS } from './waves.js?v=0.26.0';
 
 // Level scripts. Each event is [seconds from the start, pattern, options].
 // The final 'boss' event waits for the screen to clear, flashes a warning
@@ -7,6 +7,7 @@ export const LEVELS = [
   {
     number: 1,
     name: 'THE OUTER BELT',
+    music: 'belt',
     boss: 'rockjaw',
     background: { sun: true, dust: true, farRocks: true },
     events: [
@@ -117,6 +118,7 @@ export const LEVELS = [
     // Boss: the Siege Crawler.
     number: 2,
     name: 'RUST MOON',
+    music: 'rust',
     boss: 'siegeCrawler',
     floor: 14,
     shotSpeed: 1.1,
@@ -231,6 +233,7 @@ export const LEVELS = [
     // Glacier Warden, their flagship (see warden.js).
     number: 3,
     name: 'FROSTRING',
+    music: 'frost',
     shotSpeed: 1.2,
     skin: 'frost', // its own look for the enemy types it shares with level 1
     boss: 'glacierWarden',

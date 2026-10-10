@@ -1,15 +1,15 @@
-import { VERSION, VIEW_W, VIEW_H, PAL } from './config.js?v=0.25.1';
-import { readSafeArea, computeLayout } from './layout.js?v=0.25.1';
-import { Controls } from './controls.js?v=0.25.1';
-import { Game } from './game.js?v=0.25.1';
-import { unlockAudio, suspendAudio, setVolumes, sfx } from './audio.js?v=0.25.1';
-import { stopMusic } from './music.js?v=0.25.1';
-import { useDetail } from './detail.js?v=0.25.1';
-import { Menu } from './menu.js?v=0.25.1';
-import { save, store, reachLevel, isHighScore, addScore } from './save.js?v=0.25.1';
-import { buzz, canVibrate, setVibrate, HAPTIC } from './feedback.js?v=0.25.1';
-import { Background } from './background.js?v=0.25.1';
-import { LEVELS } from './levels.js?v=0.25.1';
+import { VERSION, VIEW_W, VIEW_H, PAL } from './config.js?v=0.26.0';
+import { readSafeArea, computeLayout } from './layout.js?v=0.26.0';
+import { Controls } from './controls.js?v=0.26.0';
+import { Game } from './game.js?v=0.26.0';
+import { unlockAudio, suspendAudio, setVolumes, sfx } from './audio.js?v=0.26.0';
+import { startMusic, stopMusic, musicPlaying } from './music.js?v=0.26.0';
+import { useDetail } from './detail.js?v=0.26.0';
+import { Menu } from './menu.js?v=0.26.0';
+import { save, store, reachLevel, isHighScore, addScore } from './save.js?v=0.26.0';
+import { buzz, canVibrate, setVibrate, HAPTIC } from './feedback.js?v=0.26.0';
+import { Background } from './background.js?v=0.26.0';
+import { LEVELS } from './levels.js?v=0.26.0';
 
 const canvas = document.getElementById('screen');
 const ctx = useDetail(canvas.getContext('2d', { alpha: false }));
@@ -39,6 +39,7 @@ let mode = 'menu';
 let layout = null;
 let dpr = 1;
 let testFreeze = false; // automated tests drive the game themselves
+let fade = 0; // 1 = the screen just changed: it fades in from dark
 
 function applySettings() {
   setVolumes(save.settings.music, save.settings.sound);
@@ -89,6 +90,7 @@ function startLevel(level, practice, at = 0) {
   game.practice = practice;
   game.reset();
   if (!practice) reachLevel(level, LEVELS.length);
+  fade = 1;
   mode = 'play';
   menu.screen = null;
   controls.releaseAll();
@@ -97,6 +99,7 @@ function startLevel(level, practice, at = 0) {
 
 function showTitle() {
   stopMusic(0.3);
+  fade = 1;
   mode = 'menu';
   menu.open('title', { place: -1, after: null });
 }
@@ -106,6 +109,7 @@ function showTitle() {
 game.onLevelDone = () => {
   if (game.practice) {
     stopMusic(0.3);
+    fade = 1;
     mode = 'menu';
     menu.open('levels');
   } else if (game.levelIndex + 1 < LEVELS.length) {
@@ -113,6 +117,7 @@ game.onLevelDone = () => {
     game.nextLevel();
   } else {
     stopMusic(0.5);
+    fade = 1;
     mode = 'menu';
     menu.open('end', { score: game.score, level: game.level.number, after: 'end', place: -1 });
   }
@@ -273,6 +278,7 @@ function frame(now) {
     stepGame(dt, controls.read());
     if (game.state === 'gameover') {
       mode = 'over';
+      stopMusic(1.5);
       menu.open('gameover', {
         level: game.level.number, score: game.score, quip: game.quip, practice: !!game.practice, boss: game.reachedBoss,
         newBest: !game.practice && isHighScore(game.score), place: -1, after: 'gameover',
@@ -283,6 +289,7 @@ function frame(now) {
     stepGame(dt, { ...NO_INPUT });
   } else if (mode === 'menu') {
     menuBg().update(dt); // the stars drift behind the menus
+    if (musicPlaying() !== 'title') startMusic('title'); // (once sound is allowed)
   }
   if (!testFreeze && mode !== 'play') menu.update(dt);
 
@@ -320,6 +327,14 @@ function render(dt) {
   if (menuShown()) {
     ctx.setTransform(k, 0, 0, k, Math.round(g.x * dpr), Math.round(g.y * dpr));
     menu.draw(ctx);
+  }
+  if (fade > 0) {
+    // Fading in from dark after changing between the menus and the game.
+    ctx.fillStyle = PAL.void;
+    ctx.globalAlpha = Math.min(1, fade);
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    ctx.globalAlpha = 1;
+    fade -= dt * 2.5;
   }
   ctx.restore();
 
