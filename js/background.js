@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.23.2';
-import { FAR_ROCKS } from './rockart.js?v=0.23.2';
-import { fillDisc, seeded } from './util.js?v=0.23.2';
-import { DETAIL, FINE, detailCanvas, pixels } from './detail.js?v=0.23.2';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.24.0';
+import { FAR_ROCKS } from './rockart.js?v=0.24.0';
+import { fillDisc, seeded } from './util.js?v=0.24.0';
+import { DETAIL, FINE, detailCanvas, pixels } from './detail.js?v=0.24.0';
 
 // Deep-space backdrop: a slow distant amber sun, a band of dust, distant
 // asteroids and four layers of stars moving at different speeds, which
@@ -271,7 +271,8 @@ export class Background {
 
   update(dt) {
     this.t += dt;
-    for (const s of this.stars) {
+    for (let i = 0; i < this.stars.length; i++) {
+      const s = this.stars[i];
       s.x -= s.layer.speed * dt;
       if (s.x < -2) {
         s.x += VIEW_W + 4;
@@ -333,7 +334,8 @@ export class Background {
       ctx.drawImage(makeSun(low ? LOW_SUN : SUN), sx - SUN_SIZE / 2, sy - SUN_SIZE / 2);
     }
 
-    for (const s of this.stars) {
+    for (let i = 0; i < this.stars.length; i++) {
+      const s = this.stars[i];
       if (this.theme.canyon && s.y > 56) continue; // only a few stars high in the dusty sky
       const bright = s.layer.speed > 20 && Math.sin(this.t * 3 + s.twinkle) > 0.6;
       ctx.fillStyle = bright ? PAL.cream : s.layer.color;
@@ -361,16 +363,18 @@ export class Background {
       ctx.drawImage(this.mesas, -snap(this.mesaX), ground - 34 - 18);
       ctx.drawImage(this.walls, -snap(this.wallX), ground - 44 + 2);
       ctx.fillStyle = '#6b4a3a';
+      ctx.beginPath(); // (every grain filled in one go)
       for (const d of this.devils) {
         for (let i = 0; i < d.h; i += 1) {
           const k = i / d.h; // wider at the top
           const half = 1 + k * 4 + Math.sin(d.t * 9 + i) * 1.2;
           const y = ground - 1 - i;
-          ctx.fillRect(snap(d.x - half), y, FINE, FINE);
-          ctx.fillRect(snap(d.x + half), y, FINE, FINE);
-          if ((i + Math.floor(d.t * 12)) % 4 === 0) ctx.fillRect(snap(d.x + Math.sin(d.t * 7 + i) * half), y - FINE, FINE, FINE);
+          ctx.rect(snap(d.x - half), y, FINE, FINE);
+          ctx.rect(snap(d.x + half), y, FINE, FINE);
+          if ((i + Math.floor(d.t * 12)) % 4 === 0) ctx.rect(snap(d.x + Math.sin(d.t * 7 + i) * half), y - FINE, FINE, FINE);
         }
       }
+      ctx.fill();
     }
   }
 }

@@ -1,8 +1,8 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.23.2';
-import { drawText } from './font.js?v=0.23.2';
-import { FINE } from './detail.js?v=0.23.2';
-import { sfx } from './audio.js?v=0.23.2';
-import { buzz } from './feedback.js?v=0.23.2';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.24.0';
+import { drawText } from './font.js?v=0.24.0';
+import { FINE } from './detail.js?v=0.24.0';
+import { sfx } from './audio.js?v=0.24.0';
+import { buzz } from './feedback.js?v=0.24.0';
 
 // Special weapons and pickups.
 // The player carries ONE special at a time. A pickup gives some shots;
@@ -13,10 +13,10 @@ export const SPECIALS = {
   rockets: { label: 'R', name: 'ROCKETS', color: PAL.amberSoft, light: PAL.amberLight, ammo: 4, max: 8 },
   laser: { label: 'L', name: 'LASER', color: PAL.blue, light: PAL.bluePale, ammo: 3, max: 5 },
 };
-export const LIFE_PICKUP = { label: '+', name: 'EXTRA LIFE', color: PAL.cream, light: '#ffffff' };
+const LIFE_PICKUP = { label: '+', name: 'EXTRA LIFE', color: PAL.cream, light: '#ffffff' };
 // Ammo from rocks: tops up whatever special you carry when you collect it
 // (a random one if you carry none), so it never swaps your weapon away.
-export const AMMO_PICKUP = { label: 'A', name: 'AMMO', color: PAL.amberSoft, light: PAL.amberLight };
+const AMMO_PICKUP = { label: 'A', name: 'AMMO', color: PAL.amberSoft, light: PAL.amberLight };
 const SPECIAL_KINDS = Object.keys(SPECIALS);
 
 export const BOMB_DAMAGE = 8;

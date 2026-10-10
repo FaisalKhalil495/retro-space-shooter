@@ -1,6 +1,6 @@
-import { PAL } from './config.js?v=0.23.2';
-import { seeded } from './util.js?v=0.23.2';
-import { DETAIL, FINE, detailCanvas, pixels, grit } from './detail.js?v=0.23.2';
+import { PAL } from './config.js?v=0.24.0';
+import { seeded } from './util.js?v=0.24.0';
+import { DETAIL, FINE, detailCanvas, pixels, grit } from './detail.js?v=0.24.0';
 
 // Asteroids and Rockjaw are drawn by code rather than by hand: a lumpy
 // circle, shaded from the top-left with a pixel-art checkerboard "dither"
@@ -255,9 +255,9 @@ function paintRockjaw(mouth, damage, flash) {
       ctx.fillStyle = mouth > 0.5 ? '#d9675a' : '#c4453a';
       ctx.fillRect(ex + FINE, ey, 4, 1);
       ctx.fillStyle = PAL.amberLight;
-      ctx.fillRect(ex + 2.25, ey, FINE, 3);
+      ctx.fillRect(ex + 2.5, ey, FINE, 3); // (on the half-pixel grid: crisp, not smeared)
       ctx.fillStyle = PAL.ink;
-      ctx.fillRect(ex + 2.25, ey + 1, FINE, 1);
+      ctx.fillRect(ex + 2.5, ey + 1, FINE, 1);
       ctx.fillStyle = PAL.cream;
       ctx.fillRect(ex + FINE, ey + FINE, FINE, FINE);
     } else {

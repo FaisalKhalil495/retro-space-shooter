@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.23.2';
-import { seeded } from './util.js?v=0.23.2';
-import { DETAIL, FINE, detailCanvas, pixels, grit } from './detail.js?v=0.23.2';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.24.0';
+import { seeded } from './util.js?v=0.24.0';
+import { DETAIL, FINE, detailCanvas, pixels, grit } from './detail.js?v=0.24.0';
 
 // Solid things in the way, for levels that have them:
 //   - Rust Moon (and later the Ember Mines' tunnels): a floor strip along the
@@ -27,7 +27,7 @@ export const ROCK_CLEARANCE = 10;
 // There's always at least this much open space to fly through, top to bottom,
 // across any stretch of the screen SLAB_WINDOW wide (so slabs can't wall you in
 // or make a staircase you can't squeeze through).
-export const SLAB_GAP = 30;
+const SLAB_GAP = 30;
 const SLAB_WINDOW = 44;
 const SLAB_DROP = 32; // how fast a slab drifting in from above or below moves into place
 export const ICE_COLORS = ['#2a3a58', '#4d6890', '#7f9cc0', '#b8cde3', '#e6eef7'];
@@ -213,9 +213,7 @@ function slabCrackImage(s, shown) {
   const key = shown * 2 + (flash ? 1 : 0);
   if (s.crackKey === key) return s.crackImg;
   if (!s.crackImg) s.crackImg = detailCanvas(s.w, s.h);
-  const { canvas, ctx } = s.crackImg;
-  ctx.clearRect(0, 0, s.w, s.h);
-  const px = pixels(canvas);
+  const px = pixels(s.crackImg.canvas); // (starts blank: the old cracks go)
   const W2 = s.w * DETAIL;
   const on = new Set();
   for (let i = 0; i < shown; i++) on.add(s.cracks[i][1] * W2 + s.cracks[i][0]);
@@ -245,6 +243,14 @@ export class Terrain {
     this.spires = [];
     this.slabs = [];
     this.scroll = 0;
+  }
+
+  // Paint a slab nobody sees, as an icy level starts: the first slabs
+  // painted take several times longer than later ones (the browser is
+  // still getting the painting code up to speed), and that's best done
+  // before play begins.
+  warmUp() {
+    for (let i = 0; i < 6; i++) slabImage(44, 44, i);
   }
 
   get floorY() {
@@ -281,7 +287,8 @@ export class Terrain {
       hp,
       maxHp: hp,
       flash: 0,
-      img: slabImage(w, h, seed),
+      seed,
+      img: null, // (painted soon, at most one slab a frame: see update)
       cracks: slabCracks(w, h, seed),
     };
     this.slabs.push(s);
@@ -333,6 +340,11 @@ export class Terrain {
   }
 
   update(dt) {
+    // Paint at most one new slab of ice a step, rather than every slab of
+    // a wall in the same frame (painting one takes a few milliseconds on a
+    // phone). They come in from off screen, so they're ready in time.
+    const unpainted = this.slabs.find((s) => !s.img);
+    if (unpainted) unpainted.img = slabImage(unpainted.w, unpainted.h, unpainted.seed);
     this.scroll += GROUND_SPEED * dt;
     for (const s of this.spires) s.x -= GROUND_SPEED * dt;
     this.spires = this.spires.filter((s) => s.x > -s.w - 4);
@@ -464,6 +476,7 @@ export class Terrain {
     for (const s of this.slabs) {
       const x = snap(s.x);
       const y = snap(s.y);
+      if (!s.img) s.img = slabImage(s.w, s.h, s.seed); // (not painted yet: now)
       ctx.drawImage(s.img, x, y);
       // Cracks spread as it weakens; it flashes pale for a moment when hit.
       const shown = Math.floor(s.cracks.length * (1 - s.hp / s.maxHp));

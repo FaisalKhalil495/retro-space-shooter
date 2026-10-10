@@ -1,5 +1,5 @@
-import { PAL } from './config.js?v=0.23.2';
-import { DETAIL, FINE, detailCanvas, pixels, grit } from './detail.js?v=0.23.2';
+import { PAL } from './config.js?v=0.24.0';
+import { DETAIL, FINE, detailCanvas, pixels, rgba, grit } from './detail.js?v=0.24.0';
 
 // THE GLACIER WARDEN, painted by code (the owner's chosen "Saw Crown"
 // design): the Ice Harvesters' flagship. A giant saw ring spins round a hub
@@ -23,7 +23,7 @@ import { DETAIL, FINE, detailCanvas, pixels, grit } from './detail.js?v=0.23.2';
 export const WARDEN_W = 80;
 export const WARDEN_H = 68;
 export const HUB = { x: 32, y: 34 }; // the ring's centre and the core
-export const CORE_R = 8; // the core's housing (the weak point)
+const CORE_R = 8; // the core's housing (the weak point)
 const HUB_R = 17;
 const PLATE_R = 16;
 const RING_IN = 20;
@@ -281,7 +281,7 @@ const GAP = 0.09; // a thin seam between neighbouring plates (none over the core
 const TAU = Math.PI * 2;
 // Which plate is at angle a (radians, 0 = right, clockwise) when the hub
 // has turned by hubAng.
-export const plateAtAngle = (a, hubAng) => Math.floor((((a - hubAng) % TAU) + TAU) % TAU / SECTOR) % PLATES;
+const plateAtAngle = (a, hubAng) => Math.floor((((a - hubAng) % TAU) + TAU) % TAU / SECTOR) % PLATES;
 // A cheap fixed "random" per half pixel, for frost glints and the ragged
 // edge of refreezing frost.
 const speckle = (fx, fy) => grit(fx, fy, 5);
@@ -298,11 +298,6 @@ for (let py = 0; py < SIZE2; py++) {
     if (d <= PLATE_R + 0.3) HUB_PIXELS.push({ i: py * SIZE2 + px, d, a: angle(X, Y), s: speckle(px, py) });
   }
 }
-// Colours as 32-bit pixels (the byte order canvas pixel data uses).
-const pix = (hex) => {
-  const n = parseInt(hex.slice(1), 16);
-  return (255 << 24) | ((n & 255) << 16) | (((n >> 8) & 255) << 8) | (n >> 16);
-};
 let layer = null;
 // Draw the plates (as they are now, turned by hubAng) with the hub's
 // centre at (cx, cy). plates: [{ hp, grow, flash }].
@@ -314,7 +309,7 @@ export function drawWardenPlates(ctx, cx, cy, plates, hubAng) {
     const c = canvas.getContext('2d');
     const img = c.createImageData(SIZE2, SIZE2);
     layer = { canvas, c, img, buf: new Uint32Array(img.data.buffer), col: {} };
-    for (const [k, v] of Object.entries({ i: C.i, j: C.j, m: C.m, q: C.q, P: '#c8d4ec', cream: PAL.cream })) layer.col[k] = pix(v);
+    for (const [k, v] of Object.entries({ i: C.i, j: C.j, m: C.m, q: C.q, P: '#c8d4ec', cream: PAL.cream })) layer.col[k] = rgba(v);
   }
   const { buf, col } = layer;
   buf.fill(0);
@@ -460,7 +455,7 @@ export function toothTips(ph) {
 // (its middle is 4.5 in from the corner of its 9 x 9 box); the teeth reach
 // past the 4-pixel circle that hurts, as the old drawing's did, so it
 // never cuts you while it looks clear.
-export const BLADE_FRAMES = 6;
+const BLADE_FRAMES = 6;
 export const BLADE_SIZE = 12;
 const BC = BLADE_SIZE / 2;
 function paintBlade(ph) {

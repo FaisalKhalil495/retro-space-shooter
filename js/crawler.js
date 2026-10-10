@@ -1,14 +1,14 @@
-import { VIEW_W, HUD_H, PAL } from './config.js?v=0.23.2';
-import { sfx } from './audio.js?v=0.23.2';
-import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.23.2';
-import { FINE, snapFine, fillCrisp, crispOf, detailCanvas } from './detail.js?v=0.23.2';
-import { METAL, MOLTEN } from './gore.js?v=0.23.2';
-import { GROUND_SPEED } from './terrain.js?v=0.23.2';
-import { drawText } from './font.js?v=0.23.2';
+import { VIEW_W, HUD_H, PAL } from './config.js?v=0.24.0';
+import { sfx } from './audio.js?v=0.24.0';
+import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.24.0';
+import { FINE, snapFine, fillCrisp, crispOf, detailCanvas } from './detail.js?v=0.24.0';
+import { METAL, MOLTEN } from './gore.js?v=0.24.0';
+import { GROUND_SPEED } from './terrain.js?v=0.24.0';
+import { drawText } from './font.js?v=0.24.0';
 import {
   CRAWLER, CRAWLER_W, CRAWLER_H, PIVOT, CORE, MORTAR_RACK, FLAK_GUNS, DRONE_BAY, MINE_HATCH, SLIT,
   drawLegs, drawBarrel, drawCore,
-} from './crawlerart.js?v=0.23.2';
+} from './crawlerart.js?v=0.24.0';
 
 // THE SIEGE CRAWLER · THE WALKING FORTRESS — boss of Rust Moon.
 //
@@ -668,15 +668,17 @@ export const SIEGE_CRAWLER_TYPE = {
     // Flak warning: a flashing dotted line across the screen, with a gap.
     if (e.flak && !e.flakFiring) {
       ctx.fillStyle = Math.floor(g.time * 12) % 2 === 0 ? PAL.red : PAL.redSoft;
+      ctx.beginPath(); // (all the dashes filled in one go)
       for (const L of e.flak) {
         for (let px = 2; px < VIEW_W - 2; px += 3) {
           if (px > L.gap0 && px < L.gap1) continue;
-          ctx.fillRect(px, L.y, 2, 1);
+          ctx.rect(px, L.y, 2, 1);
         }
         // Little posts either side of the gap.
-        ctx.fillRect(Math.round(L.gap0), L.y - 2, 1, 5);
-        ctx.fillRect(Math.round(L.gap1), L.y - 2, 1, 5);
+        ctx.rect(Math.round(L.gap0), L.y - 2, 1, 5);
+        ctx.rect(Math.round(L.gap1), L.y - 2, 1, 5);
       }
+      ctx.fill();
     }
   },
 };
@@ -695,7 +697,18 @@ function updateWaves(e, dt, g) {
   const floorY = g.terrain.floorY;
   for (const w of e.waves) {
     w.x += w.vx * dt;
-    if (g.playerVulnerable() && g.touchesPlayer(w.x - 5, floorY - WAVE_H, 10, WAVE_H)) g.hurtPlayer(2, e);
+    // It hurts only where it's drawn (v0.24.0; before, the 5 pixels just
+    // ahead of its front hurt too): the crest and the dust trailing behind
+    // it, each column as tall as it's always shown (see drawWaves).
+    if (!g.playerVulnerable()) continue;
+    const dir = Math.sign(w.vx);
+    for (let i = 0; i < 12; i++) {
+      const h = WAVE_H * (1 - (i + 1) / 12) * 0.75; // (its lowest, as it rolls)
+      if (h >= 1 && g.touchesPlayer(dir < 0 ? w.x + i : w.x - i - 1, floorY - h, 1, h)) {
+        g.hurtPlayer(2, e);
+        break;
+      }
+    }
   }
   e.waves = e.waves.filter((w) => w.x > -12 && w.x < VIEW_W + 12);
 }

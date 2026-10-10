@@ -1,6 +1,6 @@
-import { PAL } from './config.js?v=0.23.2';
-import { seeded, fillDisc } from './util.js?v=0.23.2';
-import { DETAIL, FINE, detailCanvas, pixels, snapFine, grit } from './detail.js?v=0.23.2';
+import { PAL } from './config.js?v=0.24.0';
+import { seeded, fillDisc } from './util.js?v=0.24.0';
+import { DETAIL, FINE, detailCanvas, pixels, snapFine, grit } from './detail.js?v=0.24.0';
 
 // THE SIEGE CRAWLER, painted by code: a rusty iron war machine on six legs.
 // The hull (with its turret, flak guns and mortar rack) is painted once for
@@ -181,7 +181,7 @@ function paintBody(stage) {
   fillDisc(c, CORE.x + 0.5, CORE.y + 0.5, CORE.r - 0.25);
   // Battle damage: ragged holes, scorched round the edge, glowing inside,
   // with a broken pipe across some.
-  const hole = pixels(canvas);
+  const hole = pixels(canvas, { keep: true }); // (over the portholes and hatches)
   for (const [hx, hy, r] of HOLES[stage]) {
     for (let fy = Math.floor((hy - 5) * DETAIL); fy < (hy + 5) * DETAIL; fy++) {
       for (let fx = Math.floor((hx - 5) * DETAIL); fx < (hx + 5) * DETAIL; fx++) {

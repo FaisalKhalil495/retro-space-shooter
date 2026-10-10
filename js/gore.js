@@ -1,6 +1,6 @@
-import { VIEW_H, BLOOD } from './config.js?v=0.23.2';
-import { fillDisc } from './util.js?v=0.23.2';
-import { FINE } from './detail.js?v=0.23.2';
+import { VIEW_H, BLOOD } from './config.js?v=0.24.0';
+import { fillDisc } from './util.js?v=0.24.0';
+import { FINE } from './detail.js?v=0.24.0';
 
 // Blood, gore and debris. Only living creatures bleed: weavers lightly,
 // Rockjaw fully. Machines and the player explode instead (see blasts.js).
@@ -13,9 +13,9 @@ import { FINE } from './detail.js?v=0.23.2';
 // - lens: blood smeared on the "screen glass" after very close kills
 // - corpses: big pieces of a dead boss flying apart
 
-export const BLOOD_COLORS = ['#3d1014', '#5a1a1e', '#7a2228', '#9e2f2f'];
+const BLOOD_COLORS = ['#3d1014', '#5a1a1e', '#7a2228', '#9e2f2f'];
 export const FLESH = ['#5a1a1e', '#7a2228', '#9e2f2f', '#b0605a'];
-export const BONE = ['#efe3cf', '#c9b9a0'];
+const BONE = ['#efe3cf', '#c9b9a0'];
 export const MOLTEN = ['#8a3a22', '#b5562a', '#d9813f'];
 export const METAL = ['#34406a', '#5a6a9a', '#6d6a73'];
 export const GLASS = ['#9fb0d0', '#efe3cf'];
@@ -204,14 +204,10 @@ export class Gore {
         ctx.save();
         ctx.translate(snap(g.x), snap(g.y));
         ctx.rotate(g.angle);
-        g.rows.forEach((row, y) => {
-          for (let x = 0; x < row.length; x++) {
-            const col = g.colors[row[x]];
-            if (!col) continue;
-            ctx.fillStyle = col;
-            ctx.fillRect((x - row.length / 2) * FINE, (y - g.rows.length / 2) * FINE, FINE, FINE);
-          }
-        });
+        // (Painted once as a picture and turned whole: no faint lines
+        // between its half pixels as it spins.)
+        const pic = pieceImage(g.rows, g.colors);
+        ctx.drawImage(pic, (-pic.width * FINE) / 2, (-pic.height * FINE) / 2, pic.width * FINE, pic.height * FINE);
         ctx.restore();
       } else {
         ctx.fillStyle = g.color;
@@ -237,6 +233,28 @@ export class Gore {
     }
     ctx.globalAlpha = 1;
   }
+}
+
+// A pixel-map piece as a picture (one half pixel per cell), painted the
+// first time it's needed and kept (each piece's rows come with one set
+// of colours, so the rows are enough to find it again).
+const pieceImages = new Map();
+function pieceImage(rows, colors) {
+  let pic = pieceImages.get(rows);
+  if (pic) return pic;
+  pic = document.createElement('canvas');
+  pic.width = Math.max(...rows.map((r) => r.length));
+  pic.height = rows.length;
+  const c = pic.getContext('2d');
+  rows.forEach((row, y) => {
+    for (let x = 0; x < row.length; x++) {
+      if (!colors[row[x]]) continue;
+      c.fillStyle = colors[row[x]];
+      c.fillRect(x, y, 1, 1);
+    }
+  });
+  pieceImages.set(rows, pic);
+  return pic;
 }
 
 // Little pixel-map pieces, in half pixels (double detail).
