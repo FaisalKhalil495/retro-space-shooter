@@ -71,12 +71,15 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
   which pickup is inside. Extra lives are rare (one per level).
 - Bosses are armoured except at a weak point/moment (Rockjaw: only while his
   jaw is open). Specials obey the same rule, so timing matters.
-- Stage 5 note: with bosses this hard, suggest a boss checkpoint when the
-  continue system is built (owner to decide then).
+- **Boss checkpoint** (owner said yes, v0.25.1): if you lose your last
+  life once the boss warning has started, Continue starts at the boss
+  (score 0, 3 lives, no special; the boss's supply pods bring weapons),
+  and the button says "BOSS  SCORE FROM 0". Restart Level from the pause
+  menu still starts the level from its beginning.
 - **Game over** (v0.25.0): the Game Over menu offers **Continue** (the
   same level from its start, score 0, 3 lives, no special) or **Quit to
   Title**; a score good enough for the table first offers **Save my
-  score**. Boss checkpoint: still to be decided by the owner.
+  score**. From the boss if you got that far (the boss checkpoint).
 - **Rust Moon (level 2), step 3B-1, v0.12.0**: about 3 min, three parts
   with no calm breaks, each new enemy shown alone first (turret 0:08,
   skimmers 0:22, mortar 0:34); the same cargo-pod schedule as level 1; the
@@ -797,7 +800,7 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   `PLAYWRIGHT_PATH=/opt/node22/lib/node_modules/playwright node tools/smoke-test.mjs <screenshot-dir>`
 - The smoke test's "menus" check (v0.25.0) plays every menu with real
   taps: options saved, the pause button, game over -> save score (a
-  typed name) -> continue, the level reached remembered, practice,
+  typed name) -> continue, the boss checkpoint (proven to fail without it), the level reached remembered, practice,
   "to be continued" -> table -> title, and all of it still there after
   reopening (proven to fail when the level reached isn't saved).
 - The smoke test's "double detail" check: sharp pictures exactly twice
