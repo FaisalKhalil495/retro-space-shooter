@@ -1,13 +1,13 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.24.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.24.0';
-import { FINE, detailCanvas, pixels, grit } from './detail.js?v=0.24.0';
-import { fillDisc } from './util.js?v=0.24.0';
-import { SPRITES } from './sprites.js?v=0.24.0';
-import { drawOrb } from './powerups.js?v=0.24.0';
-import { drawCapsule } from './weapons.js?v=0.24.0';
-import { LEVELS } from './levels.js?v=0.24.0';
-import { drawShip } from './game.js?v=0.24.0';
-import { save, TOP, bestScore } from './save.js?v=0.24.0';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.25.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.25.0';
+import { FINE, detailCanvas, pixels, grit } from './detail.js?v=0.25.0';
+import { fillDisc } from './util.js?v=0.25.0';
+import { SPRITES } from './sprites.js?v=0.25.0';
+import { drawOrb } from './powerups.js?v=0.25.0';
+import { drawCapsule } from './weapons.js?v=0.25.0';
+import { LEVELS } from './levels.js?v=0.25.0';
+import { drawShip } from './game.js?v=0.25.0';
+import { save, TOP, bestScore } from './save.js?v=0.25.0';
 
 // The menus: title screen, level select, high scores, options, how to play,
 // pause, game over, entering your initials and the "to be continued"
@@ -64,10 +64,10 @@ export class Menu {
     if (s === 'title') {
       const lv = LEVELS[save.reached - 1];
       const fresh = save.reached <= 1;
-      btn('play', 42, 44, 124, 22, fresh ? 'PLAY' : 'CONTINUE', () => h.play(save.reached, false), 'primary',
+      btn('play', 42, 52, 124, 22, fresh ? 'PLAY' : 'CONTINUE', () => h.play(save.reached, false), 'primary',
         `LEVEL ${lv.number}  ${lv.name}`);
-      if (!fresh) btn('new', 42, 70, 124, 14, 'NEW GAME', () => h.play(1, false));
-      const row = fresh ? 74 : 92;
+      if (!fresh) btn('new', 42, 78, 124, 14, 'NEW GAME', () => h.play(1, false));
+      const row = fresh ? 82 : 100;
       const labels = [['levels', 'LEVELS'], ['scores', 'SCORES'], ['options', 'OPTIONS'], ['help', 'HELP']];
       labels.forEach(([id, label], i) => btn(id, 6 + i * 50, row, 46, 14, label, () => this.open(id)));
     } else if (s === 'levels') {
@@ -99,9 +99,15 @@ export class Menu {
       btn('help', 49, 94, 110, 14, 'HOW TO PLAY', () => this.open('help'));
       btn('quit', 49, 112, 110, 14, 'QUIT TO TITLE', () => h.quit());
     } else if (s === 'gameover') {
-      if (this.t > 1) {
+      // (Buttons wait a moment, so a finger still firing doesn't hit one;
+      // not when coming back from saving the score.)
+      const ready = this.t > 1 || this.info.place >= 0;
+      if (ready && this.info.newBest) {
+        btn('save', 34, 84, 140, 22, 'SAVE MY SCORE', () => this.open('entry', { after: 'gameover' }), 'primary', 'NEW HIGH SCORE');
+      } else if (ready) {
         const lv = LEVELS[(this.info.level || 1) - 1];
-        btn('continue', 34, 84, 140, 22, 'CONTINUE', () => h.continueLevel(), 'primary', `LEVEL ${lv.number}  SCORE FROM 0`);
+        const sub = this.info.practice ? `LEVEL ${lv.number}  PRACTICE` : `LEVEL ${lv.number}  SCORE FROM 0`;
+        btn('continue', 34, 84, 140, 22, 'CONTINUE', () => h.continueLevel(), 'primary', sub);
         btn('quit', 34, 110, 140, 14, 'QUIT TO TITLE', () => h.quit());
       }
     } else if (s === 'entry') {
@@ -120,6 +126,9 @@ export class Menu {
         e.name = e.name.slice(0, -1);
       }, 'key');
       btn('ok', 74, 126, 60, 14, 'OK', e.name ? () => h.enterName(e.name) : null, e.name ? 'primary' : 'off');
+    } else if (s === 'quick') {
+      // (Testing links like ?level=2: one tap anywhere starts.)
+      btn('go', 0, 0, VIEW_W, VIEW_H, '', () => h.quickStart(), 'none');
     } else if (s === 'end') {
       if (this.t > 2) btn('ok', 64, 120, 80, 16, 'CONTINUE', () => h.endDone(), 'primary');
     }
@@ -178,7 +187,12 @@ export class Menu {
     else if (s === 'gameover') this.drawGameOver(ctx);
     else if (s === 'entry') this.drawEntry(ctx);
     else if (s === 'end') this.drawEnd(ctx);
-    for (const b of this.buttons()) drawButton(ctx, b, b.id === this.pressed, this);
+    else if (s === 'quick') {
+      logo(ctx, 40);
+      drawTextCentered(ctx, `TEST START  LEVEL ${this.info.level}`, 104, 70, PAL.bluePale);
+      if (Math.floor(this.t * 2.5) % 2 === 0) drawTextCentered(ctx, 'TAP TO START', 104, 86, PAL.amberLight);
+    }
+    for (const b of this.buttons()) drawButton(ctx, b, b.id === this.pressed);
   }
 
   drawTitle(ctx) {
@@ -187,25 +201,25 @@ export class Menu {
     for (let i = 0; i < 14; i++) {
       const life = (t * 0.45 + i * 0.37) % 1;
       const x = 12 + ((i * 53) % 184) + Math.sin(t * 2 + i) * 2;
-      const y = 30 - life * 26;
+      const y = 36 - life * 26;
       ctx.globalAlpha = 1 - life;
       ctx.fillStyle = i % 3 === 0 ? PAL.amberLight : i % 3 === 1 ? PAL.amber : PAL.redSoft;
       ctx.fillRect(Math.round(x * 2) / 2, Math.round(y * 2) / 2, FINE, FINE);
     }
     ctx.globalAlpha = 1;
-    logo(ctx, 12);
+    logo(ctx, 18);
     // A thin rule either side of the tagline.
     const tag = 'DEFEND THE WORLDS';
     const tw = textWidth(tag);
     ctx.fillStyle = PAL.amberDark;
-    ctx.fillRect(104 - tw / 2 - 26, 34.5, 20, FINE);
-    ctx.fillRect(104 + tw / 2 + 6, 34.5, 20, FINE);
-    drawTextCentered(ctx, tag, 104, 32, PAL.bluePale);
+    ctx.fillRect(104 - tw / 2 - 26, 40.5, 20, FINE);
+    ctx.fillRect(104 + tw / 2 + 6, 40.5, 20, FINE);
+    drawTextCentered(ctx, tag, 104, 38, PAL.bluePale);
     // Your ship, idling on the left, and a gunship-free sky.
     const bob = Math.round(Math.sin(t * 2.2) * 2 * 2) / 2;
-    drawShip(ctx, 20, 52 + bob, 3 + (Math.floor(t * 30) % 2));
+    drawShip(ctx, 20, 60 + bob, 3 + (Math.floor(t * 30) % 2));
     const best = bestScore();
-    if (best) drawTextCentered(ctx, 'BEST  ' + pad6(best), 104, save.reached <= 1 ? 96 : 113, PAL.textDim);
+    if (best) drawTextCentered(ctx, 'BEST  ' + pad6(best), 104, save.reached <= 1 ? 104 : 121, PAL.textDim);
   }
 
   drawLevels(ctx) {
@@ -275,7 +289,7 @@ export class Menu {
     row('SOUND', 50);
     bars(set.sound, 50);
     row('VIBRATION', 70);
-    if (!this.hooks.canVibrate) drawText(ctx, 'NOT ON PHONE', 107, 70, '#4d5570');
+    if (!this.hooks.canVibrate) drawText(ctx, 'NOT SUPPORTED', 107, 70, '#4d5570');
     row('BLOOD', 90);
     drawText(ctx, 'OFF: NO BLOOD FROM CREATURES', 26, 104, PAL.textDim);
   }
@@ -313,7 +327,7 @@ export class Menu {
     drawTextCentered(ctx, 'GAME OVER', 104, 16, PAL.amber, 3);
     if (this.info.quip) drawTextCentered(ctx, this.info.quip, 104, 40, PAL.redSoft);
     drawTextCentered(ctx, 'SCORE  ' + pad6(this.info.score || 0), 104, 54, PAL.cream);
-    if (this.info.newBest) drawTextCentered(ctx, 'NEW HIGH SCORE', 104, 64, PAL.amberLight);
+    if (this.info.place >= 0) drawTextCentered(ctx, `NUMBER ${this.info.place + 1} ON THE HIGH SCORES`, 104, 66, PAL.amberLight);
   }
 
   drawEntry(ctx) {
@@ -401,7 +415,8 @@ const STYLES = {
   off: { fill: '#141a2e', lit: '#1d2540', shade: PAL.ink, text: '#4d5570', down: '#141a2e' },
 };
 
-function drawButton(ctx, b, pressed, menu) {
+function drawButton(ctx, b, pressed) {
+  if (b.kind === 'none') return;
   if (b.kind === 'row' || b.kind === 'rowOff') {
     // A level row: a quiet panel (its picture and words are drawn by the
     // level screen).
@@ -554,8 +569,8 @@ function planetImage() {
       const lit = -nx * 0.55 - ny * 0.85;
       let i = lit > 0.85 ? 0 : lit > 0.7 ? 1 : lit > 0.5 ? 2 : 3;
       // Soft bands of cloud and snowfield following the curve.
-      const band = (d + Math.sin(x * 0.06) * 1.2) % 9;
-      if (band > 6.5 && band < 7.5) i = Math.min(4, i + 1);
+      const band = (d + Math.sin(x * 0.06) * 1.2) % 14;
+      if (band > 10 && band < 10.8) i = Math.min(3, i + 1);
       if (d < 1) i = 4; // darker right at the rim
       if (i < 3 && grit(fx, fy, 3) > 0.985) i = 0; // glints of ice
       px.set(fx, fy, shades[i]);

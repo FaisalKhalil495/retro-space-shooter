@@ -14,7 +14,7 @@ stage — and, one day, a system for building more games.
 - At the end of every stage also add a retrospective (section 7) and move
   anything reusable into section 8 ("Recipe for future games").
 
-Last updated: v0.17.0 (Stage 3, step 3C: the Frostring world).
+Last updated: v0.25.0 (menus and saving: the game made presentable up to level 3).
 
 ---
 
@@ -55,6 +55,13 @@ Last updated: v0.17.0 (Stage 3, step 3C: the Frostring world).
 - **Expects the docs to stay current.** Asked whether this file was being
   updated with every release (it wasn't, for a few releases). Update both
   `CLAUDE.md` and this file in the same release as the change.
+- **Watches the budget.** After v0.24.0 the owner said their weekly usage
+  was running low and asked to make the game presentable to show people
+  (menus, saving, "coming soon" for levels 4–5) before building more
+  levels. Plan in a few big releases, keep pictures and messages tight.
+- **Prefers plain over arcade conventions.** "Enter your initials" puzzled
+  the owner ("What is this?"); high scores take a first name instead (up
+  to 8 letters). Explain any genre convention, or skip it.
 - **Wants to understand the systems.** Questions like "how often do power-ups
   appear?" or "what are we supposed to get in the boss fight?" deserve a
   real audit of the code, with numbers — that's how the supply-pod bug
@@ -253,6 +260,9 @@ Last updated: v0.17.0 (Stage 3, step 3C: the Frostring world).
 | v0.24.0 review: the speed test drew about 38 frames in every scene, against 90–128 at v0.23.0, for old and new code alike: this session ran on a slower computer | Frame counts only mean something next to the old version run on the same computer at the same time. The drawing calls and garbage numbers don't depend on the computer. |
 | v0.24.0 review: three hazards that weren't redrawn at all — sniper rounds, icicles and the Siege Crawler's dust wave — were drawn smaller than the area that hurt you (the wave hurt across a box above its slope) | When checking fairness, check every hazard in the game, not only the ones just redrawn. Make the hurt area follow the drawing (the wave now hurts only under its slope) or the drawing cover the hurt area. |
 | v0.24.0 review: "anything still blurry?" was a one-off script I'd have had to remember to run | Turn a good one-off audit into a permanent test: the level test now draws every 8th step at double detail and fails, naming the line of code, if any picture is drawn without its sharp version. |
+| v0.25.0: building menus as a picture sheet first and then as real code would have meant drawing everything twice | Build the menu screens as the real module from the start and render the picture sheet from it: the owner saw exactly what they got, and changes (names instead of initials) were made once. |
+| v0.25.0: the first menu draft had sub-lines spilling past their buttons and help text running into the next column — invisible until rendered | Render every screen at its real size and look before showing anyone; text in our 6-pixel letters needs counting (characters x 6 game pixels). |
+| v0.25.0: the Game Over buttons waited 1 s after opening (so a finger still holding Fire can't hit one) — and also after coming back from saving a score, where nothing was being held, so taps were silently ignored | A safety delay belongs to the moment it protects, not to every opening of the screen. The menus check plays every path with real taps, which is how this showed. |
 | LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
 
 ## 5. Our working process (what works)

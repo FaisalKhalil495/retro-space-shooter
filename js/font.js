@@ -1,4 +1,4 @@
-import { FINE, snapFine, crispOf } from './detail.js?v=0.24.0';
+import { FINE, snapFine, crispOf } from './detail.js?v=0.25.0';
 
 // The game's lettering (v0.20.0): our own smooth letters, drawn as lines by
 // the game itself, so they look exactly the same on every phone and stay

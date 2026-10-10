@@ -10,6 +10,7 @@ const DEFAULTS = () => ({
   reached: 1, // furthest level reached (1..)
   scores: [], // [{ name: 'ABC', score, level }], best first
   settings: { music: 4, sound: 4, vibrate: true, blood: true }, // volumes 0..5
+  lastName: '', // the name last put on the table (offered again next time)
 });
 
 function load() {
@@ -24,6 +25,7 @@ function load() {
           .slice(0, TOP);
       }
       if (raw.settings && typeof raw.settings === 'object') Object.assign(d.settings, raw.settings);
+      if (typeof raw.lastName === 'string') d.lastName = raw.lastName.replace(/[^A-Z]/g, '').slice(0, 8);
     }
   } catch {
     // Nothing saved yet, or storage is blocked: start fresh.
@@ -59,6 +61,7 @@ export function isHighScore(score) {
 // Put a score on the table; returns its place (0 = top), or -1.
 export function addScore(name, score, level) {
   if (!isHighScore(score)) return -1;
+  save.lastName = name;
   const entry = { name, score, level };
   save.scores.push(entry);
   save.scores.sort((a, b) => b.score - a.score);

@@ -1,20 +1,20 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.24.0';
-import { SPRITES } from './sprites.js?v=0.24.0';
-import { ENEMY_TYPES } from './enemies.js?v=0.24.0';
-import { LEVELS, LevelRunner } from './levels.js?v=0.24.0';
-import { Background } from './background.js?v=0.24.0';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.24.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.24.0';
-import { buzz, HAPTIC } from './feedback.js?v=0.24.0';
-import { sfx } from './audio.js?v=0.24.0';
-import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.24.0';
-import { FINE, snapFine, fillCrisp, crispOf, detailCanvas } from './detail.js?v=0.24.0';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.24.0';
-import { Blasts } from './blasts.js?v=0.24.0';
-import { Speech } from './speech.js?v=0.24.0';
-import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.24.0';
-import { startBossMusic, stopMusic } from './music.js?v=0.24.0';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.24.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.25.0';
+import { SPRITES } from './sprites.js?v=0.25.0';
+import { ENEMY_TYPES } from './enemies.js?v=0.25.0';
+import { LEVELS, LevelRunner } from './levels.js?v=0.25.0';
+import { Background } from './background.js?v=0.25.0';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.25.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.25.0';
+import { buzz, HAPTIC } from './feedback.js?v=0.25.0';
+import { sfx } from './audio.js?v=0.25.0';
+import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.25.0';
+import { FINE, snapFine, fillCrisp, crispOf, detailCanvas } from './detail.js?v=0.25.0';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.25.0';
+import { Blasts } from './blasts.js?v=0.25.0';
+import { Speech } from './speech.js?v=0.25.0';
+import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.25.0';
+import { startBossMusic, stopMusic } from './music.js?v=0.25.0';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.25.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -98,6 +98,7 @@ export class Game {
   // a run: score, lives and the special weapon come along; health refills.
   // Without it, it's a fresh start (new game, or retry after game over).
   reset(carry = null) {
+    this.carry = carry; // (kept, so Restart Level starts it the same way)
     this.score = carry ? carry.score : 0;
     this.supplyCount = 0; // boss supply pods so far (they take turns)
     this.clearPending = false; // the boss is dead; clear the level when alive
@@ -572,8 +573,7 @@ export class Game {
     if (this.state === 'gameover') {
       this.stateTimer += dt;
       this.moveWorld(dt);
-      if (input.tap && this.stateTimer > 1.1) this.reset();
-      return;
+      return; // (the Game Over menu takes it from here)
     }
 
     if (this.state === 'clear') {
@@ -583,7 +583,10 @@ export class Game {
       if (this.stateTimer > 1.2) p.x += (this.stateTimer - 1.2) * 160 * dt;
       p.moveX = 1;
       this.moveWorld(dt);
-      if (input.tap && this.stateTimer > 3) this.nextLevel();
+      if (input.tap && this.stateTimer > 3) {
+        if (this.onLevelDone) this.onLevelDone(); // the menus decide what's next
+        else this.nextLevel();
+      }
       return;
     }
 
@@ -1303,19 +1306,6 @@ export class Game {
       }
     }
 
-    if (this.state === 'gameover') {
-      const k = Math.min(1, this.stateTimer * 2);
-      ctx.fillStyle = `rgba(11, 15, 28, ${0.6 * k})`;
-      ctx.fillRect(0, 0, VIEW_W, VIEW_H);
-      drawTextCentered(ctx, 'GAME OVER', VIEW_W / 2 + 1, 45, PAL.redDark, 3);
-      drawTextCentered(ctx, 'GAME OVER', VIEW_W / 2, 44, PAL.amber, 3);
-      if (this.stateTimer > 0.5) drawTextCentered(ctx, this.quip, VIEW_W / 2, 64, PAL.redSoft);
-      drawTextCentered(ctx, 'SCORE ' + score, VIEW_W / 2, 78, PAL.cream);
-      if (this.stateTimer > 1.1 && Math.floor(this.time * 2.5) % 2 === 0) {
-        drawTextCentered(ctx, 'TAP TO TRY AGAIN', VIEW_W / 2, 96, PAL.amberLight);
-      }
-    }
-
     if (this.state === 'clear') {
       const t = this.stateTimer;
       const k = Math.min(1, t * 1.5);
@@ -1331,13 +1321,13 @@ export class Game {
       const next = LEVELS[this.levelIndex + 1];
       if (t > 2) {
         // Long level names drop the "LEVEL n" part so the line still fits.
-        let line = next ? 'NEXT  LEVEL ' + next.number + '  ' + next.name : 'MORE LEVELS COMING SOON';
+        let line = this.practice ? 'PRACTICE COMPLETE' : next ? 'NEXT  LEVEL ' + next.number + '  ' + next.name : 'MORE LEVELS COMING SOON';
         if (next && textWidth(line) > VIEW_W - 8) line = 'NEXT  ' + next.name;
         if (next && textWidth(line) > VIEW_W - 8) line = next.name;
         drawTextCentered(ctx, line, VIEW_W / 2, 96, PAL.textDim);
       }
       if (t > 3 && Math.floor(this.time * 2.5) % 2 === 0) {
-        drawTextCentered(ctx, next ? 'TAP TO CONTINUE' : 'TAP TO PLAY AGAIN', VIEW_W / 2, 112, PAL.amberLight);
+        drawTextCentered(ctx, 'TAP TO CONTINUE', VIEW_W / 2, 112, PAL.amberLight);
       }
     }
   }

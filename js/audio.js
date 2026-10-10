@@ -5,6 +5,9 @@
 
 let ac = null;
 let master = null;
+let sfxGain = null; // sound effects, set by the Sound volume
+let musicGain = null; // music, set by the Music volume
+let volumes = { music: 4, sound: 4 };
 let noiseBuf = null;
 let lastShot = 0;
 let lastHit = 0;
@@ -24,6 +27,11 @@ export function unlockAudio() {
       master = ac.createGain();
       master.gain.value = 0.6;
       master.connect(comp);
+      sfxGain = ac.createGain();
+      sfxGain.connect(master);
+      musicGain = ac.createGain();
+      musicGain.connect(master);
+      setVolumes(volumes.music, volumes.sound);
       comp.connect(ac.destination);
       noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
       const data = noiseBuf.getChannelData(0);
@@ -50,9 +58,18 @@ export function resumeAudio() {
 
 const ready = () => ac && ac.state === 'running';
 
+// Music and sound volumes, 0 (off) to 5; 4 is the game's normal loudness.
+export function setVolumes(music, sound) {
+  volumes = { music, sound };
+  if (!ac) return;
+  const level = (v) => (v <= 0 ? 0 : v / 4);
+  musicGain.gain.setTargetAtTime(level(music), ac.currentTime, 0.05);
+  sfxGain.gain.setTargetAtTime(level(sound), ac.currentTime, 0.05);
+}
+
 // For the music player, which shares the same sound system.
 export function audioOut() {
-  return ac && master ? { ac, master, noiseBuf } : null;
+  return ac && master ? { ac, master: musicGain, noiseBuf } : null;
 }
 
 // A gritty overdrive, used to make boss sounds feel huge and ugly.
@@ -68,7 +85,7 @@ function grit() {
   const ws = ac.createWaveShaper();
   ws.curve = curve;
   ws.oversample = '2x';
-  ws.connect(master);
+  ws.connect(sfxGain);
   return ws;
 }
 
@@ -121,7 +138,7 @@ function tone({ type = 'square', f0, f1 = f0, dur, vol, attack = 0.004, cutoff =
   gain.gain.setValueAtTime(0.0001, t);
   gain.gain.exponentialRampToValueAtTime(vol, t + attack);
   gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  osc.connect(filt).connect(gain).connect(master);
+  osc.connect(filt).connect(gain).connect(sfxGain);
   osc.start(t);
   osc.stop(t + dur + 0.02);
 }
@@ -140,7 +157,7 @@ function noise({ dur, vol, f0 = 2000, f1 = 200, q = 0.7, type = 'lowpass', when 
   filt.frequency.exponentialRampToValueAtTime(Math.max(30, f1), t + dur);
   gain.gain.setValueAtTime(vol, t);
   gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-  src.connect(filt).connect(gain).connect(master);
+  src.connect(filt).connect(gain).connect(sfxGain);
   src.start(t, Math.random() * 0.5);
   src.stop(t + dur + 0.02);
 }

@@ -1,35 +1,118 @@
-import { VERSION, STAGE_LABEL, VIEW_W, VIEW_H, PAL } from './config.js?v=0.24.0';
-import { readSafeArea, computeLayout } from './layout.js?v=0.24.0';
-import { Controls } from './controls.js?v=0.24.0';
-import { Game } from './game.js?v=0.24.0';
-import { unlockAudio, suspendAudio, resumeAudio } from './audio.js?v=0.24.0';
-import { useDetail } from './detail.js?v=0.24.0';
+import { VERSION, VIEW_W, VIEW_H, PAL } from './config.js?v=0.25.0';
+import { readSafeArea, computeLayout } from './layout.js?v=0.25.0';
+import { Controls } from './controls.js?v=0.25.0';
+import { Game } from './game.js?v=0.25.0';
+import { unlockAudio, suspendAudio, setVolumes, sfx } from './audio.js?v=0.25.0';
+import { stopMusic } from './music.js?v=0.25.0';
+import { useDetail } from './detail.js?v=0.25.0';
+import { Menu } from './menu.js?v=0.25.0';
+import { save, store, reachLevel, isHighScore, addScore } from './save.js?v=0.25.0';
+import { buzz, canVibrate, setVibrate, HAPTIC } from './feedback.js?v=0.25.0';
+import { Background } from './background.js?v=0.25.0';
+import { LEVELS } from './levels.js?v=0.25.0';
 
 const canvas = document.getElementById('screen');
 const ctx = useDetail(canvas.getContext('2d', { alpha: false }));
-const startOverlay = document.getElementById('start');
-const pauseOverlay = document.getElementById('pause');
 const rotateOverlay = document.getElementById('rotate');
-
-document.querySelectorAll('[data-version]').forEach((el) => {
-  el.textContent = `v${VERSION} · ${STAGE_LABEL}`;
-});
 
 const controls = new Controls(canvas);
 // Testing aids: "?start=boss" jumps straight to the boss (with a laser
 // loaded); "?start=60" starts 60 seconds into the level; "?level=2" starts
-// on level 2 (they combine: "?level=2&start=boss").
+// on level 2 (they combine: "?level=2&start=boss"). With either, the game
+// skips the title screen: one tap starts that level.
 const params = new URLSearchParams(location.search);
 const startParam = params.get('start');
 const startAt = startParam === 'boss' ? 'boss' : Number(startParam) || 0;
-const level = Math.max(1, Math.round(Number(params.get('level')) || 1));
-const game = new Game({ startAt, level });
+const urlLevel = Math.min(LEVELS.length, Math.max(1, Math.round(Number(params.get('level')) || 1)));
+const testStart = params.has('level') || params.has('start');
+const game = new Game({ startAt, level: urlLevel });
 
+// The sky behind the menus (its own dice, never the game's), and the one
+// behind the "to be continued" screen.
+const titleBg = new Background(Math.random, LEVELS[0].background);
+const endBg = new Background(Math.random, { space: '#111829', sun: false, dust: true, dustColor: '#1a2640' });
+
+// 'menu': title and its screens, no game running; 'play': playing;
+// 'paused': the game frozen under the pause menu; 'over': game over, the
+// game's wreckage still settling under its menu.
+let mode = 'menu';
 let layout = null;
 let dpr = 1;
-let started = false;
-let paused = false;
 let testFreeze = false; // automated tests drive the game themselves
+
+function applySettings() {
+  setVolumes(save.settings.music, save.settings.sound);
+  setVibrate(save.settings.vibrate);
+}
+applySettings();
+
+const menu = new Menu({
+  canVibrate,
+  play: (level, practice) => startLevel(level, practice),
+  quickStart: () => startLevel(urlLevel, false, startAt),
+  setting(key, value) {
+    save.settings[key] = value;
+    store();
+    applySettings();
+  },
+  resume: () => resume(),
+  restart() {
+    game.reset(game.carry); // the level again, as it started
+    resume();
+  },
+  quit: () => showTitle(),
+  continueLevel() {
+    game.reset(); // the same level, score from 0, 3 lives
+    mode = 'play';
+    menu.screen = null;
+    controls.releaseAll();
+  },
+  enterName(name) {
+    const place = addScore(name, menu.info.score, menu.info.level);
+    if (menu.info.after === 'end') menu.open('scores', { place });
+    else menu.open('gameover', { newBest: false, place });
+  },
+  endDone() {
+    if (isHighScore(menu.info.score)) menu.open('entry', { after: 'end' });
+    else showTitle();
+  },
+});
+menu.open(testStart ? 'quick' : 'title', { level: urlLevel });
+
+function startLevel(level, practice, at = 0) {
+  game.levelIndex = level - 1;
+  game.startAt = at;
+  game.practice = practice;
+  game.reset();
+  if (!practice) reachLevel(level, LEVELS.length);
+  mode = 'play';
+  menu.screen = null;
+  controls.releaseAll();
+  lastTime = performance.now();
+}
+
+function showTitle() {
+  stopMusic(0.3);
+  mode = 'menu';
+  menu.open('title', { place: -1, after: null });
+}
+
+// After a level-clear screen: the next level, or (after the last one) the
+// "to be continued" screen; a practice run goes back to the level list.
+game.onLevelDone = () => {
+  if (game.practice) {
+    stopMusic(0.3);
+    mode = 'menu';
+    menu.open('levels');
+  } else if (game.levelIndex + 1 < LEVELS.length) {
+    reachLevel(game.levelIndex + 2, LEVELS.length);
+    game.nextLevel();
+  } else {
+    stopMusic(0.5);
+    mode = 'menu';
+    menu.open('end', { score: game.score, level: game.level.number, after: 'end', place: -1 });
+  }
+};
 
 // ---- sizing ----
 function resize() {
@@ -50,14 +133,14 @@ const isPortrait = () => window.innerHeight > window.innerWidth;
 function checkOrientation() {
   const portrait = isPortrait();
   rotateOverlay.hidden = !portrait;
-  if (portrait && started) pause();
+  if (portrait) pause();
 }
 
 window.addEventListener('resize', resize);
 window.addEventListener('orientationchange', () => setTimeout(resize, 150));
 window.visualViewport?.addEventListener('resize', resize);
 
-// ---- start / pause ----
+// ---- full screen, pause ----
 async function goFullscreen() {
   // Android Chrome can hide its address bar and lock to landscape. iPhone
   // Safari doesn't allow this for web pages, so it quietly does nothing there.
@@ -65,6 +148,7 @@ async function goFullscreen() {
   try {
     if (!document.fullscreenElement && el.requestFullscreen) {
       await el.requestFullscreen({ navigationUI: 'hide' });
+      setTimeout(resize, 300); // the screen size changes after going full screen
     }
     await screen.orientation?.lock?.('landscape');
   } catch {
@@ -72,48 +156,66 @@ async function goFullscreen() {
   }
 }
 
-startOverlay.addEventListener('pointerup', (e) => {
-  e.preventDefault();
-  unlockAudio();
-  goFullscreen();
-  startOverlay.hidden = true;
-  started = true;
-  controls.releaseAll();
-  game.reset();
-  setTimeout(resize, 300); // the screen size changes after going full screen
-});
-
-pauseOverlay.addEventListener('pointerup', (e) => {
-  e.preventDefault();
-  if (isPortrait()) return;
-  unlockAudio();
-  goFullscreen();
-  resume();
-});
-
 function pause() {
-  if (!started || paused) return;
-  paused = true;
+  if (mode !== 'play') return;
+  mode = 'paused';
   controls.releaseAll();
-  pauseOverlay.hidden = false;
-  suspendAudio();
+  menu.open('pause');
 }
 
 function resume() {
-  paused = false;
-  resumeAudio();
+  mode = 'play';
+  menu.screen = null;
   controls.releaseAll();
-  pauseOverlay.hidden = true;
   lastTime = performance.now();
 }
 
 // Pause automatically when the player switches apps, locks the phone or
 // gets a call, so they never come back to a lost life.
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) pause();
+  if (document.hidden) {
+    pause();
+    suspendAudio(); // (any tap wakes the sound again)
+  }
 });
 window.addEventListener('blur', pause);
 window.addEventListener('pagehide', pause);
+
+// The pause button: top of the right margin, above Special. (A finger on
+// it never reaches the Fire and Special buttons.)
+function pauseRect() {
+  const z = layout.rightZone;
+  return { x: z.x + z.w - 48, y: z.y + 10, w: 38, h: 38 };
+}
+window.addEventListener('pointerdown', (e) => {
+  if (mode !== 'play' || !layout) return;
+  const r = pauseRect();
+  const m = 10; // a near miss still counts
+  if (e.clientX > r.x - m && e.clientX < r.x + r.w + m && e.clientY > r.y - m && e.clientY < r.y + r.h + m) {
+    e.stopPropagation();
+    e.preventDefault();
+    buzz(HAPTIC.button);
+    sfx.click();
+    pause();
+  }
+}, true);
+
+// ---- menu taps ----
+const menuShown = () => mode !== 'play' && menu.screen !== null;
+const toGame = (e) => [(e.clientX - layout.game.x) / layout.scale, (e.clientY - layout.game.y) / layout.scale];
+canvas.addEventListener('pointerdown', (e) => {
+  if (!menuShown() || isPortrait()) return;
+  menu.down(...toGame(e));
+});
+canvas.addEventListener('pointerup', (e) => {
+  unlockAudio(); // browsers only allow sound after a touch
+  if (!menuShown() || isPortrait()) return;
+  if (menu.up(...toGame(e))) {
+    buzz(HAPTIC.button);
+    sfx.click();
+    if (mode === 'play') goFullscreen(); // just started playing
+  }
+});
 
 // Stop the browser's own touch gestures (zoom, text selection, pull-to-refresh).
 for (const type of ['touchstart', 'touchmove', 'gesturestart', 'dblclick', 'contextmenu']) {
@@ -135,7 +237,7 @@ function measure(now, ms) {
     meter.n = 0;
     meter.t0 = now;
   }
-  const playing = started && !paused && game.state === 'playing';
+  const playing = mode === 'play' && game.state === 'playing';
   if (playing && ms > meter.avg * 1.7 && ms > 20 && ms < 1000) {
     meter.late++;
     meter.worst = Math.max(meter.worst, Math.round(ms));
@@ -143,32 +245,49 @@ function measure(now, ms) {
   if (ms < meter.avg * 2) meter.avg += (ms - meter.avg) * 0.05;
 }
 
+function stepGame(dt, input) {
+  let left = dt;
+  while (left > 1e-6) {
+    const step = Math.min(STEP, left);
+    game.update(step, input);
+    // One-shot presses only count once per frame.
+    input.special = false;
+    input.tap = false;
+    left -= step;
+  }
+}
+
 function frame(now) {
   if (meter) measure(now, now - lastTime);
   const dt = Math.min((now - lastTime) / 1000, 0.05);
   lastTime = now;
 
-  if (started && !paused && !testFreeze) {
-    const input = controls.read();
-    let left = dt;
-    while (left > 1e-6) {
-      const step = Math.min(STEP, left);
-      game.update(step, input);
-      // One-shot presses only count once per frame.
-      input.special = false;
-      input.tap = false;
-      left -= step;
+  controls.enabled = mode === 'play';
+  if (testFreeze) {
+    // (A test is driving the game itself.)
+  } else if (mode === 'play') {
+    stepGame(dt, controls.read());
+    if (game.state === 'gameover') {
+      mode = 'over';
+      menu.open('gameover', {
+        level: game.level.number, score: game.score, quip: game.quip, practice: !!game.practice,
+        newBest: !game.practice && isHighScore(game.score), place: -1, after: 'gameover',
+      });
     }
-  } else if (!testFreeze) {
-    // Keep the starfield drifting behind menus. (Not while a test drives the
-    // game: the background rolls the game's dice, and a test must be able to
-    // replay a run exactly.)
-    game.bg.update(dt);
+  } else if (mode === 'over') {
+    // The wreckage settles under the Game Over menu.
+    stepGame(dt, { ...NO_INPUT });
+  } else if (mode === 'menu') {
+    menuBg().update(dt); // the stars drift behind the menus
   }
+  if (!testFreeze && mode !== 'play') menu.update(dt);
 
   render(dt);
   requestAnimationFrame(frame);
 }
+
+const NO_INPUT = { dx: 0, dy: 0, fire: false, special: false, tap: false };
+const menuBg = () => (menu.screen === 'end' || menu.info.after === 'end' ? endBg : titleBg);
 
 function render(dt) {
   const L = layout;
@@ -192,13 +311,20 @@ function render(dt) {
   ctx.beginPath();
   ctx.rect(0, 0, VIEW_W, VIEW_H);
   ctx.clip();
-  if (started) game.draw(ctx, snap);
-  else game.bg.draw(ctx, snap);
+  if (mode === 'menu') menuBg().draw(ctx, snap);
+  else game.draw(ctx, snap);
+  if (menuShown()) {
+    ctx.setTransform(k, 0, 0, k, Math.round(g.x * dpr), Math.round(g.y * dpr));
+    menu.draw(ctx);
+  }
   ctx.restore();
 
   // Controls on top, in CSS pixels.
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  if (started) controls.draw(ctx, dt);
+  if (mode === 'play') {
+    controls.draw(ctx, dt);
+    drawPauseButton();
+  }
 
   // Version label, bottom of the left margin.
   ctx.fillStyle = PAL.textDim;
@@ -210,6 +336,22 @@ function render(dt) {
     ctx.fillText(`late ${meter.late}`, L.leftZone.x + 8, L.leftZone.y + 30);
     ctx.fillText(`worst ${meter.worst} ms`, L.leftZone.x + 8, L.leftZone.y + 42);
   }
+  ctx.globalAlpha = 1;
+}
+
+// Two bars on a dark rounded square, quiet so it doesn't distract.
+function drawPauseButton() {
+  const r = pauseRect();
+  ctx.globalAlpha = 0.75;
+  ctx.fillStyle = PAL.bezel;
+  roundRect(ctx, r.x, r.y, r.w, r.h, 8);
+  ctx.fill();
+  ctx.strokeStyle = PAL.blueDark;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = PAL.cream;
+  ctx.fillRect(r.x + r.w / 2 - 7, r.y + 11, 5, r.h - 22);
+  ctx.fillRect(r.x + r.w / 2 + 2, r.y + 11, 5, r.h - 22);
   ctx.globalAlpha = 1;
 }
 
@@ -230,6 +372,13 @@ requestAnimationFrame(frame);
 window.__ember = {
   game,
   controls,
+  menu,
+  get mode() { return mode; },
+  // Start a level as the Play button does (default: the one in the link).
+  play(level = urlLevel, practice = false) {
+    unlockAudio();
+    startLevel(level, practice, level === urlLevel ? startAt : 0);
+  },
   get layout() { return layout; },
   set frozen(v) { testFreeze = v; }, // stop the live loop stepping the game
 };

@@ -40,7 +40,7 @@ for (const [name, query, secs] of SCENES) {
   await page.evaluate((secs) => {
     window.__ember.frozen = true; // (before the start tap: no live frames at all)
     window.__seedRandom(7);
-    document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+    window.__ember.play();
     const g = window.__ember.game;
     window.__step = () => {
       const p = g.player;

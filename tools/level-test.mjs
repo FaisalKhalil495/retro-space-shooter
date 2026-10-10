@@ -27,7 +27,7 @@ console.log(`seed ${seed} (replay with SEED=${seed})`);
 await page.evaluate((seed) => {
   // Stop the real-time loop from also stepping the game while we drive it.
   window.__ember.frozen = true;
-  document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true }));
+  window.__ember.play();
   const g = window.__ember.game;
   let s = seed >>> 0;
   g.rand = () => {

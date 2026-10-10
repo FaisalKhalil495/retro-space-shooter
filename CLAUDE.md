@@ -73,7 +73,10 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
   jaw is open). Specials obey the same rule, so timing matters.
 - Stage 5 note: with bosses this hard, suggest a boss checkpoint when the
   continue system is built (owner to decide then).
-- Game over currently restarts the level; the continue system arrives in Stage 5.
+- **Game over** (v0.25.0): the Game Over menu offers **Continue** (the
+  same level from its start, score 0, 3 lives, no special) or **Quit to
+  Title**; a score good enough for the table first offers **Save my
+  score**. Boss checkpoint: still to be decided by the owner.
 - **Rust Moon (level 2), step 3B-1, v0.12.0**: about 3 min, three parts
   with no calm breaks, each new enemy shown alone first (turret 0:08,
   skimmers 0:22, mortar 0:34); the same cargo-pod schedule as level 1; the
@@ -201,7 +204,8 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
   built) → 3C-2 the boss (v0.19.0, built);
   the owner tests each. The boss event is at 3:04 (v0.19.0). After Rust
   Moon's boss, "TAP TO CONTINUE" goes on into Frostring; after the Glacier
-  Warden it goes back to level 1 until the ice planet exists.
+  Warden comes the "to be continued" screen (v0.25.0) until the ice planet
+  exists.
   - **Its look: the "Ice Harvesters"** (owner, chosen from eight sets): the
     invaders' mining crews strip-mining the ring, in yellow-and-black
     hazard paint with drills and saw blades: pod → drill pod, weaver →
@@ -337,9 +341,9 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
 - **Moving between levels** (Stage 3A, v0.11.0): after the level-clear
   screen, "TAP TO CONTINUE" flies you into the next level with your **score,
   lives and special weapon**; health refills to 5 blocks; timed power-ups
-  don't carry. Game over restarts the current level fresh (score 0, 3
-  lives, no special). After the last level that exists, you go back to
-  level 1 with a fresh run. If you die in the seconds after a boss dies,
+  don't carry. Game over's Continue restarts the current level fresh
+  (score 0, 3 lives, no special). After the last level that exists comes
+  the "to be continued" screen (v0.25.0). If you die in the seconds after a boss dies,
   the level still clears once you respawn.
 - **Health bar** (owner request, v0.4.0): 3 lives, each with **5 health
   blocks**. Bullets/acid/gravel cost 1, small rocks and ramming small enemies
@@ -514,12 +518,38 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    fights directly.
 
 ### Progress, scores and modes
-- High scores are saved **on each phone** (no server) for now.
-- The game **remembers the furthest level reached**. The title screen offers
-  "Continue" from that level, or a fresh start from Level 1. Starting mid-game
-  starts the score at zero.
-- **Practice mode:** replay any level already reached. Practice scores never go
-  on the high-score table.
+(Built in v0.25.0 — "the game is finished up to level 3" release, owner's
+request after v0.24.0: make it presentable to show people, with levels 4
+and 5 shown as coming soon. Menus approved from a picture sheet.)
+- High scores are saved **on each phone** (no server) for now: the top 10,
+  each with a **first name** of up to 8 letters (owner: names, not
+  arcade initials), typed on the game's own A–Z keyboard (the phone's
+  keyboard would cover the screen sideways); the last name is offered
+  again. Saved in local storage (`js/save.js`), with the furthest level
+  reached and the options.
+- The game **remembers the furthest level reached** (reached by clearing
+  the level before it). The title screen offers **Continue** from that
+  level, or **New Game** from Level 1 (a brand-new player sees just
+  **Play**). Starting mid-game starts the score at zero.
+- **Practice mode** = the **Levels** screen: replay any level already
+  reached; locked levels show a padlock, levels 4 and 5 show "COMING
+  SOON" with no name. Practice scores never go on the high-score table;
+  clearing a practice level goes back to the level list.
+- **Title screen**: logo with drifting embers, tagline "DEFEND THE
+  WORLDS", your ship idling, Continue / New Game, then Levels, Scores,
+  Options, Help, and your best score. **Options**: music and sound volume
+  (0–5, 4 is normal), vibration on/off (Android; "not supported" on
+  iPhone), blood on/off. **Help**: the controls, cargo pods, power-ups,
+  ammo, and the boss rule.
+- **Pause**: a small pause button at the top of the right margin (taps
+  on it never reach Fire/Special); Resume, Restart Level (as the level
+  started: with the score, lives and special you brought), Options, How to
+  Play, Quit to Title. Switching apps or turning the phone upright opens it.
+- **After the last level** (Frostring): the level-clear screen, then
+  "FROSTRING IS FREE / THE INVADERS FALL BACK TO THE ICE PLANET BELOW / TO
+  BE CONTINUED / LEVEL 4 COMING SOON" with the final score over the ice
+  planet's curve (the Warden's wreck falling towards it); then the name
+  for a high score, the table, and the title.
 
 ### Content rating: adults (18+)
 - **Explosions, not blood** (owner request, v0.7.0 — blood everywhere was
@@ -536,7 +566,7 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
   cartoon red, no neon).
 - **Swearing is allowed** in on-screen text: boss taunts, death / game-over
   quips.
-- Stage 5 adds a **"Blood: On / Off"** menu switch (on by default).
+- **Blood: On / Off** in Options (v0.25.0; on by default).
 
 ### Look
 - Modern retro **pixel art in colour**.
@@ -670,7 +700,7 @@ Approved by the owner. Keep the status column up to date.
 | 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C built (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2; owner testing) |
 | G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | Done (v0.24.0) — step 1 (v0.20.0), step 2 (v0.21.0: level 1 enemies, cargo pod, asteroids, Rockjaw; review fixes v0.21.1–v0.21.2), step 3 (v0.22.0: Rust Moon set, spires, floor, Siege Crawler; review fixes v0.22.1, smoother stage 2 v0.22.2), step 4 (v0.23.0: Frostring's enemies and ice; v0.23.1: the Glacier Warden; review fixes v0.23.2), step 5 wrap-up review (v0.24.0; owner testing) |
 | 4 | **Levels 6–9** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
-| 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
+| 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | Built early (v0.25.0, owner's "make it presentable" request; owner testing) |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |
 
 Testing: Claude checks each stage on a simulated phone screen before handing
@@ -680,8 +710,14 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 
 - `LESSONS.md` — the owner's preferences, lessons learned, stage
   retrospectives and a reusable recipe for future games.
-- `index.html` — the page: canvas, start / pause / "turn sideways" screens, CSS.
-- `js/main.js` — start-up, screen sizing, game loop, pause, full screen.
+- `index.html` — the page: canvas, the "turn sideways" screen, CSS.
+- `js/main.js` — start-up, screen sizing, game loop, which screen is up
+  (`mode`: menu / play / paused / over), the pause button, menu taps,
+  applying options, full screen.
+- `js/menu.js` — every menu screen (title, levels, scores, options, help,
+  pause, game over, name entry, "to be continued", the test-link start),
+  drawn in game pixels with our lettering; buttons act when the finger
+  lifts on them. `js/save.js` — what's remembered on the phone.
 - `js/config.js` — version, game-pixel size (208×144), palette, player tuning.
 - `js/layout.js` — where the game screen and thumb zones go (safe areas).
 - `js/controls.js` — floating d-pad, Fire/Special, near-miss touch areas, drawing them.
@@ -759,6 +795,11 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   release so phones fetch fresh files).
 - `tools/smoke-test.mjs` — simulated-phone test (Android + iPhone sizes):
   `PLAYWRIGHT_PATH=/opt/node22/lib/node_modules/playwright node tools/smoke-test.mjs <screenshot-dir>`
+- The smoke test's "menus" check (v0.25.0) plays every menu with real
+  taps: options saved, the pause button, game over -> save score (a
+  typed name) -> continue, the level reached remembered, practice,
+  "to be continued" -> table -> title, and all of it still there after
+  reopening (proven to fail when the level reached isn't saved).
 - The smoke test's "double detail" check: sharp pictures exactly twice
   the size and (except your ship) filling the same outline box, the screen
   draws them, the Siege Crawler's rock spikes and dust waves show no faint
@@ -802,7 +843,10 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   the phone); add `?safe=62` to the URL to fake an iPhone camera cutout;
   `?start=boss` jumps straight to the boss with a laser loaded;
   `?start=60` starts 60 seconds into the level; `?level=2` starts on level 2
-  (combine them: `?level=2&start=boss`); `?level=3` is Frostring.
+  (combine them: `?level=2&start=boss`); `?level=3` is Frostring. With
+  `?level` or `?start` the title screen is skipped: a "TEST START" screen
+  starts that level with one tap (and doesn't change what's saved beyond
+  the level reached). Tests start a game with `window.__ember.play()`.
 - `tools/frostring-look.json` — the owner's chosen Frostring designs (all
   nine).
 
