@@ -58,11 +58,14 @@ export function useDetail(ctx) {
 
 // Paint single sharp pixels straight into a picture's pixel data, then put
 // it back in one go: much faster than one fillRect per pixel when painting
-// a whole picture by code. (fx, fy count sharp pixels.)
-export function pixels(canvas) {
+// a whole picture by code. (fx, fy count sharp pixels.) A new picture starts
+// blank, without reading the empty one back (on phones that read-back is
+// slow, and a picture read back often is moved off the graphics chip);
+// { keep: true } starts from what's already painted.
+export function pixels(canvas, { keep = false } = {}) {
   const hi = canvas.hi;
   const c = hi.getContext('2d');
-  const img = c.getImageData(0, 0, hi.width, hi.height);
+  const img = keep ? c.getImageData(0, 0, hi.width, hi.height) : c.createImageData(hi.width, hi.height);
   const buf = new Uint32Array(img.data.buffer);
   return {
     set: (fx, fy, hex) => {

@@ -249,6 +249,10 @@ Last updated: v0.17.0 (Stage 3, step 3C: the Frostring world).
 | v0.23.0: the speed test's new "garbage a second" read 1.5 one run and 3.6 the next for the same code: the scene played live, with different explosions each time | Make a measurement repeatable before trusting it: seed every random number (Math.random too, before the page loads), freeze the game before the start tap, step it by fixed amounts. Now call counts come out identical run to run. |
 | v0.22.1 review: the level test failed one run in thirty, and re-running the same start didn't repeat it: the "repeatable" test used real random dice, and the background kept rolling them while the test had the game frozen | A test with randomness must print its seed and be replayable with it. With a seed, the failing run (28) replayed exactly, and a trace showed the real cause in a minute: the autopilot, not the game. Then 80 seeds in a row passed. |
 | v0.21.2 second review: round shapes sat a quarter pixel off-centre (orbs spilled half a pixel past their box), and the wingman drone's outline had a notch | Small geometry slips show at double detail; check shapes against the box they're meant to fill. |
+| v0.24.0 review: Frostring still had a 50 ms hitch (processor slowed 4x) when an ice wall arrived: several new slabs were painted in the same game step, and the warm-up painted two small slabs, not enough to get the browser's painting code up to speed | Spread painting over several frames (one new slab per game step, drawn at once only if it's needed on screen first), and make a warm-up do the real job at full size a few times. Worst hitch 51 → 28 ms. |
+| v0.24.0 review: the speed test drew about 38 frames in every scene, against 90–128 at v0.23.0, for old and new code alike: this session ran on a slower computer | Frame counts only mean something next to the old version run on the same computer at the same time. The drawing calls and garbage numbers don't depend on the computer. |
+| v0.24.0 review: three hazards that weren't redrawn at all — sniper rounds, icicles and the Siege Crawler's dust wave — were drawn smaller than the area that hurt you (the wave hurt across a box above its slope) | When checking fairness, check every hazard in the game, not only the ones just redrawn. Make the hurt area follow the drawing (the wave now hurts only under its slope) or the drawing cover the hurt area. |
+| v0.24.0 review: "anything still blurry?" was a one-off script I'd have had to remember to run | Turn a good one-off audit into a permanent test: the level test now draws every 8th step at double detail and fails, naming the line of code, if any picture is drawn without its sharp version. |
 | LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
 
 ## 5. Our working process (what works)
@@ -288,7 +292,8 @@ Last updated: v0.17.0 (Stage 3, step 3C: the Frostring world).
   bosses plug in without touching the core loop. Supply pods and stage
   bonuses live in the game core, so every boss gets them.
 - **Tests**: Playwright drives a real Chromium on simulated phones; an
-  invincible autopilot plays the whole level at high speed. The lint
+  invincible autopilot plays the whole level at high speed (and checks
+  every picture it draws is sharp). The lint
   config is kept outside the repo (in the session scratchpad) — consider
   adding one to the repo so it's always available.
 - **Ground (`js/terrain.js`)**: a level with `floor: N` gets a solid floor
@@ -418,7 +423,7 @@ fairness (hidden or unreachable enemies) rather than raw difficulty.
 start, and run the whole-level checks (reachable targets, nothing inside
 rock, pickups reachable) before the first hand-over.
 
-### Double detail (in progress, v0.20.0 → )
+### Double detail (done, v0.20.0 → v0.24.0)
 - Step 1 (v0.20.0): foundation, lettering, skies of all three levels,
   shots, sparks, explosions, HUD, pickups, power-up orbs and the player's
   ship. Pictures first (letters + two ships), owner picked ship B; then
@@ -447,6 +452,35 @@ rock, pickups reachable) before the first hand-over.
   jumps under smoothly gliding spires, and the level test failed about one
   run in thirty because its autopilot chased loose items while a slow
   cargo pod crossed the screen unopened.
+
+- Step 4 (v0.23.0 → v0.23.2): Frostring's twelve sprites (hand-drawn on
+  the old layouts after a first draft drifted from the chosen designs),
+  ice slabs and their cracks, the Rime Guard's shell, and the Glacier
+  Warden painted by code with its hit map checked pixel for pixel. The
+  review found the Warden painted as it arrived (a 2 s freeze on a
+  phone-speed processor), a saw blade drawn smaller than its hurt circle
+  and thinned blizzard warnings; all fixed, and boss pictures are now
+  painted as the level starts (`prepare()`).
+
+- Step 5 (v0.24.0), the wrap-up review: a permanent check that every
+  picture drawn during all three levels is sharp (it found nothing left,
+  and was proven to fail on a deliberately blurry enemy); Rockjaw's pupil
+  moved onto the half-pixel grid (it was smeared); three hazards whose
+  drawing was smaller than the area that hurts (sniper rounds, icicles,
+  the Siege Crawler's dust wave) fixed so you can see what hits you;
+  spinning debris painted once as pictures; new ice slabs painted one per
+  game step after a warm-up (the worst Frostring hitch halved); the Siege
+  Crawler fight down from 686 to 584 drawing calls a frame. Start-up time
+  unchanged (about 2 s on a slowed processor).
+
+- **Looking back on double detail**: it worked because the game's rules
+  never had to change — every picture kept its normal-size version for
+  measuring and carried a sharp one for drawing. The cost was in the
+  small things: seams, quarter-pixel slips, sprites a little smaller than
+  their hit boxes, pictures painted mid-game, and hazards redrawn smaller
+  than they hurt. Each was found once by looking closely and then made a
+  test, so it can't come back. Showing the owner every picture sheet
+  before building kept the designs theirs.
 
 ### Carry into Stage 3 (checklist for the plan)
 - Each boss: 3+ phases, 5+ attacks, entrance + name card, roar, music,

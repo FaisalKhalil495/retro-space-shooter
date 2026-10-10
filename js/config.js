@@ -2,8 +2,8 @@
 // VERSION is shown in-game so the owner can tell whether the phone has the
 // latest copy. Change it with tools/set-version.sh, never by hand, so every
 // file's cache-busting "?v=" stays in step.
-export const VERSION = '0.23.2';
-export const STAGE_LABEL = 'Double detail \u00b7 step 4';
+export const VERSION = '0.24.0';
+export const STAGE_LABEL = 'Double detail \u00b7 done';
 
 // The game world is a fixed grid of "game pixels". It is scaled up to fit the
 // phone, so every phone sees exactly the same playfield.

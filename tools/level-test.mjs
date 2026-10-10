@@ -39,6 +39,35 @@ await page.evaluate((seed) => {
 }, seed);
 await page.waitForTimeout(300);
 
+// Anything still blurry? While the autopilot plays, every 8th step is also
+// drawn (at double detail, onto a canvas of our own) and every picture
+// drawn without its sharp double-detail version is noted, with the code
+// that drew it.
+await page.evaluate(async () => {
+  const v = new URL(document.querySelector('script[type=module]').src).search;
+  const { useDetail } = await import('/js/detail.js' + v);
+  const cv = document.createElement('canvas');
+  cv.width = 416;
+  cv.height = 288;
+  const ctx = useDetail(cv.getContext('2d'));
+  const inner = ctx.drawImage;
+  const blurry = (window.__blurry = {});
+  ctx.drawImage = (img, ...a) => {
+    // (A picture shrunk to half size or less is sharp enough as it is.)
+    const shrink = a.length === 2 ? 1 : a.length === 4 ? img.width / a[2] : a[2] / a[6];
+    if (img && !img.hi && shrink < 2) {
+      const at = new Error().stack.split('\n').slice(2).find((l) => !l.includes('detail.js')) || '';
+      const k = `${img.width}x${img.height} ${at.trim().replace(/.*\/js\//, '').replace(/\?v=[0-9.]+/, '')}`;
+      blurry[k] = (blurry[k] || 0) + 1;
+    }
+    return inner(img, ...a);
+  };
+  window.__drawSharp = (g) => {
+    ctx.setTransform(2, 0, 0, 2, 0, 0);
+    g.draw(ctx, (x) => Math.round(x * 2) / 2);
+  };
+});
+
 // Freeze the real-time loop's influence by pausing input, then drive the
 // simulation directly in big batches.
 const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
@@ -101,6 +130,7 @@ const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
       log.specials++;
     }
     g.update(step, { dx, dy, fire: true, special, tap: false });
+    if (i % 8 === 0) window.__drawSharp(g);
     if (g.boss) log.bossSeen = true;
     // While a boss talks (taunt, roars) it must be holding back, not
     // fighting. (No kill lines here: the autopilot is invincible.)
@@ -196,6 +226,8 @@ await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/lvl3-clear.png` });
 
 console.log(JSON.stringify(results, null, 1));
+const blurry = await page.evaluate(() => window.__blurry);
+if (Object.keys(blurry).length) console.log('pictures drawn without their sharp version:', blurry);
 const r = results.boss;
 const r2 = results.rust;
 const r3 = results.frost;
@@ -239,6 +271,7 @@ const checks = {
   'a Glacier Warden stage bonus for each broken stage': r3.bonuses === 2,
   'Glacier Warden never attacks while talking': !r3.talkAttacks,
   'Frostring cleared': r3.state === 'clear',
+  'every picture drawn sharp (double detail)': Object.keys(blurry).length === 0,
   'no script errors': errors.length === 0,
 };
 let failures = 0;
