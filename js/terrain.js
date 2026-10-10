@@ -27,7 +27,7 @@ export const ROCK_CLEARANCE = 10;
 // There's always at least this much open space to fly through, top to bottom,
 // across any stretch of the screen SLAB_WINDOW wide (so slabs can't wall you in
 // or make a staircase you can't squeeze through).
-export const SLAB_GAP = 30;
+const SLAB_GAP = 30;
 const SLAB_WINDOW = 44;
 const SLAB_DROP = 32; // how fast a slab drifting in from above or below moves into place
 export const ICE_COLORS = ['#2a3a58', '#4d6890', '#7f9cc0', '#b8cde3', '#e6eef7'];

@@ -695,7 +695,18 @@ function updateWaves(e, dt, g) {
   const floorY = g.terrain.floorY;
   for (const w of e.waves) {
     w.x += w.vx * dt;
-    if (g.playerVulnerable() && g.touchesPlayer(w.x - 5, floorY - WAVE_H, 10, WAVE_H)) g.hurtPlayer(2, e);
+    // It hurts only where it's drawn (v0.24.0; before, the 5 pixels just
+    // ahead of its front hurt too): the crest and the dust trailing behind
+    // it, each column as tall as it's always shown (see drawWaves).
+    if (!g.playerVulnerable()) continue;
+    const dir = Math.sign(w.vx);
+    for (let i = 0; i < 12; i++) {
+      const h = WAVE_H * (1 - (i + 1) / 12) * 0.75; // (its lowest, as it rolls)
+      if (h >= 1 && g.touchesPlayer(dir < 0 ? w.x + i : w.x - i - 1, floorY - h, 1, h)) {
+        g.hurtPlayer(2, e);
+        break;
+      }
+    }
   }
   e.waves = e.waves.filter((w) => w.x > -12 && w.x < VIEW_W + 12);
 }

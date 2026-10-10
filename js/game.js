@@ -1094,30 +1094,32 @@ export class Game {
       if (s.kind === 'icicle') {
         // A shard of ice: a dark-edged pale spike pointing the way it flies
         // (dark edges so it shows on ice as well as on space), tapering to
-        // its tail.
+        // its tail. Its head is centred where it hurts and covers the
+        // 3-pixel square that does.
         const sp = Math.hypot(s.vx, s.vy) || 1;
         const dx = s.vx / sp;
         const dy = s.vy / sp;
         for (let i = 6; i >= 0; i--) {
-          const sz = snapFine(2.5 - i * 0.2);
+          const sz = i === 0 ? 3 : snapFine(2.5 - i * 0.2);
           ctx.fillStyle = PAL.ink;
-          ctx.fillRect(snapFine(s.x - dx * i * 0.75) + 0.5 - sz / 2, snapFine(s.y - dy * i * 0.75) + 0.5 - sz / 2, sz, sz);
+          ctx.fillRect(snapFine(s.x - dx * i * 0.75) - sz / 2, snapFine(s.y - dy * i * 0.75) - sz / 2, sz, sz);
         }
         for (let i = 6; i >= 0; i--) {
-          const sz = i < 2 ? 1 : FINE;
+          const sz = i === 0 ? 2 : i < 2 ? 1 : FINE;
           ctx.fillStyle = i === 0 ? ICE_COLORS[4] : i < 3 ? ICE_COLORS[3] : ICE_COLORS[2];
-          ctx.fillRect(snapFine(s.x - dx * i * 0.75) + 0.5 - sz / 2, snapFine(s.y - dy * i * 0.75) + 0.5 - sz / 2, sz, sz);
+          ctx.fillRect(snapFine(s.x - dx * i * 0.75) - sz / 2, snapFine(s.y - dy * i * 0.75) - sz / 2, sz, sz);
         }
         continue;
       }
       if (s.kind === 'fast') {
-        // Sniper round: a short streak with a tapering trail along its path.
+        // Sniper round: a short streak with a tapering trail along its path
+        // (its head covers the 3-pixel square that hurts).
         const sp = Math.hypot(s.vx, s.vy) || 1;
         const dx = s.vx / sp;
         const dy = s.vy / sp;
         for (let i = 9; i >= 0; i--) {
           ctx.fillStyle = i < 2 ? PAL.cream : i < 5 ? PAL.redSoft : PAL.redDark;
-          const sz = i < 5 ? 2 : i < 8 ? 1.5 : 1;
+          const sz = i < 2 ? 3 : i < 5 ? 2 : i < 8 ? 1.5 : 1;
           ctx.fillRect(snapFine(s.x - dx * i * 0.75) - sz / 2, snapFine(s.y - dy * i * 0.75) - sz / 2, sz, sz);
         }
         continue;

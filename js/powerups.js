@@ -15,8 +15,8 @@ export const POWERUPS = {
   rapid: { name: 'RAPID FIRE', color: '#8a3a22', light: PAL.amberSoft, dur: 12, icon: 'bolt' },
   wingman: { name: 'WINGMAN', color: PAL.blue, light: PAL.cream, dur: 15, icon: 'ship' },
 };
-export const SHIELD_HITS = 3;
-export const REPAIR_AMOUNT = 2;
+const SHIELD_HITS = 3;
+const REPAIR_AMOUNT = 2;
 
 // How likely each power-up is when an enemy or rock drops a random one.
 const DROP_WEIGHTS = { repair: 3, shield: 2, spread: 2, rapid: 2, wingman: 1 };

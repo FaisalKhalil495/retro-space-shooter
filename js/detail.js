@@ -73,7 +73,7 @@ export function pixels(canvas) {
 }
 // '#rrggbb' as one 32-bit pixel (in the byte order canvas pixel data uses).
 const rgbaCache = new Map();
-function rgba(hex) {
+export function rgba(hex) {
   let v = rgbaCache.get(hex);
   if (v === undefined) {
     const n = parseInt(hex.slice(1), 16);
