@@ -472,6 +472,12 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
   Warden's ice plates);
   `gore: { ice: n }` makes it shatter into n ice chips instead of
   exploding; the shot kind `'icicle'` draws an ice spike.
+  `prepare()` (v0.23.2): Game calls it as the boss's level starts, so
+  pictures that take a while to paint (the Glacier Warden's) are ready
+  before it arrives, never painted mid-game (a test checks).
+  A hazard's drawing must cover the area that hurts (like the Warden's
+  saw blades, whose teeth reach past their 4-pixel hurt circle), and
+  warnings must stay as easy to see as before when redrawn.
 
 ### The 9 levels and bosses (in order)
 1. **The Outer Belt** — asteroid field in deep blue space, distant amber sun.
@@ -581,9 +587,13 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
   seams and rivets on the hull, glowing engine nozzles, bolts on the fins,
   ragged burning holes; plates with a facet line, glints and cracks with a
   lit edge; the core in a lit housing (painted once in its three looks);
-  thrown saw blades as toothed discs painted in rotation frames; the frost
-  beam, its dotted guide lines and the entrance block's cracks drawn as
-  lines; thinner blizzard streaks with a bright head.
+  thrown saw blades as toothed discs painted in rotation frames (12 pixels
+  across, teeth past the hurt circle; v0.23.2); the frost beam, its dotted
+  guide lines and the entrance block's cracks drawn as lines; blizzard
+  streaks as thick as before with a bright head. All of it, and the giant
+  slab of ice it arrives in, is painted as Frostring starts (v0.23.2:
+  painting it as it arrived froze the game for about 2 s on a phone-speed
+  processor, 0.6 s before double detail).
 - Your ship: **"B: detailed"** (owner's pick, v0.20.0): glass canopy with a
   frame, rivets, lit fin edge, glowing engine ring, smooth tapered flame.
 - **Every level has its own look** (owner, v0.16.0): enemy types shared
@@ -652,7 +662,7 @@ Approved by the owner. Keep the status column up to date.
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
 | 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C built (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2; owner testing) |
-| G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | In progress — step 1 done (v0.20.0), step 2 done (v0.21.0: level 1 enemies, cargo pod, asteroids, Rockjaw; review fixes v0.21.1–v0.21.2), step 3 built (v0.22.0: Rust Moon set, spires, floor, Siege Crawler; review fixes v0.22.1, smoother stage 2 v0.22.2), step 4 built (v0.23.0: Frostring's enemies and ice; v0.23.1: the Glacier Warden; owner testing) |
+| G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | In progress — step 1 done (v0.20.0), step 2 done (v0.21.0: level 1 enemies, cargo pod, asteroids, Rockjaw; review fixes v0.21.1–v0.21.2), step 3 built (v0.22.0: Rust Moon set, spires, floor, Siege Crawler; review fixes v0.22.1, smoother stage 2 v0.22.2), step 4 built (v0.23.0: Frostring's enemies and ice; v0.23.1: the Glacier Warden; review fixes v0.23.2; owner testing) |
 | 4 | **Levels 6–9** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |
@@ -741,8 +751,9 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - The smoke test's "double detail" check: sharp pictures exactly twice
   the size and (except your ship) filling the same outline box, the screen
   draws them, the Siege Crawler's rock spikes and dust waves show no faint
-  stripes at a screen scale like 7.5, and every all-capitals string in the
-  code uses letters the font has.
+  stripes at a screen scale like 7.5, the Glacier Warden is painted as
+  Frostring starts (before it arrives), and every all-capitals string in
+  the code uses letters the font has.
 - `tools/level-test.mjs` — invincible autopilot plays levels 1, 2 and 3
   (with all three bosses) at high speed; checks pickups, specials, bosses,
   talking, stage bonuses, new enemies and level clears (same command

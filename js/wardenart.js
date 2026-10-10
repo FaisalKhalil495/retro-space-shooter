@@ -1,5 +1,5 @@
-import { PAL } from './config.js?v=0.23.1';
-import { DETAIL, FINE, detailCanvas, pixels, grit } from './detail.js?v=0.23.1';
+import { PAL } from './config.js?v=0.23.2';
+import { DETAIL, FINE, detailCanvas, pixels, grit } from './detail.js?v=0.23.2';
 
 // THE GLACIER WARDEN, painted by code (the owner's chosen "Saw Crown"
 // design): the Ice Harvesters' flagship. A giant saw ring spins round a hub
@@ -62,18 +62,31 @@ function grid() {
     get(fx, fy) {
       return fx >= 0 && fy >= 0 && fx < W2 && fy < H2 ? px[fy][fx] : null;
     },
-    shape(inside, { fill, border = C.k, hi, shade, shadeW = 1, pattern }) {
-      for (let fy = 0; fy < H2; fy++) {
-        for (let fx = 0; fx < W2; fx++) {
-          const X = at(fx);
-          const Y = at(fy);
-          if (!inside(X, Y)) continue;
-          let col = (pattern && pattern(X, Y, fx, fy)) || fill;
+    // box: [x0, y0, x1, y1] in game pixels, somewhere the shape lies wholly
+    // inside (only that part of the picture is tested: much faster).
+    shape(inside, { fill, border = C.k, hi, shade, shadeW = 1, pattern }, box = [0, 0, WARDEN_W, WARDEN_H]) {
+      // Test the shape once at each half pixel in its box, then read the
+      // edges from that (rather than testing the shape again for each edge).
+      const fx0 = Math.max(0, Math.floor(box[0] * DETAIL) - 1);
+      const fy0 = Math.max(0, Math.floor(box[1] * DETAIL) - 1);
+      const fx1 = Math.min(W2, Math.ceil(box[2] * DETAIL) + 1);
+      const fy1 = Math.min(H2, Math.ceil(box[3] * DETAIL) + 1);
+      const mw = fx1 - fx0;
+      const mask = new Uint8Array(mw * (fy1 - fy0));
+      for (let fy = fy0; fy < fy1; fy++) {
+        for (let fx = fx0; fx < fx1; fx++) if (inside(at(fx), at(fy))) mask[(fy - fy0) * mw + fx - fx0] = 1;
+      }
+      const m = (fx, fy) => fx >= fx0 && fy >= fy0 && fx < fx1 && fy < fy1 && mask[(fy - fy0) * mw + fx - fx0] === 1;
+      const sw = Math.round(shadeW * DETAIL);
+      for (let fy = fy0; fy < fy1; fy++) {
+        for (let fx = fx0; fx < fx1; fx++) {
+          if (!m(fx, fy)) continue;
+          let col = (pattern && pattern(at(fx), at(fy), fx, fy)) || fill;
           if (shade) {
-            for (let d = FINE; d <= shadeW; d += FINE) if (!inside(X + d, Y + d) || !inside(X, Y + d)) col = shade;
+            for (let d = 1; d <= sw; d++) if (!m(fx + d, fy + d) || !m(fx, fy + d)) col = shade;
           }
-          if (hi && (!inside(X - FINE, Y - FINE) || !inside(X, Y - FINE))) col = hi;
-          if (border && (!inside(X - FINE, Y) || !inside(X + FINE, Y) || !inside(X, Y - FINE) || !inside(X, Y + FINE))) col = border;
+          if (hi && (!m(fx - 1, fy - 1) || !m(fx, fy - 1))) col = hi;
+          if (border && (!m(fx - 1, fy) || !m(fx + 1, fy) || !m(fx, fy - 1) || !m(fx, fy + 1))) col = border;
           g.set(fx, fy, col);
         }
       }
@@ -116,6 +129,13 @@ const poly = (pts) => (X, Y) => {
   return inn;
 };
 const rect = (x0, y0, w, h) => (X, Y) => X >= x0 && X < x0 + w && Y >= y0 && Y < y0 + h;
+// Boxes round shapes (see grid().shape), with a pixel to spare.
+const polyBox = (pts) => [
+  Math.min(...pts.map((p) => p[0])) - 1, Math.min(...pts.map((p) => p[1])) - 1,
+  Math.max(...pts.map((p) => p[0])) + 1, Math.max(...pts.map((p) => p[1])) + 1,
+];
+const rectBox = (x0, y0, w, h) => [x0 - 1, y0 - 1, x0 + w + 1, y0 + h + 1];
+const hubBox = (r) => [HUB.x - r - 1, HUB.y - r - 1, HUB.x + r + 1, HUB.y + r + 1];
 const dist = (X, Y) => Math.hypot(X - HUB.x, Y - HUB.y);
 // Angle round the hub, 0 = right, growing clockwise (screen y points down).
 const angle = (X, Y) => {
@@ -152,11 +172,11 @@ function paintBody(stage) {
       const oy = p0[1] + t * (p1[1] - p0[1]);
       if (Math.hypot(X - ox, Y - oy) < 0.6 && Math.floor(t * 8) % 2 === 0) return C.G;
       return null;
-    } });
+    } }, polyBox(fin));
   }
   if (stage === 1) {
     for (const tip of [TIP_TOP, TIP_LOW]) {
-      g.shape(poly(tip), { ...ice, pattern: (X, Y) => (Math.abs(X - Y * 0.3 - (tip === TIP_TOP ? 65 : 47)) < 0.4 ? C.i : null) });
+      g.shape(poly(tip), { ...ice, pattern: (X, Y) => (Math.abs(X - Y * 0.3 - (tip === TIP_TOP ? 65 : 47)) < 0.4 ? C.i : null) }, polyBox(tip));
     }
   }
   // The hull: plates with seams and rivets, lit along its top.
@@ -168,15 +188,15 @@ function paintBody(stage) {
     }
     if (Y > 33 && Y < 35 && X > 44 && X < 70) return Y < 34 ? C.n : C.G; // a vent between the stripes
     return null;
-  } });
-  g.shape(rect(49, 27, 22, 4), { fill: C.a, pattern: hazard });
-  g.shape(rect(49, 37, 22, 4), { fill: C.a, pattern: hazard });
+  } }, polyBox(BODY));
+  g.shape(rect(49, 27, 22, 4), { fill: C.a, pattern: hazard }, rectBox(49, 27, 22, 4));
+  g.shape(rect(49, 37, 22, 4), { fill: C.a, pattern: hazard }, rectBox(49, 37, 22, 4));
   // The engines: heavy nozzles with a dark mouth and a warm glow inside.
   for (const [ex, ey] of [[77, 29], [77, 39]]) {
     g.shape(rect(ex, ey - 2, 3, 5), { fill: C.n, hi: C.g, shade: C.k, pattern: (X, Y) => {
       if (X > ex + 1.5 && Math.abs(Y - (ey + 0.5)) < 1.5) return Math.abs(Y - (ey + 0.5)) < 0.75 ? C.l : C.A;
       return null;
-    } });
+    } }, rectBox(ex, ey - 2, 3, 5));
   }
   if (stage >= 2) {
     // Scorch marks: soot speckled round where it's been hit.
@@ -202,7 +222,7 @@ function paintBody(stage) {
       g.shape(inHole, { fill: HOLE[1], border: HOLE[0], pattern: (X, Y) => {
         const d = Math.hypot(X - hx, Y - hy);
         return d < 1 ? HOLE[2] : d > 1.8 ? HOLE[3] : null;
-      } });
+      } }, [hx - 4, hy - 4, hx + 4, hy + 4]);
     }
   }
   g.outline();
@@ -219,7 +239,7 @@ function paintRing(ph) {
     const tip = [HUB.x + Math.cos(a) * TOOTH_R, HUB.y + Math.sin(a) * TOOTH_R];
     const b1 = [HUB.x + Math.cos(a - 0.17) * (RING_OUT - 1), HUB.y + Math.sin(a - 0.17) * (RING_OUT - 1)];
     const b2 = [HUB.x + Math.cos(a + 0.12) * (RING_OUT - 1), HUB.y + Math.sin(a + 0.12) * (RING_OUT - 1)];
-    g.shape(poly([tip, b1, b2]), { fill: C.h, hi: C.c, shade: C.G, shadeW: FINE });
+    g.shape(poly([tip, b1, b2]), { fill: C.h, hi: C.c, shade: C.G, shadeW: FINE }, polyBox([tip, b1, b2]));
   }
   const seg = (Math.PI * 2) / TEETH;
   g.shape((X, Y) => dist(X, Y) >= RING_IN && dist(X, Y) <= RING_OUT, {
@@ -232,11 +252,11 @@ function paintRing(ph) {
       if (f < 0.5) return Math.abs(d - (RING_IN + RING_OUT) / 2) < 0.3 ? C.n : C.g; // dark segments, with a groove
       return null;
     },
-  });
+  }, hubBox(RING_OUT));
   g.shape((X, Y) => dist(X, Y) >= HUB_R && dist(X, Y) < RING_IN + 0.5, {
     fill: C.a,
     pattern: (X, Y) => (Math.floor((((angle(X, Y) - ph) / (seg / 2)) % (TEETH * 2) + TEETH * 2) % (TEETH * 2)) % 2 ? C.k : C.a),
-  });
+  }, hubBox(RING_IN + 1));
   g.outline();
   return g;
 }
@@ -245,9 +265,9 @@ function paintRing(ph) {
 // broken off), with a rim and fine rings.
 function paintHub() {
   const g = grid();
-  g.shape((X, Y) => dist(X, Y) < HUB_R, { fill: C.n, border: C.k, shade: C.k, shadeW: FINE });
+  g.shape((X, Y) => dist(X, Y) < HUB_R, { fill: C.n, border: C.k, shade: C.k, shadeW: FINE }, hubBox(HUB_R));
   for (let r = 10; r < HUB_R - 1; r += 3) {
-    g.shape((X, Y) => Math.abs(dist(X, Y) - r) < 0.25, { fill: '#3a3940', border: null });
+    g.shape((X, Y) => Math.abs(dist(X, Y) - r) < 0.25, { fill: '#3a3940', border: null }, hubBox(r + 1));
   }
   return g;
 }
@@ -378,6 +398,8 @@ export function buildWardenArt() {
   WARDEN.ring = [];
   for (let f = 0; f < RING_FRAMES; f++) WARDEN.ring.push(toCanvas(paintRing((f / RING_FRAMES) * ((Math.PI * 2) / TEETH))));
   WARDEN.hub = toCanvas(paintHub());
+  if (!CORES) CORES = [0, 1, 2].map(paintCore);
+  bladeFrame(0);
   return WARDEN;
 }
 
@@ -432,29 +454,34 @@ export function toothTips(ph) {
   return out;
 }
 
-// A thrown saw blade (9 x 9 game pixels), painted in a few rotation frames
-// between one tooth and the next: a steel disc with six hooked teeth and a
-// hazard-striped hub.
+// A thrown saw blade, painted in a few rotation frames between one tooth
+// and the next: a steel disc with six hooked teeth and a hazard-striped
+// hub. The picture is BLADE_SIZE game pixels across, centred on the blade
+// (its middle is 4.5 in from the corner of its 9 x 9 box); the teeth reach
+// past the 4-pixel circle that hurts, as the old drawing's did, so it
+// never cuts you while it looks clear.
 export const BLADE_FRAMES = 6;
+export const BLADE_SIZE = 12;
+const BC = BLADE_SIZE / 2;
 function paintBlade(ph) {
-  const { canvas } = detailCanvas(9, 9);
+  const { canvas } = detailCanvas(BLADE_SIZE, BLADE_SIZE);
   const p = pixels(canvas);
-  const n = 9 * DETAIL;
+  const n = BLADE_SIZE * DETAIL;
   const inside = (X, Y) => {
-    const d = Math.hypot(X - 4.5, Y - 4.5);
-    const a = Math.atan2(Y - 4.5, X - 4.5) - ph;
+    const d = Math.hypot(X - BC, Y - BC);
+    const a = Math.atan2(Y - BC, X - BC) - ph;
     const f = (((a / ((Math.PI * 2) / 6)) % 1) + 1) % 1; // round each tooth
-    return d <= 2.8 || d <= 2.8 + 1.4 * (1 - f);
+    return d <= 3.6 || d <= 3.6 + 1.9 * (1 - f);
   };
   for (let fy = 0; fy < n; fy++) {
     for (let fx = 0; fx < n; fx++) {
       const X = at(fx);
       const Y = at(fy);
       if (!inside(X, Y)) continue;
-      const d = Math.hypot(X - 4.5, Y - 4.5);
-      let col = X + Y < 8.4 ? C.c : C.h;
-      if (d > 1.6 && d < 2.4) col = X + Y < 9 ? C.G : C.g;
-      if (d <= 1.4) col = Math.floor((Math.atan2(Y - 4.5, X - 4.5) - ph) / (Math.PI / 3) + 12) % 2 ? C.a : C.k;
+      const d = Math.hypot(X - BC, Y - BC);
+      let col = X + Y < BLADE_SIZE - 0.6 ? C.c : C.h;
+      if (d > 2 && d < 2.9) col = X + Y < BLADE_SIZE ? C.G : C.g;
+      if (d <= 1.7) col = Math.floor((Math.atan2(Y - BC, X - BC) - ph) / (Math.PI / 3) + 12) % 2 ? C.a : C.k;
       if (d <= 0.5) col = C.n;
       if (!inside(X - FINE, Y) || !inside(X + FINE, Y) || !inside(X, Y - FINE) || !inside(X, Y + FINE)) col = C.k;
       p.set(fx, fy, col);

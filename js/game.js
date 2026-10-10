@@ -1,20 +1,20 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.23.1';
-import { SPRITES } from './sprites.js?v=0.23.1';
-import { ENEMY_TYPES } from './enemies.js?v=0.23.1';
-import { LEVELS, LevelRunner } from './levels.js?v=0.23.1';
-import { Background } from './background.js?v=0.23.1';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.23.1';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.23.1';
-import { buzz, HAPTIC } from './feedback.js?v=0.23.1';
-import { sfx } from './audio.js?v=0.23.1';
-import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.23.1';
-import { FINE, snapFine, fillCrisp, crispOf, detailCanvas } from './detail.js?v=0.23.1';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.23.1';
-import { Blasts } from './blasts.js?v=0.23.1';
-import { Speech } from './speech.js?v=0.23.1';
-import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.23.1';
-import { startBossMusic, stopMusic } from './music.js?v=0.23.1';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.23.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.23.2';
+import { SPRITES } from './sprites.js?v=0.23.2';
+import { ENEMY_TYPES } from './enemies.js?v=0.23.2';
+import { LEVELS, LevelRunner } from './levels.js?v=0.23.2';
+import { Background } from './background.js?v=0.23.2';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.23.2';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.23.2';
+import { buzz, HAPTIC } from './feedback.js?v=0.23.2';
+import { sfx } from './audio.js?v=0.23.2';
+import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.23.2';
+import { FINE, snapFine, fillCrisp, crispOf, detailCanvas } from './detail.js?v=0.23.2';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.23.2';
+import { Blasts } from './blasts.js?v=0.23.2';
+import { Speech } from './speech.js?v=0.23.2';
+import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.23.2';
+import { startBossMusic, stopMusic } from './music.js?v=0.23.2';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.23.2';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -151,6 +151,10 @@ export class Game {
       this.weapons.ammo = carry.ammo;
     }
     this.runner = new LevelRunner(this, this.level);
+    // A boss whose pictures take a moment to paint gets them painted now, as
+    // the level starts, rather than as it arrives (a pause mid-game).
+    const boss = this.level.boss && ENEMY_TYPES[this.level.boss];
+    if (boss && boss.prepare) boss.prepare();
     if (this.startAt) {
       this.runner.skipTo(this.startAt === 'boss' ? this.runner.endsAt - 0.5 : this.startAt);
       this.banner = null;

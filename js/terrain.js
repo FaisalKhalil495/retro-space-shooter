@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.23.1';
-import { seeded } from './util.js?v=0.23.1';
-import { DETAIL, FINE, detailCanvas, pixels, grit } from './detail.js?v=0.23.1';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.23.2';
+import { seeded } from './util.js?v=0.23.2';
+import { DETAIL, FINE, detailCanvas, pixels, grit } from './detail.js?v=0.23.2';
 
 // Solid things in the way, for levels that have them:
 //   - Rust Moon (and later the Ember Mines' tunnels): a floor strip along the
@@ -140,17 +140,23 @@ export function slabImage(w, h, seed) {
   }
   const W2 = w * DETAIL;
   const H2 = h * DETAIL;
+  // (The shape tested once at each half pixel; edges read from that.)
+  const mask = new Uint8Array(W2 * H2);
+  for (let fy = 0; fy < H2; fy++) {
+    for (let fx = 0; fx < W2; fx++) if (inside((fx + 0.5) / DETAIL, (fy + 0.5) / DETAIL)) mask[fy * W2 + fx] = 1;
+  }
+  const m = (fx, fy) => fx >= 0 && fy >= 0 && fx < W2 && fy < H2 && mask[fy * W2 + fx] === 1;
   for (let fy = 0; fy < H2; fy++) {
     for (let fx = 0; fx < W2; fx++) {
+      if (!m(fx, fy)) continue;
       const X = (fx + 0.5) / DETAIL;
       const Y = (fy + 0.5) / DETAIL;
-      if (!inside(X, Y)) continue;
       const lower = X + Y > (w + h) / 2; // the lower-right half of the block
       let c;
-      if (!inside(X + FINE, Y) || !inside(X, Y + FINE)) c = 0; // dark rim, lower right
-      else if (!inside(X - FINE, Y) || !inside(X, Y - FINE)) c = 1; // deep blue rim, upper left
-      else if (!inside(X - 1, Y) || !inside(X, Y - 1)) c = lower ? 2 : 4; // the bevel
-      else if (!inside(X + 1, Y) || !inside(X, Y + 1)) c = 1;
+      if (!m(fx + 1, fy) || !m(fx, fy + 1)) c = 0; // dark rim, lower right
+      else if (!m(fx - 1, fy) || !m(fx, fy - 1)) c = 1; // deep blue rim, upper left
+      else if (!m(fx - 2, fy) || !m(fx, fy - 2)) c = lower ? 2 : 4; // the bevel
+      else if (!m(fx + 2, fy) || !m(fx, fy + 2)) c = 1;
       else {
         c = X + Y < (w + h) * 0.3 ? 4 : X + Y > (w + h) * 0.72 ? 2 : 3;
         for (const f of facets) {

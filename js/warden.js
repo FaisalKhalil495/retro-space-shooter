@@ -1,14 +1,14 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.23.1';
-import { sfx } from './audio.js?v=0.23.1';
-import { clamp, fillDisc } from './util.js?v=0.23.1';
-import { FINE, snapFine } from './detail.js?v=0.23.1';
-import { METAL, MOLTEN } from './gore.js?v=0.23.1';
-import { ICE_COLORS, slabImage } from './terrain.js?v=0.23.1';
-import { BOMB_DAMAGE } from './weapons.js?v=0.23.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.23.2';
+import { sfx } from './audio.js?v=0.23.2';
+import { clamp, fillDisc } from './util.js?v=0.23.2';
+import { FINE, snapFine } from './detail.js?v=0.23.2';
+import { METAL, MOLTEN } from './gore.js?v=0.23.2';
+import { ICE_COLORS, slabImage } from './terrain.js?v=0.23.2';
+import { BOMB_DAMAGE } from './weapons.js?v=0.23.2';
 import {
   WARDEN, WARDEN_W, WARDEN_H, HUB, PLATE_HP, PLATES, NOSE, HOLES, RING_FRAMES, TEETH,
-  CORE, PLATE, RING, SECTOR, buildWardenArt, wardenAt, drawWardenCore, drawWardenPlates, toothTips, bladeFrame,
-} from './wardenart.js?v=0.23.1';
+  CORE, PLATE, RING, SECTOR, buildWardenArt, wardenAt, drawWardenCore, drawWardenPlates, toothTips, bladeFrame, BLADE_SIZE,
+} from './wardenart.js?v=0.23.2';
 
 // THE GLACIER WARDEN · KEEPER OF THE RING — boss of Frostring.
 //
@@ -361,6 +361,13 @@ export const GLACIER_WARDEN_TYPE = {
   score: 7000,
   explodeSize: 2,
 
+  // (Game calls this as Frostring starts: its pictures, and the giant slab
+  // of ice it arrives in, are painted then, not as it arrives.)
+  prepare() {
+    buildWardenArt();
+    blockImage();
+  },
+
   init(e) {
     buildWardenArt();
     e.w = WARDEN_W;
@@ -389,7 +396,7 @@ export const GLACIER_WARDEN_TYPE = {
     e.beam = null;
     e.beamGuide = null;
     // The giant slab of ice it hides behind as it arrives.
-    e.block = { x: VIEW_W + 6, w: 92, h: 104, seed: 77, crack: 0 };
+    e.block = { x: VIEW_W + 6, w: BLOCK.w, h: BLOCK.h, seed: BLOCK.seed, crack: 0 };
   },
 
   update(e, dt, g) {
@@ -735,12 +742,13 @@ export const GLACIER_WARDEN_TYPE = {
         const seed = i * 97.31;
         const sy = HUD_H + ((seed * 7.7) % (VIEW_H - HUD_H));
         const sx = VIEW_W - ((g.time * (260 + (i % 5) * 40) + seed * 13) % (VIEW_W + 30));
-        // (Thin streaks with a bright head.)
+        // (Streaks with a bright head: as thick as ever, since they're the
+        // blizzard's warning.)
         const len = 4 + (i % 3) * 2;
-        ctx.fillStyle = ICE_COLORS[i % 3 ? 2 : 3];
-        ctx.fillRect(snapFine(sx), snapFine(sy), len, FINE);
-        ctx.fillStyle = ICE_COLORS[4];
-        ctx.fillRect(snapFine(sx), snapFine(sy), 1, FINE);
+        ctx.fillStyle = i % 3 ? ICE_COLORS[3] : ICE_COLORS[4];
+        ctx.fillRect(snapFine(sx), snapFine(sy), len, 1);
+        ctx.fillStyle = PAL.cream;
+        ctx.fillRect(snapFine(sx), snapFine(sy), 1, 1);
       }
     }
   },
@@ -842,10 +850,12 @@ function burning(e, g) {
 }
 
 // The giant slab of ice it arrives behind, cracking before it bursts.
+const BLOCK = { w: 92, h: 104, seed: 77 };
 let blockImg = null;
+const blockImage = () => blockImg || (blockImg = slabImage(BLOCK.w, BLOCK.h, BLOCK.seed));
 function drawBlock(e, ctx, snap, g) {
   const B = e.block;
-  if (!blockImg) blockImg = slabImage(B.w, B.h, B.seed);
+  blockImage();
   const shake = B.crack ? Math.round((Math.random() - 0.5) * 2 * (1 + B.crack)) : 0;
   const bx = snap(B.x) + shake;
   const by = snap(e.y + WARDEN_H / 2 - B.h / 2);
@@ -979,7 +989,7 @@ export const WARDEN_MINIONS = {
     },
     draw(e, ctx, snap, g) {
       // A spinning blade (painted in rotation frames) with a blinking light.
-      ctx.drawImage(bladeFrame(e.spinA), snap(e.x), snap(e.y));
+      ctx.drawImage(bladeFrame(e.spinA), snap(e.x) + 4.5 - BLADE_SIZE / 2, snap(e.y) + 4.5 - BLADE_SIZE / 2);
       ctx.fillStyle = Math.floor(g.time * 12) % 2 ? PAL.amber : PAL.cream;
       ctx.fillRect(snap(e.x) + 4, snap(e.y) + 4, 1, 1);
     },

@@ -2316,6 +2316,17 @@ for (const phone of PHONES) {
     out.glyphs = GLYPH_CHARS;
     return out;
   }));
+  // A boss whose pictures take a while to paint (the Glacier Warden) has
+  // them painted as its level starts, not mid-game as it arrives.
+  await page.goto(base + '?level=3');
+  await page.waitForTimeout(300);
+  await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  await page.waitForTimeout(200);
+  r.bossPaintedEarly = await page.evaluate(async () => {
+    const v = new URL(document.querySelector('script[type=module]').src).search;
+    const { WARDEN } = await import('/js/wardenart.js' + v);
+    return !window.__ember.game.boss && !!WARDEN.bodies;
+  });
   // Shapes the game builds from half-pixel rows or columns each frame (the
   // Siege Crawler's rock spikes and dust waves) show no faint stripes at a
   // screen scale that isn't a whole number: every screen pixel inside them
@@ -2384,7 +2395,7 @@ for (const phone of PHONES) {
   delete r.glyphs;
   const ok = r.hi >= 34 && r.wrongSize.length === 0 && r.wrongOutline.length === 0 && r.shimDiff === 0 && r.screenSharp &&
     r.painted === 51 && r.paintedWrong === 0 && r.blankHi === 0 && r.level1Missing.length === 0 &&
-    r.level2Missing.length === 0 && r.level3Missing.length === 0 && r.seams === 0 && r.stripes === 0 &&
+    r.level2Missing.length === 0 && r.level3Missing.length === 0 && r.seams === 0 && r.stripes === 0 && r.bossPaintedEarly &&
     r.shipSize[0] === 18 && r.shipSize[1] === 11 && r.missingLetters === '' && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  double detail ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;
