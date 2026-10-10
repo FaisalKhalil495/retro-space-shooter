@@ -1,11 +1,11 @@
-import { VIEW_H, BLOOD } from './config.js?v=0.24.0';
-import { fillDisc } from './util.js?v=0.24.0';
-import { FINE } from './detail.js?v=0.24.0';
+import { VIEW_H } from './config.js?v=0.25.0';
+import { save } from './save.js?v=0.25.0';
+import { fillDisc } from './util.js?v=0.25.0';
+import { FINE } from './detail.js?v=0.25.0';
 
 // Blood, gore and debris. Only living creatures bleed: weavers lightly,
 // Rockjaw fully. Machines and the player explode instead (see blasts.js).
-// All the blood is switched off by BLOOD in config.js (a menu switch arrives
-// in Stage 5).
+// All the blood can be switched off in Options (Blood: Off).
 //
 // - droplets: small blood particles that spray out and slow down
 // - gibs: tumbling chunks (flesh, bone, rock, metal, molten rock)
@@ -20,6 +20,8 @@ export const MOLTEN = ['#8a3a22', '#b5562a', '#d9813f'];
 export const METAL = ['#34406a', '#5a6a9a', '#6d6a73'];
 export const GLASS = ['#9fb0d0', '#efe3cf'];
 export const ROCK = ['#4d3f45', '#75605f', '#9c8478'];
+
+const BLOOD = () => save.settings.blood; // the Blood option
 
 const SCROLL = 18; // stains drift left at about the speed of the near stars
 
@@ -39,7 +41,7 @@ export class Gore {
 
   // A spray of blood. dir (radians) and spread aim it; omit dir for all round.
   blood(x, y, n, speed = 60, dir = null, spread = Math.PI, stains = true) {
-    if (!BLOOD) return;
+    if (!BLOOD()) return;
     const r = this.rand;
     for (let i = 0; i < n; i++) {
       const a = dir === null ? r() * Math.PI * 2 : dir + (r() - 0.5) * spread;
@@ -56,7 +58,7 @@ export class Gore {
 
   // Tumbling chunks. Flesh chunks leave a trail of blood.
   chunks(x, y, n, palette = FLESH, speed = 70, bleeds = true) {
-    if (!BLOOD && palette !== ROCK && palette !== METAL && palette !== MOLTEN && palette !== GLASS) return;
+    if (!BLOOD() && palette !== ROCK && palette !== METAL && palette !== MOLTEN && palette !== GLASS) return;
     const r = this.rand;
     for (let i = 0; i < n; i++) {
       const a = r() * Math.PI * 2;
@@ -67,7 +69,7 @@ export class Gore {
         // Sizes in half pixels (double detail): small, ragged bits.
         w: (1 + Math.floor(r() * 5)) * FINE, h: (1 + Math.floor(r() * 3)) * FINE,
         color: palette[Math.floor(r() * palette.length)],
-        bleeds: bleeds && BLOOD,
+        bleeds: bleeds && BLOOD(),
         trail: 0,
       });
     }
@@ -78,12 +80,12 @@ export class Gore {
   piece(x, y, rows, colors, vx, vy, spin = 0) {
     this.gibs.push({
       x, y, vx, vy, life: 2.5, max: 2.5, rows, colors, spin, angle: 0,
-      bleeds: BLOOD && !!colors.bleeds, trail: 0,
+      bleeds: BLOOD() && !!colors.bleeds, trail: 0,
     });
   }
 
   splat(x, y, size) {
-    if (!BLOOD) return;
+    if (!BLOOD()) return;
     const r = this.rand;
     const blobs = [];
     const n = 3 + Math.floor(size * 2);
@@ -98,7 +100,7 @@ export class Gore {
 
   // Blood on the screen glass, near (x, y) in game pixels.
   smear(x, y, amount = 1) {
-    if (!BLOOD) return;
+    if (!BLOOD()) return;
     const r = this.rand;
     const n = Math.round(3 + amount * 4);
     for (let i = 0; i < n; i++) {
@@ -168,7 +170,7 @@ export class Gore {
         c.vy = 0;
         c.spin = 0;
       }
-      if (BLOOD && c.bleeds && Math.floor(c.t * 30) % 2 === 0) {
+      if (BLOOD() && c.bleeds && Math.floor(c.t * 30) % 2 === 0) {
         this.blood(c.x, c.y, 2, 30);
       }
     }

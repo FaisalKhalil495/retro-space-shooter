@@ -38,12 +38,16 @@ for (const phone of PHONES) {
       touchPoints: points.map(([x, y, id]) => ({ x, y, id })),
     });
 
-  // Tap to start.
-  await touch('touchStart', [[phone.width / 2, phone.height / 2, 1]]);
+  // The title screen: tap Play.
+  const L = await page.evaluate(() => window.__ember.layout);
+  const onTitle = await page.evaluate(() => window.__ember.menu.screen === 'title' && window.__ember.mode === 'menu');
+  await touch('touchStart', [[L.game.x + 104 * L.scale, L.game.y + 63 * L.scale, 1]]);
   await touch('touchEnd', []);
   await page.waitForTimeout(800);
+  const playing = await page.evaluate(() => window.__ember.mode === 'play');
+  console.log(`  ${onTitle && playing ? 'PASS' : 'FAIL'}  title screen, tapping Play starts the game`);
+  if (!(onTitle && playing)) failures++;
 
-  const L = await page.evaluate(() => window.__ember.layout);
   const fire = await page.evaluate(() => {
     const b = window.__ember.controls.buttons.fire;
     return [b.x, b.y];
@@ -456,11 +460,109 @@ for (const phone of PHONES) {
   await context.close();
 }
 
+// Menus and saving (v0.25.0), played with real taps: options are saved,
+// the pause button pauses, a game over offers to save a high score (a name
+// typed on the game's keyboard) and to continue the level from score 0,
+// clearing a level is remembered, practice goes back to the level list,
+// and after the last level comes "to be continued", then the table.
+{
+  const context = await browser.newContext({ viewport: { width: 915, height: 412 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  const errs = [];
+  page.on('pageerror', (e) => errs.push(String(e)));
+  await page.goto(base);
+  await page.waitForTimeout(500);
+  const L = await page.evaluate(() => window.__ember.layout);
+  const tap = async (gx, gy, wait = 250) => {
+    await page.touchscreen.tap(L.game.x + gx * L.scale, L.game.y + gy * L.scale);
+    await page.waitForTimeout(wait);
+  };
+  const st = () => page.evaluate(() => ({ mode: window.__ember.mode, screen: window.__ember.menu.screen, level: window.__ember.game.level.number, practice: !!window.__ember.game.practice, score: window.__ember.game.score }));
+  const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem('emberDrift.save.v1') || 'null'));
+  const r = {};
+  // A fresh phone: Play, and no Continue yet.
+  r.fresh = (await page.evaluate(() => window.__ember.menu.buttons().map((b) => b.id))).join();
+  await tap(129, 89); // Options
+  await tap(154, 93); // Blood: off
+  await tap(172, 30); // Music: up
+  r.options = (await saved()).settings;
+  await tap(104, 131); // Back
+  await tap(104, 63); // Play
+  r.play = await st();
+  await page.waitForTimeout(400);
+  const pr = { x: L.rightZone.x + L.rightZone.w - 29, y: L.rightZone.y + 29 };
+  await page.touchscreen.tap(pr.x, pr.y);
+  await page.waitForTimeout(250);
+  r.paused = await st();
+  const t0 = await page.evaluate(() => window.__ember.game.time);
+  await page.waitForTimeout(300);
+  r.frozenWhilePaused = (await page.evaluate(() => window.__ember.game.time)) === t0;
+  await tap(104, 45); // Resume
+  r.resumed = (await st()).mode;
+  // Lose the last life with a score: Game Over, then save it.
+  await page.evaluate(() => {
+    const g = window.__ember.game;
+    g.score = 4321; g.lives = 1; g.health = 1; g.player.invuln = 0; g.player.entering = 0;
+    g.hurtPlayer(5);
+  });
+  await page.waitForTimeout(3200);
+  r.over = await st();
+  await tap(104, 95); // Save my score
+  r.entry = (await st()).screen;
+  for (const [i, j] of [[0, 0], [1, 0], [2, 0]]) await tap(21 + i * 24 + 11, 62 + j * 15 + 6); // A B C
+  await tap(104, 133); // OK
+  r.table = (await saved()).scores;
+  await tap(104, 95); // Continue
+  r.continued = await st();
+  // Clear level 1: level 2 is remembered.
+  await page.evaluate(() => window.__ember.game.levelClear());
+  await page.waitForTimeout(3600);
+  await tap(104, 72);
+  r.next = await st();
+  r.reached = (await saved()).reached;
+  // The last level: "to be continued", the name, then the table.
+  await page.evaluate(() => { const g = window.__ember.game; g.levelIndex = 2; g.reset({ score: 99999, lives: 2 }); g.levelClear(); });
+  await page.waitForTimeout(3600);
+  await tap(104, 72);
+  r.end = (await st()).screen;
+  await page.waitForTimeout(2300);
+  await tap(104, 128); // Continue
+  r.endEntry = (await st()).screen;
+  await tap(104, 133); // OK (the last name is offered again)
+  r.endTable = { screen: (await st()).screen, top: (await saved()).scores[0] };
+  await tap(104, 131); // Back
+  r.title = (await st()).screen;
+  // Practice: level 2 from the level list, and back to the list after it.
+  await tap(29, 107); // Levels
+  await tap(100, 54); // level 2
+  r.practice = await st();
+  await page.evaluate(() => window.__ember.game.levelClear());
+  await page.waitForTimeout(3600);
+  await tap(104, 72);
+  r.afterPractice = await st();
+  r.tableAfterPractice = (await saved()).scores.length;
+  // Everything is still there after closing and reopening the game.
+  await page.reload();
+  await page.waitForTimeout(500);
+  r.reloaded = await page.evaluate(() => ({ buttons: window.__ember.menu.buttons().map((b) => b.id).join(), blood: !document.hidden && JSON.parse(localStorage.getItem('emberDrift.save.v1')).settings.blood }));
+  const ok = r.fresh === 'play,levels,scores,options,help' && r.options.blood === false && r.options.music === 5 &&
+    r.play.mode === 'play' && r.play.level === 1 && r.paused.mode === 'paused' && r.paused.screen === 'pause' && r.frozenWhilePaused &&
+    r.resumed === 'play' && r.over.screen === 'gameover' && r.entry === 'entry' &&
+    r.table.length === 1 && r.table[0].name === 'ABC' && r.table[0].score === 4321 &&
+    r.continued.mode === 'play' && r.continued.score === 0 && r.continued.level === 1 &&
+    r.next.level === 2 && r.next.mode === 'play' && r.reached === 2 &&
+    r.end === 'end' && r.endEntry === 'entry' && r.endTable.screen === 'scores' && r.endTable.top.name === 'ABC' && r.endTable.top.score > 99999 &&
+    r.title === 'title' && r.practice.practice && r.practice.level === 2 && r.afterPractice.screen === 'levels' && r.tableAfterPractice === 2 &&
+    r.reloaded.buttons.startsWith('play,new,') && r.reloaded.blood === false && errs.length === 0;
+  console.log(`${ok ? 'PASS' : 'FAIL'}  menus: options saved, pause button, game over -> save score -> continue, level reached remembered, practice, "to be continued", kept after reopening ${ok ? '' : JSON.stringify(r)} ${errs.join(' ')}`);
+  if (!ok) failures++;
+  await context.close();
+}
+
 // Stage 3A: level flow. "?level=2" starts on level 2; clearing level 1
 // carries score, lives and the special into level 2 with full health;
-// beating the Siege Crawler clears level 2; after the last level you're back
-// on level 1 with a fresh run. A level that ends without a boss clears
-// itself.
+// beating the Siege Crawler clears level 2; after the last level comes the
+// "to be continued" screen. A level that ends without a boss clears itself.
 {
   const context = await browser.newContext({ viewport: { width: 915, height: 412 }, isMobile: true, hasTouch: true });
   const page = await context.newPage();
@@ -468,7 +570,7 @@ for (const phone of PHONES) {
   page.on('pageerror', (e) => errs.push(String(e)));
   await page.goto(base + '?level=2');
   await page.waitForTimeout(300);
-  await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  await page.evaluate(() => window.__ember.play());
   await page.waitForTimeout(300);
   const flow = await page.evaluate(async () => {
     window.__ember.frozen = true;
@@ -500,14 +602,16 @@ for (const phone of PHONES) {
     g.stateTimer = 4;
     g.update(1 / 120, tap);
     const toLevel3 = { level: g.level.number, scoreKept: g.score === scoreAfter2 && scoreAfter2 > 0 };
-    // After the last level there is: back to level 1, fresh.
+    // After the last level there is: the "to be continued" screen.
     g.levelIndex = LEVELS.length - 1;
     g.reset();
     g.levelClear();
     g.stateTimer = 4;
     g.update(1 / 120, tap);
-    const afterLast = { level: g.level.number, score: g.score, lives: g.lives };
+    const afterLast = { mode: window.__ember.mode, screen: window.__ember.menu.screen };
     // Clear level 1 with some score, 2 lives and 2 laser shots.
+    g.levelIndex = 0;
+    g.reset();
     g.score = 1234;
     g.lives = 2;
     g.health = 3;
@@ -554,7 +658,7 @@ for (const phone of PHONES) {
     };
   });
   const flowOk = flow.startedOn === 2 && flow.level2Cleared && flow.toLevel3.level === 3 && flow.toLevel3.scoreKept && flow.clearAfterRespawn && flow.skippedEndStillEnds &&
-    flow.afterLast.level === 1 && flow.afterLast.score === 0 && flow.afterLast.lives === 3 &&
+    flow.afterLast.mode === 'menu' && flow.afterLast.screen === 'end' &&
     flow.next.level === 2 && flow.next.score === flow.next.expected && flow.next.lives === 2 &&
     flow.next.health === 5 && flow.next.weapon === 'laser' && flow.next.ammo === 2 && flow.next.state === 'playing' &&
     errs.length === 0;
@@ -572,7 +676,7 @@ for (const phone of PHONES) {
   page.on('pageerror', (e) => errs.push(String(e)));
   await page.goto(base + '?level=2');
   await page.waitForTimeout(300);
-  await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  await page.evaluate(() => window.__ember.play());
   await page.waitForTimeout(300);
   const r = await page.evaluate(async () => {
     window.__ember.frozen = true;
@@ -1105,7 +1209,7 @@ for (const phone of PHONES) {
   page.on('pageerror', (e) => errs.push(String(e)));
   await page.goto(base + '?level=2');
   await page.waitForTimeout(300);
-  await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  await page.evaluate(() => window.__ember.play());
   await page.waitForTimeout(300);
   const r = await page.evaluate(() => {
     window.__ember.frozen = true;
@@ -1475,7 +1579,7 @@ for (const phone of PHONES) {
   page.on('pageerror', (e) => errs.push(String(e)));
   await page.goto(base + '?level=3');
   await page.waitForTimeout(300);
-  await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  await page.evaluate(() => window.__ember.play());
   await page.waitForTimeout(300);
   const r = await page.evaluate(async () => {
     window.__ember.frozen = true;
@@ -1674,7 +1778,7 @@ for (const phone of PHONES) {
   page.on('pageerror', (e) => errs.push(String(e)));
   await page.goto(base + '?level=3');
   await page.waitForTimeout(300);
-  await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  await page.evaluate(() => window.__ember.play());
   await page.waitForTimeout(300);
   const r = await page.evaluate(async () => {
     window.__ember.frozen = true;
@@ -1884,7 +1988,7 @@ for (const phone of PHONES) {
   page.on('pageerror', (e) => errs.push(String(e)));
   await page.goto(base + '?level=3');
   await page.waitForTimeout(300);
-  await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  await page.evaluate(() => window.__ember.play());
   await page.waitForTimeout(300);
   const r = await page.evaluate(() => {
     window.__ember.frozen = true;
@@ -2216,7 +2320,7 @@ for (const phone of PHONES) {
   for (const level of [1, 2, 3]) {
     await page.goto(base + `?level=${level}&start=${level === 3 ? 'boss' : 40}`);
     await page.waitForTimeout(300);
-    await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+    await page.evaluate(() => window.__ember.play());
     await page.waitForTimeout(1500); // let the live game draw for a while (every new drawing path runs)
   }
   Object.assign(r, await page.evaluate(async () => {
@@ -2320,7 +2424,7 @@ for (const phone of PHONES) {
   // them painted as its level starts, not mid-game as it arrives.
   await page.goto(base + '?level=3');
   await page.waitForTimeout(300);
-  await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  await page.evaluate(() => window.__ember.play());
   await page.waitForTimeout(200);
   r.bossPaintedEarly = await page.evaluate(async () => {
     const v = new URL(document.querySelector('script[type=module]').src).search;
@@ -2333,7 +2437,7 @@ for (const phone of PHONES) {
   // is one of their own colours.
   await page.goto(base + '?level=2&start=boss');
   await page.waitForTimeout(300);
-  await page.evaluate(() => document.getElementById('start').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  await page.evaluate(() => window.__ember.play());
   await page.waitForTimeout(300);
   r.stripes = await page.evaluate(async () => {
     const v = new URL(document.querySelector('script[type=module]').src).search;
