@@ -20,6 +20,7 @@ import { save, TOP, bestScore } from './save.js?v=0.24.0';
 export const COMING_SOON = 2;
 const BOSS_NAMES = { rockjaw: 'ROCKJAW', siegeCrawler: 'SIEGE CRAWLER', glacierWarden: 'GLACIER WARDEN' };
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+export const NAME_MAX = 8; // letters in a name on the high-score table
 const pad6 = (n) => String(n).padStart(6, '0');
 
 export class Menu {
@@ -30,7 +31,7 @@ export class Menu {
     this.back = 'title'; // where Options returns to (the title or the pause menu)
     this.t = 0;
     this.pressed = null;
-    this.entry = null; // initials being entered
+    this.entry = null; // the name being typed for the high-score table
     this.info = {}; // what the current screen shows (score, level...)
   }
 
@@ -41,8 +42,7 @@ export class Menu {
     this.pressed = null;
     this.t = 0;
     if (screen === 'entry') {
-      const last = (save.lastName || 'AAA').split('').map((c) => Math.max(0, LETTERS.indexOf(c)));
-      this.entry = { letters: last, slot: 0 };
+      this.entry = { name: save.lastName || '' }; // (the last name used, ready to confirm)
     }
   }
 
@@ -105,24 +105,25 @@ export class Menu {
         btn('quit', 34, 110, 140, 14, 'QUIT TO TITLE', () => h.quit());
       }
     } else if (s === 'entry') {
+      // Our own keyboard, 7 keys a row (the phone's own keyboard would
+      // cover most of the screen when the phone is sideways).
       const e = this.entry;
-      for (let i = 0; i < 3; i++) {
-        const x = 70 + i * 24;
-        btn('up' + i, x, 52, 20, 11, 'up', () => this.turn(i, -1), 'arrow');
-        btn('slot' + i, x, 64, 20, 21, '', () => { e.slot = i; }, 'slot');
-        btn('down' + i, x, 86, 20, 11, 'down', () => this.turn(i, 1), 'arrow');
+      for (let i = 0; i < LETTERS.length; i++) {
+        const ch = LETTERS[i];
+        const x = 21 + (i % 7) * 24;
+        const y = 62 + Math.floor(i / 7) * 15;
+        btn('key' + ch, x, y, 22, 13, ch, () => {
+          if (e.name.length < NAME_MAX) e.name += ch;
+        }, 'key');
       }
-      btn('ok', 74, 108, 60, 16, 'OK', () => h.enterName(e.letters.map((n) => LETTERS[n]).join('')), 'primary');
+      btn('del', 21 + 5 * 24, 107, 46, 13, 'DEL', () => {
+        e.name = e.name.slice(0, -1);
+      }, 'key');
+      btn('ok', 74, 126, 60, 14, 'OK', e.name ? () => h.enterName(e.name) : null, e.name ? 'primary' : 'off');
     } else if (s === 'end') {
       if (this.t > 2) btn('ok', 64, 120, 80, 16, 'CONTINUE', () => h.endDone(), 'primary');
     }
     return B;
-  }
-
-  turn(slot, d) {
-    const e = this.entry;
-    e.slot = slot;
-    e.letters[slot] = (e.letters[slot] + d + LETTERS.length) % LETTERS.length;
   }
 
   // A finger touched / lifted at (gx, gy) in game pixels. Buttons count a
@@ -244,11 +245,11 @@ export class Menu {
       const mine = i === fresh && Math.floor(this.t * 3) % 2 === 0;
       const col = !s ? '#4d5570' : mine ? PAL.amberLight : i === 0 ? PAL.amber : PAL.cream;
       const rank = String(i + 1) + '.';
-      drawText(ctx, rank, 52 - textWidth(rank), y, s ? PAL.textDim : '#4d5570');
-      drawText(ctx, s ? s.name : '---', 60, y, col);
+      drawText(ctx, rank, 42 - textWidth(rank), y, s ? PAL.textDim : '#4d5570');
+      drawText(ctx, s ? s.name : '---', 50, y, col);
       const sc = s ? pad6(s.score) : '------';
-      drawText(ctx, sc, 140 - textWidth(sc), y, col);
-      if (s) drawText(ctx, 'L' + s.level, 150, y, PAL.textDim);
+      drawText(ctx, sc, 150 - textWidth(sc), y, col);
+      if (s) drawText(ctx, 'L' + s.level, 158, y, PAL.textDim);
     }
   }
 
@@ -316,14 +317,21 @@ export class Menu {
   }
 
   drawEntry(ctx) {
-    heading(ctx, 'NEW HIGH SCORE', 8);
-    drawTextCentered(ctx, pad6(this.info.score || 0), 104, 24, PAL.cream, 2);
-    drawTextCentered(ctx, 'ENTER YOUR INITIALS', 104, 40, PAL.textDim);
-    const e = this.entry;
-    for (let i = 0; i < 3; i++) {
-      const x = 70 + i * 24;
-      drawTextCentered(ctx, LETTERS[e.letters[i]], x + 10.5, 68, i === e.slot ? PAL.amberLight : PAL.cream, 3);
+    heading(ctx, 'NEW HIGH SCORE', 6);
+    drawTextCentered(ctx, pad6(this.info.score || 0), 104, 20, PAL.cream, 1.5);
+    drawText(ctx, 'NAME', 46, 39, PAL.textDim);
+    // The name so far in a box, with a blinking cursor while there's room.
+    const name = this.entry.name;
+    ctx.fillStyle = PAL.ink;
+    ctx.fillRect(73.5, 33.5, 89, 17);
+    ctx.fillStyle = '#1d2540';
+    ctx.fillRect(74, 34, 88, 16);
+    drawText(ctx, name, 78, 37, PAL.amberLight, 1.5);
+    if (name.length < NAME_MAX && Math.floor(this.t * 2.5) % 2 === 0) {
+      ctx.fillStyle = PAL.amber;
+      ctx.fillRect(78 + name.length * 9, 46, 7.5, 1);
     }
+    drawText(ctx, name.length + '/' + NAME_MAX, 166, 39, PAL.textDim);
   }
 
   drawEnd(ctx) {
@@ -389,7 +397,8 @@ const STYLES = {
   normal: { fill: '#1d2540', lit: '#34406a', shade: PAL.ink, text: PAL.cream, down: '#34406a' },
   small: { fill: '#1d2540', lit: '#34406a', shade: PAL.ink, text: PAL.cream, down: '#34406a' },
   on: { fill: PAL.amberDark, lit: PAL.amberSoft, shade: PAL.ink, text: PAL.amberLight, down: PAL.amberSoft },
-  arrow: { fill: '#1d2540', lit: '#34406a', shade: PAL.ink, text: PAL.amber, down: '#34406a' },
+  key: { fill: '#1d2540', lit: '#34406a', shade: PAL.ink, text: PAL.cream, down: PAL.amberDark },
+  off: { fill: '#141a2e', lit: '#1d2540', shade: PAL.ink, text: '#4d5570', down: '#141a2e' },
 };
 
 function drawButton(ctx, b, pressed, menu) {
@@ -407,12 +416,6 @@ function drawButton(ctx, b, pressed, menu) {
     }
     return;
   }
-  if (b.kind === 'slot') {
-    const sel = menu.entry.slot === Number(b.id.slice(4));
-    ctx.fillStyle = sel && Math.floor(menu.t * 3) % 2 === 0 ? PAL.amber : PAL.blueDark;
-    ctx.fillRect(b.x, b.y + b.h - 1, b.w, 1);
-    return;
-  }
   const st = STYLES[b.kind] || STYLES.normal;
   const y = b.y + (pressed ? FINE : 0);
   // Ink edge with clipped corners, the face, a lit top and a shaded foot.
@@ -426,17 +429,6 @@ function drawButton(ctx, b, pressed, menu) {
   ctx.fillStyle = st.shade;
   ctx.fillRect(b.x + FINE, y + b.h - FINE, b.w - 1, FINE);
   const cx = b.x + b.w / 2;
-  if (b.kind === 'arrow') {
-    // A little triangle pointing up or down.
-    ctx.fillStyle = st.text;
-    const up = b.label === 'up';
-    for (let r = 0; r < 4; r++) {
-      const w = (r + 1) * 2 - 1;
-      const ry = up ? y + 3.5 + r : y + b.h - 4.5 - r;
-      ctx.fillRect(cx - w / 2, ry, w, 1);
-    }
-    return;
-  }
   if (b.sub) {
     drawTextCentered(ctx, b.label, cx, y + 3, st.text, 1.5);
     drawTextCentered(ctx, b.sub, cx, y + 13.5, st.sub || PAL.textDim);
