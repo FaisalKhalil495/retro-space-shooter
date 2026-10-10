@@ -574,6 +574,37 @@ for (const phone of PHONES) {
   await context.close();
 }
 
+// Home screen and link preview (v0.26.0): the page names its app manifest,
+// the manifest opens the game full screen and sideways, and every icon and
+// the preview picture exist at the size they claim.
+{
+  const context = await browser.newContext({ viewport: { width: 915, height: 412 } });
+  const page = await context.newPage();
+  await page.goto(base);
+  const app = await page.evaluate(async () => {
+    const manifest = await (await fetch(document.querySelector('link[rel=manifest]').href)).json();
+    const size = (src) => new Promise((done) => {
+      const img = new window.Image();
+      img.onload = () => done(img.naturalWidth + 'x' + img.naturalHeight);
+      img.onerror = () => done('missing');
+      img.src = src;
+    });
+    const icons = [];
+    for (const i of manifest.icons) icons.push([i.sizes, await size(i.src)]);
+    const og = document.querySelector('meta[property="og:image"]').content;
+    return {
+      display: manifest.display, orientation: manifest.orientation, icons,
+      apple: await size(document.querySelector('link[rel=apple-touch-icon]').href),
+      preview: await size(og.replace('https://faisalkhalil495.github.io/retro-space-shooter/', '')),
+    };
+  });
+  const ok = app.display === 'fullscreen' && app.orientation === 'landscape' && app.icons.length >= 2 &&
+    app.icons.every(([want, got]) => want === got) && app.apple === '180x180' && app.preview === '1200x630';
+  console.log(`${ok ? 'PASS' : 'FAIL'}  home-screen app: manifest, icons and link preview ${JSON.stringify(app)}`);
+  if (!ok) failures++;
+  await context.close();
+}
+
 // Stage 3A: level flow. "?level=2" starts on level 2; clearing level 1
 // carries score, lives and the special into level 2 with full health;
 // beating the Siege Crawler clears level 2; after the last level comes the
@@ -2503,6 +2534,7 @@ for (const phone of PHONES) {
   const { readdirSync, readFileSync } = await import('node:fs');
   const missing = new Set();
   for (const f of readdirSync(new URL('../js/', import.meta.url))) {
+    if (f === 'music.js') continue; // (its capitals are note names, never shown)
     const src = readFileSync(new URL('../js/' + f, import.meta.url), 'utf8');
     for (const m of src.matchAll(/'([^'\n]*)'|`([^`\n]*)`/g)) {
       const str = (m[1] ?? m[2]).replace(/\$\{[^}]*\}/g, '');
