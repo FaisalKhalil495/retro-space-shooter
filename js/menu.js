@@ -38,7 +38,8 @@ export class Menu {
   open(screen, info = {}) {
     if (screen === 'options' || screen === 'help') this.back = this.screen === 'pause' ? 'pause' : 'title';
     this.screen = screen;
-    this.info = { ...this.info, ...info };
+    // (Back at the title, nothing from the last game carries over.)
+    this.info = screen === 'title' ? { ...info } : { ...this.info, ...info };
     this.pressed = null;
     this.t = 0;
     if (screen === 'entry') {
