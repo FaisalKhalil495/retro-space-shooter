@@ -1,13 +1,13 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.22.2';
-import { ROCKS } from './rockart.js?v=0.22.2';
-import { SPRITES } from './sprites.js?v=0.22.2';
-import { ROCKJAW_TYPE } from './bosses.js?v=0.22.2';
-import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.22.2';
-import { GLACIER_WARDEN_TYPE, WARDEN_MINIONS } from './warden.js?v=0.22.2';
-import { clamp, rectHitsCircle, rectsOverlap, fillDisc } from './util.js?v=0.22.2';
-import { FINE, snapFine, fillCrisp, crispOf } from './detail.js?v=0.22.2';
-import { GROUND_SPEED, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.22.2';
-import { sfx } from './audio.js?v=0.22.2';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.23.0';
+import { ROCKS } from './rockart.js?v=0.23.0';
+import { SPRITES } from './sprites.js?v=0.23.0';
+import { ROCKJAW_TYPE } from './bosses.js?v=0.23.0';
+import { SIEGE_CRAWLER_TYPE, CRAWLER_MINIONS } from './crawler.js?v=0.23.0';
+import { GLACIER_WARDEN_TYPE, WARDEN_MINIONS } from './warden.js?v=0.23.0';
+import { clamp, rectHitsCircle, rectsOverlap, fillDisc } from './util.js?v=0.23.0';
+import { FINE, snapFine, fillCrisp, crispOf, detailCanvas, pixels } from './detail.js?v=0.23.0';
+import { GROUND_SPEED, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.23.0';
+import { sfx } from './audio.js?v=0.23.0';
 
 // Each enemy type: its sprite, toughness, points, and how it moves.
 // Optional extras: draw (custom drawing), onDeath, inset (forgiving hitbox),
@@ -917,12 +917,18 @@ export const ENEMY_TYPES = {
         ctx.drawImage(g, x + Math.floor((e.w - g.width) / 2), y + Math.floor((e.h - g.height) / 2));
       } else {
         ctx.drawImage(SPRITES['rimeIced' + (e.flash > 0 ? 'Flash' : '')], x, y);
-        ctx.fillStyle = ICE_COLORS[0];
-        for (const [cx, cy, k] of RIME_CRACKS) if (k < RIME_SHELL - e.shell) ctx.fillRect(x + cx, y + cy, 1, 1);
+        const hits = RIME_SHELL - e.shell;
+        if (hits > 0) ctx.drawImage(rimeCracks(Math.min(RIME_SHELL, hits)), x, y);
       }
       if (e.thaw < 1) {
-        ctx.fillStyle = ICE_COLORS[3];
-        for (let i = 0; i < 3; i++) ctx.fillRect(x + 3 + i * 4, y + e.h + ((Math.floor(game.time * 10) + i * 2) % 4), 1, 1);
+        // Meltwater dripping off it: thin drops with a bright head.
+        for (let i = 0; i < 3; i++) {
+          const dy = ((Math.floor(game.time * 20) + i * 4) % 8) * FINE;
+          ctx.fillStyle = ICE_COLORS[2];
+          ctx.fillRect(x + 3 + i * 4, y + e.h - FINE + dy, FINE, 1);
+          ctx.fillStyle = ICE_COLORS[4];
+          ctx.fillRect(x + 3 + i * 4, y + e.h + FINE + dy, FINE, FINE);
+        }
       }
     },
   },
@@ -1086,7 +1092,44 @@ const RIME_THAW = 5; // seconds on screen before it thaws itself free
 const RIME_BLINK = 0.4; // its warning blink before each burst
 const RIME_IDLE = 6; // seconds free with you behind it before it leaves
 // Where cracks show in its shell: [x, y, shown after this many hits].
-const RIME_CRACKS = [[5, 3, 0], [6, 4, 0], [7, 4, 0], [9, 7, 1], [8, 8, 1], [4, 8, 2], [3, 7, 2], [10, 3, 2], [11, 4, 3], [6, 9, 3]];
+// The cracks a frozen Rime Guard's shell shows after each hit (lines in
+// game pixels inside its 14 x 12 box, running in from the rim), painted
+// once per number of hits as pale splits with a deep blue edge, so they
+// show over the pale ice and the dark gunship inside alike.
+const RIME_CRACK_LINES = [
+  [[[1.5, 2], [3.5, 3.5], [5, 3.75], [6.5, 5]]],
+  [[[12.75, 8.5], [11, 7.75], [10, 8.75]]],
+  [[[9, 0.75], [9.5, 2.5], [8.5, 3.75]], [[2, 10.5], [3.5, 9], [4.5, 9.25]]],
+  [[[12.5, 2], [11.25, 3.5], [11.5, 5]], [[7, 11.25], [7.5, 9.75], [6.5, 8.5]]],
+];
+const rimeCrackPics = [];
+function rimeCracks(hits) {
+  if (rimeCrackPics[hits]) return rimeCrackPics[hits];
+  const { canvas } = detailCanvas(14, 12);
+  const px = pixels(canvas);
+  const on = new Set();
+  for (const lines of RIME_CRACK_LINES.slice(0, hits)) {
+    for (const pts of lines) {
+      for (let i = 1; i < pts.length; i++) {
+        const [x0, y0] = pts[i - 1];
+        const [x1, y1] = pts[i];
+        const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2 * 2);
+        for (let k = 0; k <= n; k++) {
+          on.add(Math.round((y0 + ((y1 - y0) * k) / n) * 2 - 0.5) * 28 + Math.round((x0 + ((x1 - x0) * k) / n) * 2 - 0.5));
+        }
+      }
+    }
+  }
+  for (const i of on) {
+    const fx = i % 28;
+    const fy = Math.floor(i / 28);
+    px.set(fx, fy, ICE_COLORS[4]);
+    if (!on.has(i + 29) && fx < 27 && fy < 23) px.set(fx + 1, fy + 1, ICE_COLORS[1]);
+  }
+  px.done();
+  rimeCrackPics[hits] = canvas;
+  return canvas;
+}
 const MINE_LIFE = 8; // seconds before an untouched frost mine fizzles out
 const MINE_DRIFT = 22; // how fast mines drift left
 const MINE_RANGE = 26; // how close your ship sets one off...

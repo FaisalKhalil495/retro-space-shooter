@@ -1,14 +1,13 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.22.2';
-import { sfx } from './audio.js?v=0.22.2';
-import { clamp, fillDisc } from './util.js?v=0.22.2';
-import { FINE, snapFine } from './detail.js?v=0.22.2';
-import { METAL, MOLTEN } from './gore.js?v=0.22.2';
-import { ICE_COLORS, slabImage } from './terrain.js?v=0.22.2';
-import { BOMB_DAMAGE } from './weapons.js?v=0.22.2';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.23.0';
+import { sfx } from './audio.js?v=0.23.0';
+import { clamp } from './util.js?v=0.23.0';
+import { METAL, MOLTEN } from './gore.js?v=0.23.0';
+import { ICE_COLORS, slabImage } from './terrain.js?v=0.23.0';
+import { BOMB_DAMAGE } from './weapons.js?v=0.23.0';
 import {
   WARDEN, WARDEN_W, WARDEN_H, HUB, PLATE_HP, PLATES, NOSE, HOLES, RING_FRAMES, TEETH,
-  CORE, PLATE, RING, SECTOR, buildWardenArt, wardenAt, drawWardenCore, drawWardenPlates, toothTips, bladeFrame,
-} from './wardenart.js?v=0.22.2';
+  CORE, PLATE, RING, SECTOR, buildWardenArt, wardenAt, drawWardenCore, drawWardenPlates, toothTips,
+} from './wardenart.js?v=0.23.0';
 
 // THE GLACIER WARDEN · KEEPER OF THE RING — boss of Frostring.
 //
@@ -669,64 +668,46 @@ export const GLACIER_WARDEN_TYPE = {
     const blink = Math.floor(g.time * 16) % 2 === 0;
     // The hub's front glows before it fires (icicles, beam, wall).
     if (e.glow && blink) {
-      ctx.fillStyle = ICE_COLORS[3];
-      fillDisc(ctx, x + NOSE.x, y + NOSE.y + 0.5, 2.5);
       ctx.fillStyle = PAL.cream;
-      fillDisc(ctx, x + NOSE.x + 0.5, y + NOSE.y + 0.5, 1.5);
+      ctx.fillRect(x + NOSE.x - 1, y + NOSE.y - 2, 3, 5);
+      ctx.fillStyle = ICE_COLORS[3];
+      ctx.fillRect(x + NOSE.x - 2, y + NOSE.y - 1, 1, 3);
     }
     // The saw teeth glint before it throws blades.
     if (e.glint && blink) {
       ctx.fillStyle = PAL.cream;
-      // (A small four-pointed sparkle on each tooth.)
-      for (const t of toothTips(e.ringAng)) {
-        const tx = x + snapFine(t.x);
-        const ty = y + snapFine(t.y);
-        ctx.fillRect(tx - FINE, ty, FINE * 3, FINE);
-        ctx.fillRect(tx, ty - FINE, FINE, FINE * 3);
-      }
+      for (const t of toothTips(e.ringAng)) ctx.fillRect(x + Math.round(t.x), y + Math.round(t.y), 1, 1);
     }
     // A hatch blinking: mines are coming.
     if (e.lightT > 0 && blink) {
       ctx.fillStyle = PAL.amberLight;
-      fillDisc(ctx, x + NOSE.x + 0.5, y + NOSE.y + 10.5, 1.5);
+      ctx.fillRect(x + NOSE.x - 1, y + NOSE.y + 9, 3, 3);
     }
     // Frost beam guide lines: dotted, the bright one where the beam starts
     // and the dim one where it stops.
     if (e.beamGuide && Math.floor(g.time * 14) % 2 === 0) {
       const m = nose(e);
-      // (Each one dashed stroke a pixel thick, like the other aim lines.)
-      ctx.save();
-      ctx.lineWidth = 1;
-      ctx.setLineDash([1.5, 2.5]);
       [[e.beamGuide.from, ICE_COLORS[4]], [e.beamGuide.to, ICE_COLORS[2]]].forEach(([ang, col]) => {
         const end = rayEnd(g, m.x, m.y, ang);
-        ctx.strokeStyle = col;
-        ctx.beginPath();
-        ctx.moveTo(m.x + Math.cos(ang) * 6, m.y + Math.sin(ang) * 6);
-        ctx.lineTo(m.x + Math.cos(ang) * end.len, m.y + Math.sin(ang) * end.len);
-        ctx.stroke();
+        ctx.fillStyle = col;
+        for (let s = 6; s < end.len; s += 4) {
+          ctx.fillRect(Math.round(m.x + Math.cos(ang) * s), Math.round(m.y + Math.sin(ang) * s), 1, 1);
+        }
       });
-      ctx.restore();
     }
     // The beam itself: a pale shaft with a white-hot middle.
     if (e.beam) {
-      // (Three strokes, outside in: a deep blue edge, the pale shaft and
-      // its white-hot core, flickering a little.)
       const { x: bx, y: by, ang, len } = e.beam;
       const ux = Math.cos(ang);
       const uy = Math.sin(ang);
-      const flick = Math.floor(g.time * 30) % 2 ? FINE : 0;
-      ctx.save();
-      ctx.lineCap = 'round';
-      [[ICE_COLORS[1], 3.5 + flick], [ICE_COLORS[3], 2.5], [ICE_COLORS[4], 1 + flick]].forEach(([col, wdt]) => {
-        ctx.strokeStyle = col;
-        ctx.lineWidth = wdt;
-        ctx.beginPath();
-        ctx.moveTo(bx + ux * 2, by + uy * 2);
-        ctx.lineTo(bx + ux * len, by + uy * len);
-        ctx.stroke();
-      });
-      ctx.restore();
+      for (let s = 2; s < len; s += 1) {
+        const px = Math.round(bx + ux * s);
+        const py = Math.round(by + uy * s);
+        ctx.fillStyle = ICE_COLORS[2];
+        ctx.fillRect(px - 1, py - 1, 3, 3);
+      }
+      ctx.fillStyle = ICE_COLORS[4];
+      for (let s = 2; s < len; s += 1) ctx.fillRect(Math.round(bx + ux * s), Math.round(by + uy * s), 1, 1);
     }
     // Blizzard: snow streaking past from right to left, thicker as it blows.
     if (e.wind > 0) {
@@ -735,12 +716,8 @@ export const GLACIER_WARDEN_TYPE = {
         const seed = i * 97.31;
         const sy = HUD_H + ((seed * 7.7) % (VIEW_H - HUD_H));
         const sx = VIEW_W - ((g.time * (260 + (i % 5) * 40) + seed * 13) % (VIEW_W + 30));
-        // (Thin streaks with a bright head.)
-        const len = 4 + (i % 3) * 2;
-        ctx.fillStyle = ICE_COLORS[i % 3 ? 2 : 3];
-        ctx.fillRect(snapFine(sx), snapFine(sy), len, FINE);
-        ctx.fillStyle = ICE_COLORS[4];
-        ctx.fillRect(snapFine(sx), snapFine(sy), 1, FINE);
+        ctx.fillStyle = i % 3 ? ICE_COLORS[3] : ICE_COLORS[4];
+        ctx.fillRect(Math.round(sx), Math.round(sy), 4 + (i % 3) * 2, 1);
       }
     }
   },
@@ -852,33 +829,24 @@ function drawBlock(e, ctx, snap, g) {
   ctx.drawImage(blockImg, bx, by);
   if (!B.crack) return;
   // Cracks spreading out from the middle (fixed shapes, longer as it goes).
-  // The cracks: thin dark lines wandering out from the middle, all drawn
-  // as one path.
+  ctx.fillStyle = ICE_COLORS[0];
   const cx = bx + Math.round(B.w * 0.45);
   const cy = by + Math.round(B.h * 0.5);
-  ctx.save();
-  ctx.strokeStyle = ICE_COLORS[0];
-  ctx.lineWidth = 0.75;
-  ctx.lineJoin = 'bevel';
-  ctx.beginPath();
   for (let k = 0; k < 7; k++) {
     let a = k * 0.9 + 0.3;
-    let px = cx + 0.5;
-    let py = cy + 0.5;
-    ctx.moveTo(px, py);
+    let px = cx;
+    let py = cy;
     const len = B.crack * (22 + (k % 3) * 9);
     for (let s = 0; s < len; s++) {
       a += Math.sin(k * 3.1 + s * 0.7) * 0.15;
       px += Math.cos(a);
       py += Math.sin(a);
-      ctx.lineTo(px, py);
+      ctx.fillRect(Math.round(px), Math.round(py), 1, 1);
     }
   }
-  ctx.stroke();
-  ctx.restore();
   if (Math.floor(g.time * 10) % 2 === 0) {
     ctx.fillStyle = ICE_COLORS[4];
-    fillDisc(ctx, cx + 0.5, cy + 0.5, 1.5);
+    ctx.fillRect(cx - 1, cy - 1, 3, 3);
   }
 }
 
@@ -978,10 +946,26 @@ export const WARDEN_MINIONS = {
       if (e.t > 6) e.dead = true;
     },
     draw(e, ctx, snap, g) {
-      // A spinning blade (painted in rotation frames) with a blinking light.
-      ctx.drawImage(bladeFrame(e.spinA), snap(e.x), snap(e.y));
+      const cx = snap(e.x) + 4;
+      const cy = snap(e.y) + 4;
+      // A steel disc with 6 hooked teeth, spinning.
+      for (let k = 0; k < 6; k++) {
+        const a = e.spinA + (k * Math.PI) / 3;
+        const tx = Math.round(cx + Math.cos(a) * 4);
+        const ty = Math.round(cy + Math.sin(a) * 4);
+        ctx.fillStyle = PAL.ink;
+        ctx.fillRect(tx - 1, ty - 1, 3, 3);
+        ctx.fillStyle = '#a7a4ad';
+        ctx.fillRect(tx, ty, 1, 1);
+      }
+      ctx.fillStyle = PAL.ink;
+      ctx.fillRect(cx - 3, cy - 2, 7, 5);
+      ctx.fillRect(cx - 2, cy - 3, 5, 7);
+      ctx.fillStyle = '#a7a4ad';
+      ctx.fillRect(cx - 2, cy - 1, 5, 3);
+      ctx.fillRect(cx - 1, cy - 2, 3, 5);
       ctx.fillStyle = Math.floor(g.time * 12) % 2 ? PAL.amber : PAL.cream;
-      ctx.fillRect(snap(e.x) + 4, snap(e.y) + 4, 1, 1);
+      ctx.fillRect(cx, cy, 1, 1);
     },
   },
 };

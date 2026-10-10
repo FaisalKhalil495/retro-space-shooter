@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.22.2';
-import { seeded } from './util.js?v=0.22.2';
-import { DETAIL, FINE, detailCanvas, pixels, grit } from './detail.js?v=0.22.2';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.23.0';
+import { seeded } from './util.js?v=0.23.0';
+import { DETAIL, FINE, detailCanvas, pixels, grit } from './detail.js?v=0.23.0';
 
 // Solid things in the way, for levels that have them:
 //   - Rust Moon (and later the Ember Mines' tunnels): a floor strip along the
@@ -213,8 +213,16 @@ function slabCrackImage(s, shown) {
   const W2 = s.w * DETAIL;
   const on = new Set();
   for (let i = 0; i < shown; i++) on.add(s.cracks[i][1] * W2 + s.cracks[i][0]);
+  // (Never out past the clipped corners or onto the rim.)
+  const cut = Math.min(3, Math.floor(Math.min(s.w, s.h) / 4));
+  const inIce = (fx, fy) => {
+    const X = (fx + 0.5) / DETAIL;
+    const Y = (fy + 0.5) / DETAIL;
+    return Math.min(X, s.w - X) + Math.min(Y, s.h - Y) >= cut + 2;
+  };
   for (let i = 0; i < shown; i++) {
     const [fx, fy] = s.cracks[i];
+    if (!inIce(fx, fy)) continue;
     px.set(fx, fy, flash ? ICE_COLORS[4] : ICE_COLORS[0]);
     // A pale lip along each crack, so it reads as a split in the ice.
     if (!flash && !on.has((fy + 1) * W2 + fx + 1)) px.set(fx + 1, fy + 1, ICE_COLORS[4]);
