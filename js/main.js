@@ -1,9 +1,9 @@
-import { VERSION, STAGE_LABEL, VIEW_W, VIEW_H, PAL } from './config.js?v=0.22.2';
-import { readSafeArea, computeLayout } from './layout.js?v=0.22.2';
-import { Controls } from './controls.js?v=0.22.2';
-import { Game } from './game.js?v=0.22.2';
-import { unlockAudio, suspendAudio, resumeAudio } from './audio.js?v=0.22.2';
-import { useDetail } from './detail.js?v=0.22.2';
+import { VERSION, STAGE_LABEL, VIEW_W, VIEW_H, PAL } from './config.js?v=0.23.0';
+import { readSafeArea, computeLayout } from './layout.js?v=0.23.0';
+import { Controls } from './controls.js?v=0.23.0';
+import { Game } from './game.js?v=0.23.0';
+import { unlockAudio, suspendAudio, resumeAudio } from './audio.js?v=0.23.0';
+import { useDetail } from './detail.js?v=0.23.0';
 
 const canvas = document.getElementById('screen');
 const ctx = useDetail(canvas.getContext('2d', { alpha: false }));

@@ -1,13 +1,13 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.22.2';
-import { sfx } from './audio.js?v=0.22.2';
-import { clamp } from './util.js?v=0.22.2';
-import { METAL, MOLTEN } from './gore.js?v=0.22.2';
-import { ICE_COLORS, slabImage } from './terrain.js?v=0.22.2';
-import { BOMB_DAMAGE } from './weapons.js?v=0.22.2';
+import { VIEW_W, VIEW_H, HUD_H, PAL } from './config.js?v=0.23.0';
+import { sfx } from './audio.js?v=0.23.0';
+import { clamp } from './util.js?v=0.23.0';
+import { METAL, MOLTEN } from './gore.js?v=0.23.0';
+import { ICE_COLORS, slabImage } from './terrain.js?v=0.23.0';
+import { BOMB_DAMAGE } from './weapons.js?v=0.23.0';
 import {
   WARDEN, WARDEN_W, WARDEN_H, HUB, PLATE_HP, PLATES, NOSE, HOLES, RING_FRAMES, TEETH,
   CORE, PLATE, RING, SECTOR, buildWardenArt, wardenAt, drawWardenCore, drawWardenPlates, toothTips,
-} from './wardenart.js?v=0.22.2';
+} from './wardenart.js?v=0.23.0';
 
 // THE GLACIER WARDEN · KEEPER OF THE RING — boss of Frostring.
 //

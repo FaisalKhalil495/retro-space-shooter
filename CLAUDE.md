@@ -566,6 +566,15 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
   floor scrolls as smoothly as the spires on it. Every hand-drawn
   sharp picture fills **exactly** the same outline box as its normal one
   (hit areas come from the normal one; a test checks).
+- Frostring at double detail (v0.23.0, owner approved the sheet): the
+  six Ice Harvesters, the Rime Guard (frozen and free), Cryo Layer, frost
+  mine, Prism and shard, redrawn on today's layouts (amber hazard paint
+  still the main colour, thin black diagonals, rivets, spiral drills, a
+  bigger saw on the ice cutter, banded grub); ice slabs with a deep blue
+  rim, a lit bevel and frost specks; cracks as thin splits with a pale lip,
+  kept as a picture repainted only when a slab is hit; a Rime Guard's
+  shell cracks pale with a blue edge (they show over the ship inside);
+  thin meltwater drips. The Glacier Warden follows in v0.23.1.
 - Your ship: **"B: detailed"** (owner's pick, v0.20.0): glass canopy with a
   frame, rivets, lit fin edge, glowing engine ring, smooth tapered flame.
 - **Every level has its own look** (owner, v0.16.0): enemy types shared
@@ -634,7 +643,7 @@ Approved by the owner. Keep the status column up to date.
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
 | 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C built (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2; owner testing) |
-| G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | In progress — step 1 done (v0.20.0), step 2 done (v0.21.0: level 1 enemies, cargo pod, asteroids, Rockjaw; review fixes v0.21.1–v0.21.2), step 3 built (v0.22.0: Rust Moon set, spires, floor, Siege Crawler; review fixes v0.22.1, smoother stage 2 v0.22.2; owner testing) |
+| G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | In progress — step 1 done (v0.20.0), step 2 done (v0.21.0: level 1 enemies, cargo pod, asteroids, Rockjaw; review fixes v0.21.1–v0.21.2), step 3 built (v0.22.0: Rust Moon set, spires, floor, Siege Crawler; review fixes v0.22.1, smoother stage 2 v0.22.2), step 4 in progress (v0.23.0: Frostring's enemies and ice; the Glacier Warden next, v0.23.1) |
 | 4 | **Levels 6–9** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | |
 | 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | |
@@ -685,7 +694,9 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   `canPlace`, `freeBand`, `slabAt`, `freeY`/`clearOfIce`); `solid()` for
   shots, `tallestOnScreen()`, `openAtEdge()`, `turretPerch()`.
   `spireImage(w, h, seed)` paints a spire at double detail; the floor is
-  one pre-painted strip (`floorTile`) copied once per frame.
+  one pre-painted strip (`floorTile`) copied once per frame; `slabImage`
+  paints a slab of ice at double detail, and its cracks are a picture
+  repainted only when they change (`slabCrackImage`).
 - `js/sprites.js` — pixel art as text grids (plus each level's own look
   for shared enemy types, e.g. Rust Moon's `RUST_ART`), and `HI_ART`: the
   double-detail grids (exactly twice the size and filling the same
@@ -733,10 +744,15 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   replayed). Its autopilot shoots open cargo pods ahead of it before
   chasing loose items.
 - `tools/speed-test.mjs` — how fast the game draws on a slow phone (five
-  busy scenes, processor slowed 4x, frames in 3 s). Run it before and after
-  any change to drawing and compare; v0.21.2: 114 / 102 / 92 / 97 / 91.
-  Runs vary by about 10 frames, so average a few runs (or compare against
-  a copy of the old version run alongside) before calling anything slower.
+  busy scenes, processor slowed 4x, frames in 3 s), and two steady numbers
+  per scene (v0.23.0): drawing calls a frame and garbage (short-lived
+  memory) a second. Every random number in the page is seeded and the game
+  is frozen before the start tap, so the calls and garbage come out the
+  same every run; frame counts vary by about 10, so average a few runs (or
+  compare against a copy of the old version run alongside). Run it before
+  and after any change to drawing and compare; v0.23.0: frames about
+  128 / 124 / 120 / 95 / 90, calls 299 / 354 / 294 / 586 / 692, garbage
+  4.4 / 3.1 / 3.0 / 4.5 / 4.5 MB a second.
   Rule: nothing big is repainted every frame if it never changes (paint it
   once into a picture), and no full-screen gradients per frame.
 - `tools/serve.mjs` — the tests' tiny web server (this computer only; refuses
