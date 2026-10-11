@@ -1,13 +1,13 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.26.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.26.0';
-import { FINE, detailCanvas, pixels, grit } from './detail.js?v=0.26.0';
-import { fillDisc } from './util.js?v=0.26.0';
-import { SPRITES } from './sprites.js?v=0.26.0';
-import { drawOrb } from './powerups.js?v=0.26.0';
-import { drawCapsule } from './weapons.js?v=0.26.0';
-import { LEVELS } from './levels.js?v=0.26.0';
-import { drawShip } from './game.js?v=0.26.0';
-import { save, TOP, bestScore } from './save.js?v=0.26.0';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.27.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.27.0';
+import { FINE, detailCanvas, pixels, grit } from './detail.js?v=0.27.0';
+import { fillDisc } from './util.js?v=0.27.0';
+import { SPRITES } from './sprites.js?v=0.27.0';
+import { drawOrb } from './powerups.js?v=0.27.0';
+import { drawCapsule } from './weapons.js?v=0.27.0';
+import { LEVELS } from './levels.js?v=0.27.0';
+import { titleBadge, menuBadge } from './titleart.js?v=0.27.0';
+import { save, TOP, bestScore } from './save.js?v=0.27.0';
 
 // The menus: title screen, level select, high scores, options, how to play,
 // pause, game over, entering your initials and the "to be continued"
@@ -22,6 +22,8 @@ const BOSS_NAMES = { rockjaw: 'ROCKJAW', siegeCrawler: 'SIEGE CRAWLER', glacierW
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 export const NAME_MAX = 8; // letters in a name on the high-score table
 const pad6 = (n) => String(n).padStart(6, '0');
+const MENU_X = 110; // the main menu's column of buttons
+const MENU_W = 92;
 
 export class Menu {
   // hooks: what the buttons do, supplied by main.js.
@@ -62,15 +64,32 @@ export class Menu {
     const B = [];
     const btn = (id, x, y, w, hh, label, act, kind = 'normal', sub = '') => B.push({ id, x, y, w, h: hh, label, act, kind, sub });
     const backBtn = (to = 'title') => btn('back', 74, 124, 60, 14, 'BACK', () => this.open(to));
-    if (s === 'title') {
+    if (s === 'splash') {
+      // The opening screen: one tap anywhere goes on to the main menu.
+      if (this.t > 0.4) btn('go', 0, 0, VIEW_W, VIEW_H, '', () => h.toMenu(), 'none');
+    } else if (s === 'title') {
+      // The main menu: one column of buttons on the right, centred
+      // top to bottom (the badge sits on the left).
       const lv = LEVELS[save.reached - 1];
       const fresh = save.reached <= 1;
-      btn('play', 42, 52, 124, 22, fresh ? 'PLAY' : 'CONTINUE', () => h.play(save.reached, false), 'primary',
-        `LEVEL ${lv.number}  ${lv.name}`);
-      if (!fresh) btn('new', 42, 78, 124, 14, 'NEW GAME', () => h.play(1, false));
-      const row = fresh ? 82 : 100;
-      const labels = [['levels', 'LEVELS'], ['scores', 'SCORES'], ['options', 'OPTIONS'], ['help', 'HELP']];
-      labels.forEach(([id, label], i) => btn(id, 6 + i * 50, row, 46, 14, label, () => this.open(id)));
+      const items = [];
+      items.push(['play', fresh ? 'PLAY' : 'CONTINUE', () => h.play(save.reached, false)]);
+      if (!fresh) items.push(['new', 'NEW GAME', () => h.play(1, false)]);
+      items.push(['levels', 'LEVELS', () => this.open('levels')]);
+      items.push(['scores', 'HIGH SCORES', () => this.open('scores')]);
+      items.push(['options', 'OPTIONS', () => this.open('options')]);
+      items.push(['help', 'HOW TO PLAY', () => this.open('help')]);
+      const gap = 4;
+      let y = Math.round((VIEW_H - (22 + (items.length - 1) * (13 + gap))) / 2);
+      items.forEach(([id, label, act], i) => {
+        if (i === 0) {
+          btn(id, MENU_X, y, MENU_W, 22, label, act, 'primary', lv.name);
+          y += 22 + gap;
+        } else {
+          btn(id, MENU_X, y, MENU_W, 13, label, act);
+          y += 13 + gap;
+        }
+      });
     } else if (s === 'levels') {
       for (let i = 0; i < LEVELS.length + COMING_SOON; i++) {
         const lv = LEVELS[i];
@@ -180,7 +199,8 @@ export class Menu {
       ctx.fillStyle = 'rgba(11, 15, 28, 0.84)';
       ctx.fillRect(0, 0, VIEW_W, VIEW_H);
     }
-    if (s === 'title') this.drawTitle(ctx);
+    if (s === 'splash') this.drawSplash(ctx);
+    else if (s === 'title') this.drawTitle(ctx);
     else if (s === 'levels') this.drawLevels(ctx);
     else if (s === 'scores') this.drawScores(ctx);
     else if (s === 'options') this.drawOptions(ctx);
@@ -190,7 +210,7 @@ export class Menu {
     else if (s === 'entry') this.drawEntry(ctx);
     else if (s === 'end') this.drawEnd(ctx);
     else if (s === 'quick') {
-      logo(ctx, 40);
+      ctx.drawImage(menuBadge(), 52, 10);
       drawTextCentered(ctx, `TEST START  LEVEL ${this.info.level}`, 104, 70, PAL.bluePale);
       if (Math.floor(this.t * 2.5) % 2 === 0) drawTextCentered(ctx, 'TAP TO START', 104, 86, PAL.amberLight);
     }
@@ -198,30 +218,22 @@ export class Menu {
   }
 
   drawTitle(ctx) {
-    const t = this.t;
-    // Embers drifting up off the name.
-    for (let i = 0; i < 14; i++) {
-      const life = (t * 0.45 + i * 0.37) % 1;
-      const x = 12 + ((i * 53) % 184) + Math.sin(t * 2 + i) * 2;
-      const y = 36 - life * 26;
-      ctx.globalAlpha = 1 - life;
-      ctx.fillStyle = i % 3 === 0 ? PAL.amberLight : i % 3 === 1 ? PAL.amber : PAL.redSoft;
-      ctx.fillRect(Math.round(x * 2) / 2, Math.round(y * 2) / 2, FINE, FINE);
-    }
-    ctx.globalAlpha = 1;
-    logo(ctx, 18);
-    // A thin rule either side of the tagline.
-    const tag = 'DEFEND THE WORLDS';
-    const tw = textWidth(tag);
-    ctx.fillStyle = PAL.amberDark;
-    ctx.fillRect(104 - tw / 2 - 26, 40.5, 20, FINE);
-    ctx.fillRect(104 + tw / 2 + 6, 40.5, 20, FINE);
-    drawTextCentered(ctx, tag, 104, 38, PAL.bluePale);
-    // Your ship, idling on the left, and a gunship-free sky.
-    const bob = Math.round(Math.sin(t * 2.2) * 2 * 2) / 2;
-    drawShip(ctx, 20, 60 + bob, 3 + (Math.floor(t * 30) % 2));
+    // The badge on the left, embers drifting up off it, your best score
+    // under it.
+    ctx.drawImage(menuBadge(), 3, 42);
+    embers(ctx, this.t, 10, 96, 20, 50);
     const best = bestScore();
-    if (best) drawTextCentered(ctx, 'BEST  ' + pad6(best), 104, save.reached <= 1 ? 104 : 121, PAL.textDim);
+    if (best) drawTextCentered(ctx, 'BEST  ' + pad6(best), 55, 100, PAL.textDim);
+  }
+
+  drawSplash(ctx) {
+    ctx.drawImage(titleBadge(), 0, 0);
+    embers(ctx, this.t, 10, 170, 40, 60);
+    drawTextCentered(ctx, 'DEFEND THE WORLDS', 104, 104, PAL.bluePale);
+    if (this.t > 0.4 && Math.floor(this.t * 2.2) % 2 === 0) {
+      drawTextCentered(ctx, 'TAP TO CONTINUE', 104.5, 122.5, PAL.ink);
+      drawTextCentered(ctx, 'TAP TO CONTINUE', 104, 122, PAL.amberLight);
+    }
   }
 
   drawLevels(ctx) {
@@ -242,9 +254,19 @@ export class Menu {
         drawText(ctx, `${lv.number}  ${lv.name}`, x + 35, y + 3, open ? PAL.cream : PAL.textDim);
         drawText(ctx, 'BOSS  ' + BOSS_NAMES[lv.boss], x + 35, y + 10, open ? PAL.bluePale : '#4d5570');
         if (open) chevron(ctx, x + 172, y + 5.5, PAL.amber);
-      } else {
+      } else if (save.finished) {
+        // (Only someone who has finished the last level learns it's the
+        // last one for now.)
         drawText(ctx, `${i + 1}  ???`, x + 35, y + 3, PAL.textDim);
         drawText(ctx, 'COMING SOON', x + 35, y + 10, PAL.amberSoft);
+      } else {
+        // Before that, it's just another locked level.
+        ctx.fillStyle = 'rgba(11, 15, 28, 0.6)';
+        ctx.fillRect(x + 2, y + 2, 28, 13);
+        lock(ctx, x + 13.5, y + 4.5);
+        drawText(ctx, `${i + 1}  ???`, x + 35, y + 3, PAL.textDim);
+        drawText(ctx, 'BOSS  ???', x + 35, y + 10, '#4d5570');
+        drawText(ctx, 'LOCKED', x + 180 - 40, y + 3, PAL.textDim);
       }
       if (lv && !open) {
         drawText(ctx, 'LOCKED', x + 180 - 40, y + 3, PAL.textDim);
@@ -388,24 +410,17 @@ function heading(ctx, str, y) {
   drawTextCentered(ctx, str, 104, y, PAL.amber, 2);
 }
 
-// EMBER DRIFT: big letters lit pale along the top and darker at the foot,
-// over a soft red shadow.
-function logo(ctx, y) {
-  const s = 'EMBER DRIFT';
-  drawTextCentered(ctx, s, 105, y + 1, PAL.redDark, 3);
-  drawTextCentered(ctx, s, 104, y, PAL.amber, 3);
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, y - 2, VIEW_W, 7);
-  ctx.clip();
-  drawTextCentered(ctx, s, 104, y, PAL.amberLight, 3);
-  ctx.restore();
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, y + 11, VIEW_W, 6);
-  ctx.clip();
-  drawTextCentered(ctx, s, 104, y, PAL.amberSoft, 3);
-  ctx.restore();
+// Embers drifting up from a band (x0..x1, rising from y0 over h).
+function embers(ctx, t, x0, x1, y0, h) {
+  for (let i = 0; i < 14; i++) {
+    const life = (t * 0.45 + i * 0.37) % 1;
+    const x = x0 + ((i * 53) % (x1 - x0)) + Math.sin(t * 2 + i) * 2;
+    const y = y0 + h - life * h;
+    ctx.globalAlpha = 1 - life;
+    ctx.fillStyle = i % 3 === 0 ? PAL.amberLight : i % 3 === 1 ? PAL.amber : PAL.redSoft;
+    ctx.fillRect(Math.round(x * 2) / 2, Math.round(y * 2) / 2, FINE, FINE);
+  }
+  ctx.globalAlpha = 1;
 }
 
 const STYLES = {

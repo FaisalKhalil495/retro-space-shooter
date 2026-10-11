@@ -19,11 +19,6 @@ const files = await page.evaluate(async () => {
   const v = new URL(document.querySelector('script[type=module]').src).search;
   const { SPRITES } = await import('/js/sprites.js' + v);
   const { PAL } = await import('/js/config.js' + v);
-  const { Menu } = await import('/js/menu.js' + v);
-  const { Background } = await import('/js/background.js' + v);
-  const { LEVELS } = await import('/js/levels.js' + v);
-  const { useDetail } = await import('/js/detail.js' + v);
-  const { drawTextCentered } = await import('/js/font.js' + v);
   let seed = 7;
   const rand = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
   const out = {};
@@ -77,41 +72,26 @@ const files = await page.evaluate(async () => {
   out['icon-512.png'] = icon(512);
   out['apple-touch-icon.png'] = icon(180);
 
-  // The link preview: the title screen (logo, tagline, ship) in a console
-  // bezel on a 1200 x 630 card.
-  const W = 1200;
-  const H = 630;
+  // The link preview: the title badge with your ship (the same as the
+  // game's opening screen) on a 1200 x 630 card of space, painted at
+  // 600 x 315 and shown 2x, sharp.
+  const { paintSky, paintBadge } = await import('/js/titleart.js' + v);
+  const PW = 600;
+  const PH = 315;
+  const S = { W: PW, H: PH, buf: new Uint32Array(PW * PH) };
+  paintSky(S, { x: 70, y: 50, r: 70 }, 3);
+  const k = 1.18;
+  paintBadge(S, k, (PW - 384 * k) / 2 - 18 * k, (PH - 176 * k) / 2 - 22 * k);
+  const low = document.createElement('canvas');
+  low.width = PW;
+  low.height = PH;
+  low.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(S.buf.buffer), PW, PH), 0, 0);
   const card = document.createElement('canvas');
-  card.width = W;
-  card.height = H;
+  card.width = 1200;
+  card.height = 630;
   const cx = card.getContext('2d');
-  cx.fillStyle = PAL.void;
-  cx.fillRect(0, 0, W, H);
-  const S = 4; // screen pixels per game pixel
-  const gw = 208 * S;
-  const gh = 144 * S;
-  const gx = (W - gw) / 2;
-  const gy = (H - gh) / 2;
-  cx.fillStyle = PAL.bezel;
-  cx.fillRect(gx - 10, gy - 10, gw + 20, gh + 20);
-  const screen = document.createElement('canvas');
-  screen.width = gw;
-  screen.height = gh;
-  const sctx = useDetail(screen.getContext('2d'));
-  sctx.imageSmoothingEnabled = false;
-  sctx.setTransform(S, 0, 0, S, 0, 0);
-  const bg = new Background(rand, LEVELS[0].background);
-  for (let i = 0; i < 40; i++) bg.update(0.1);
-  bg.draw(sctx, (v) => Math.round(v * S) / S);
-  const menu = new Menu({});
-  menu.t = 1.2;
-  sctx.translate(0, 18); // (the logo a little lower, without buttons under it)
-  menu.drawTitle(sctx);
-  sctx.translate(0, -18);
-  drawTextCentered(sctx, 'THREE WORLDS. THREE BOSSES.', 104, 98, PAL.cream);
-  drawTextCentered(sctx, 'MORE COMING SOON', 104, 108, PAL.amber);
-  drawTextCentered(sctx, "PLAY IN YOUR PHONE'S BROWSER", 104, 124, PAL.textDim);
-  cx.drawImage(screen, gx, gy);
+  cx.imageSmoothingEnabled = false;
+  cx.drawImage(low, 0, 0, 1200, 630);
   out['preview.png'] = card.toDataURL('image/png');
   return out;
 });

@@ -38,15 +38,21 @@ for (const phone of PHONES) {
       touchPoints: points.map(([x, y, id]) => ({ x, y, id })),
     });
 
-  // The title screen: tap Play.
+  // The opening screen (the title badge): a tap anywhere goes on to the
+  // main menu, and Play there starts the game.
   const L = await page.evaluate(() => window.__ember.layout);
-  const onTitle = await page.evaluate(() => window.__ember.menu.screen === 'title' && window.__ember.mode === 'menu');
-  await touch('touchStart', [[L.game.x + 104 * L.scale, L.game.y + 63 * L.scale, 1]]);
+  const onSplash = await page.evaluate(() => window.__ember.menu.screen === 'splash' && window.__ember.mode === 'menu');
+  await touch('touchStart', [[phone.width / 2, phone.height / 2, 1]]);
+  await touch('touchEnd', []);
+  await page.waitForTimeout(400);
+  const onMenu = await page.evaluate(() => window.__ember.menu.screen === 'title');
+  const play = await page.evaluate(() => window.__ember.menu.buttons().find((b) => b.id === 'play'));
+  await touch('touchStart', [[L.game.x + (play.x + play.w / 2) * L.scale, L.game.y + (play.y + play.h / 2) * L.scale, 1]]);
   await touch('touchEnd', []);
   await page.waitForTimeout(800);
   const playing = await page.evaluate(() => window.__ember.mode === 'play');
-  console.log(`  ${onTitle && playing ? 'PASS' : 'FAIL'}  title screen, tapping Play starts the game`);
-  if (!(onTitle && playing)) failures++;
+  console.log(`  ${onSplash && onMenu && playing ? 'PASS' : 'FAIL'}  opening screen -> tap -> main menu, tapping Play starts the game`);
+  if (!(onSplash && onMenu && playing)) failures++;
 
   const fire = await page.evaluate(() => {
     const b = window.__ember.controls.buttons.fire;
@@ -474,6 +480,12 @@ for (const phone of PHONES) {
   await page.goto(base);
   await page.waitForTimeout(500);
   const L = await page.evaluate(() => window.__ember.layout);
+  // Tap a button by its name, wherever the menu puts it.
+  const tapId = async (id, wait = 250) => {
+    const b = await page.evaluate((id) => window.__ember.menu.buttons().find((x) => x.id === id), id);
+    await page.touchscreen.tap(L.game.x + (b.x + b.w / 2) * L.scale, L.game.y + (b.y + b.h / 2) * L.scale);
+    await page.waitForTimeout(wait);
+  };
   const tap = async (gx, gy, wait = 250) => {
     await page.touchscreen.tap(L.game.x + gx * L.scale, L.game.y + gy * L.scale);
     await page.waitForTimeout(wait);
@@ -482,13 +494,15 @@ for (const phone of PHONES) {
   const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem('emberDrift.save.v1') || 'null'));
   const r = {};
   // A fresh phone: Play, and no Continue yet.
+  r.splash = (await page.evaluate(() => window.__ember.menu.screen));
+  await tap(104, 72, 400); // the opening screen: tap anywhere
   r.fresh = (await page.evaluate(() => window.__ember.menu.buttons().map((b) => b.id))).join();
-  await tap(129, 89); // Options
+  await tapId('options');
   await tap(154, 93); // Blood: off
   await tap(172, 30); // Music: up
   r.options = (await saved()).settings;
   await tap(104, 131); // Back
-  await tap(104, 63); // Play
+  await tapId('play');
   r.play = await st();
   await page.waitForTimeout(400);
   const pr = { x: L.rightZone.x + L.rightZone.w - 29, y: L.rightZone.y + 29 };
@@ -547,7 +561,7 @@ for (const phone of PHONES) {
   await tap(104, 131); // Back
   r.title = (await st()).screen;
   // Practice: level 2 from the level list, and back to the list after it.
-  await tap(29, 107); // Levels
+  await tapId('levels');
   await tap(100, 54); // level 2
   r.practice = await st();
   await page.evaluate(() => window.__ember.game.levelClear());
@@ -558,8 +572,10 @@ for (const phone of PHONES) {
   // Everything is still there after closing and reopening the game.
   await page.reload();
   await page.waitForTimeout(500);
+  r.reloadSplash = await page.evaluate(() => window.__ember.menu.screen);
+  await tap(104, 72, 400);
   r.reloaded = await page.evaluate(() => ({ buttons: window.__ember.menu.buttons().map((b) => b.id).join(), blood: !document.hidden && JSON.parse(localStorage.getItem('emberDrift.save.v1')).settings.blood }));
-  const ok = r.fresh === 'play,levels,scores,options,help' && r.options.blood === false && r.options.music === 5 &&
+  const ok = r.splash === 'splash' && r.reloadSplash === 'splash' && r.fresh === 'play,levels,scores,options,help' && r.options.blood === false && r.options.music === 5 &&
     r.play.mode === 'play' && r.play.level === 1 && r.paused.mode === 'paused' && r.paused.screen === 'pause' && r.frozenWhilePaused &&
     r.resumed === 'play' && r.over.screen === 'gameover' && r.entry === 'entry' &&
     r.table.length === 1 && r.table[0].name === 'ABC' && r.table[0].score === 4321 &&

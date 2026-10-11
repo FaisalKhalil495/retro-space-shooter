@@ -14,7 +14,7 @@ stage — and, one day, a system for building more games.
 - At the end of every stage also add a retrospective (section 7) and move
   anything reusable into section 8 ("Recipe for future games").
 
-Last updated: v0.26.0 (level and title music, fades, home-screen app, link preview).
+Last updated: v0.27.0 (the squadron-badge opening screen and a vertical main menu).
 
 ---
 
@@ -265,6 +265,8 @@ Last updated: v0.26.0 (level and title music, fades, home-screen app, link previ
 | v0.25.0: the Game Over buttons waited 1 s after opening (so a finger still holding Fire can't hit one) — and also after coming back from saving a score, where nothing was being held, so taps were silently ignored | A safety delay belongs to the moment it protects, not to every opening of the screen. The menus check plays every path with real taps, which is how this showed. |
 | v0.26.0: the new music couldn't be listened to here, only measured | Measure what you can't hear: an analyser on the music bus gave each song's loudness (themes about 0.024, bosses 0.029), so the themes sit just under the boss music. The owner's ears decide the rest. |
 | v0.26.0: the "every letter exists" check failed on note names like 'F#5' in the music | A check that scans all source text needs to know which text is never shown; say why where it skips a file. |
+| v0.26.0: the link preview said "THREE WORLDS. THREE BOSSES. MORE COMING SOON" — the owner: "What the hell is this?" They don't want players told up front how many levels exist | Never advertise how much of the game is unfinished; say it at the end of the last level only. The level list now hides the coming-soon slots (they look locked) until level 3 is finished. |
+| v0.26.0: the owner disliked the title lettering and wanted something iconic, "like Star Fox", with the ship built in | For the one image people see first, show several complete designs as real start screens (with the buttons in place) and let the owner pick; style can be borrowed, never a real logo. A small 3D model of the ship, drawn as pixel art, gave any angle cheaply. The owner liked all six and picked the squadron badge. |
 | LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
 
 ## 5. Our working process (what works)
