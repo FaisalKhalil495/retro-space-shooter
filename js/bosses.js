@@ -1,8 +1,8 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.28.0';
-import { ROCKJAW } from './rockart.js?v=0.28.0';
-import { sfx } from './audio.js?v=0.28.0';
-import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.28.0';
-import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.28.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.29.0';
+import { ROCKJAW } from './rockart.js?v=0.29.0';
+import { sfx } from './audio.js?v=0.29.0';
+import { clamp, rectHitsCircle, rectsOverlap } from './util.js?v=0.29.0';
+import { FLESH, MOLTEN, ROCK, TOOTH } from './gore.js?v=0.29.0';
 
 // ROCKJAW · THE LIVING ASTEROID — boss of The Outer Belt.
 //
@@ -349,6 +349,7 @@ export const ROCKJAW_TYPE = {
   name: 'ROCKJAW',
   title: 'THE LIVING ASTEROID',
   taunt: 'YOU ARE FUCKING DINNER',
+  music: 'rockjaw',
   // Said in his speech bubble when he kills you (and shown on Game Over).
   killLines: [
     'I FUCKING ATE YOU',

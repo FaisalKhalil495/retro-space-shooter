@@ -621,6 +621,69 @@ for (const phone of PHONES) {
   await context.close();
 }
 
+// The music (v0.29.0): every recorded song is there, decodes, fills its
+// loop and isn't silent at the loop's end; the menus play The Outer Belt's
+// piece; a level plays its theme, looping after the intro, and has its boss
+// song ready in time for the warning, which switches to it.
+{
+  const sound = await chromium.launch({ args: ['--autoplay-policy=no-user-gesture-required'] });
+  const context = await sound.newContext({ viewport: { width: 915, height: 412 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  const errs = [];
+  page.on('pageerror', (e) => errs.push(String(e)));
+  await page.goto(base);
+  await page.waitForTimeout(400);
+  const files = await page.evaluate(async () => {
+    const { TRACKS } = await import('/js/tracks.js' + new URL(document.querySelector('script[type=module]').src).search);
+    const ac = new AudioContext();
+    const res = {};
+    for (const [name, T] of Object.entries(TRACKS)) {
+      const data = await (await fetch(T.file)).arrayBuffer();
+      const b = await ac.decodeAudioData(data);
+      const d = b.getChannelData(0);
+      const rms = (a, z) => {
+        let sum = 0;
+        for (let i = Math.floor(a * b.sampleRate); i < Math.floor(z * b.sampleRate); i++) sum += d[i] * d[i];
+        return Math.sqrt(sum / ((z - a) * b.sampleRate));
+      };
+      let first = -1;
+      for (let i = 0; i < d.length && first < 0; i++) if (Math.abs(d[i]) > 0.02) first = i;
+      const shift = Math.round((first / b.sampleRate - T.hit) * 1000); // ms the decoder moved it
+      res[name] = {
+        shift,
+        ok: Math.abs(shift) <= 3 && T.hit >= T.start && T.hit < T.start + 0.03 && T.loopStart > T.start && T.loopEnd > T.loopStart + 20 && b.duration >= T.loopEnd - 0.01 && b.duration < T.loopEnd + 0.2 &&
+          rms(T.loopEnd - 2, T.loopEnd - 0.01) > 0.02 && rms(T.loopStart, T.loopStart + 2) > 0.02,
+        secs: Math.round(b.duration),
+      };
+    }
+    return res;
+  });
+  // The opening screen's tap starts sound; the menus play the title music.
+  await page.touchscreen.tap(457, 206);
+  const waitFor = (fn, arg) => page.waitForFunction(fn, arg, { timeout: 8000 }).then(() => true, () => false);
+  const title = await waitFor(() => window.__ember.music.name === 'title' && window.__ember.music.track === 'belt');
+  // Level 2: its theme, then (at the boss warning) the Siege Crawler's.
+  await page.evaluate(() => window.__ember.play(2));
+  const theme = await waitFor(() => window.__ember.music.track === 'rust' && window.__ember.music.loop);
+  const loop = await page.evaluate(async () => {
+    const { TRACKS } = await import('/js/tracks.js' + new URL(document.querySelector('script[type=module]').src).search);
+    const m = window.__ember.music;
+    return Math.abs(m.loopStart - TRACKS.rust.loopStart) < 0.1 && Math.abs(m.loopEnd - TRACKS.rust.loopEnd) < 0.1;
+  });
+  await page.waitForTimeout(1500); // (time enough for the boss song to load in the background)
+  const boss = await page.evaluate(async () => {
+    window.__ember.game.startWarning();
+    const t = performance.now();
+    while (window.__ember.music.track !== 'march' && performance.now() - t < 3000) await new Promise((r) => setTimeout(r, 10));
+    return { track: window.__ember.music.track, ms: Math.round(performance.now() - t) };
+  });
+  const ok = Object.keys(files).length === 6 && Object.values(files).every((f) => f.ok) && title && theme && loop &&
+    boss.track === 'march' && boss.ms < 150 && errs.length === 0;
+  console.log(`${ok ? 'PASS' : 'FAIL'}  music: six songs, menus, level theme looping, boss song ready ${JSON.stringify({ files, title, theme, loop, boss, errs })}`);
+  if (!ok) failures++;
+  await sound.close();
+}
+
 // Stage 3A: level flow. "?level=2" starts on level 2; clearing level 1
 // carries score, lives and the special into level 2 with full health;
 // beating the Siege Crawler clears level 2; after the last level comes the
@@ -2550,7 +2613,6 @@ for (const phone of PHONES) {
   const { readdirSync, readFileSync } = await import('node:fs');
   const missing = new Set();
   for (const f of readdirSync(new URL('../js/', import.meta.url))) {
-    if (f === 'music.js') continue; // (its capitals are note names, never shown)
     const src = readFileSync(new URL('../js/' + f, import.meta.url), 'utf8');
     for (const m of src.matchAll(/'([^'\n]*)'|`([^`\n]*)`/g)) {
       const str = (m[1] ?? m[2]).replace(/\$\{[^}]*\}/g, '');

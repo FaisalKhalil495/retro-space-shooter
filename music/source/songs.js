@@ -1,5 +1,8 @@
 // The soundtrack: one piece per level and one per boss, each in its own
-// style. Played with the instruments in js/soundtrack.js. Every song is
+// style, played with the instruments in soundtrack.js (beside this file).
+// The game doesn't run this code: it's far too heavy for a phone to play
+// live, so tools/render-music.mjs records each song into music/*.mp3,
+// which the game plays (js/music.js). Every song is
 // a list of bars; `play(K)` schedules all of it, where K.t(bar, step)
 // is the time of a 16th-note step and K.S the length of one step.
 // `loop` is the bar a song returns to when it repeats (after its intro).

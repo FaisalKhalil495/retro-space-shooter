@@ -1,9 +1,9 @@
-// The soundtrack's instruments, all made by code (no audio files): drums
+// The soundtrack's instruments, all made by code: drums
 // (kick, snare, metal hi-hats, cymbals, toms, taiko, anvil clanks, impacts,
 // risers), distorted guitars, basses, synths, and a small orchestra
 // (strings, brass, choir, low "braam" hits). Everything plays through a
 // stereo mix with a shared reverb, an echo and a "pump" bus that dips
-// under the kick drum. Songs (js/songs.js) call these with exact times.
+// under the kick drum. Songs (songs.js) call these with exact times.
 
 let ac = null;
 let out = null; // the mix

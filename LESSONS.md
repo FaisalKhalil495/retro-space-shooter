@@ -194,7 +194,15 @@ Last updated: v0.28.0, after the owner's questions about the music and real apps
   real game moments, not separate sprites, when the question is "how will
   the game look".
 - Swearing is welcome in boss lines and death quips (adult game).
-- All sound is synthesised in code (warm, filtered, 16-bit feel).
+- **Sound effects** are synthesised in code (warm, filtered, 16-bit
+  feel). **Music must sound like a serious action game, never a toy**
+  (v0.29.0): the owner rejected the warm-retro themes ("childish") and
+  three heavier style samples, then approved six pieces written fresh,
+  each in its own genre that fits its world (dark synth, desert metal,
+  cold movie tension, monster metal, industrial march, epic orchestral
+  in 7/8). Distorted guitars, real-sounding drums, orchestra (strings,
+  brass, choir), stereo reverb and minor keys did it; square-wave leads,
+  bright chimes and a thin mono mix are what sounded like a toy.
 - **The title is the game's face.** The owner rejected the plain title
   lettering and a "simple" ship picture, and asked for an iconic,
   stylised logo ("like Star Fox") with the ship built in. Six complete
@@ -295,6 +303,8 @@ Last updated: v0.28.0, after the owner's questions about the music and real apps
 | v0.26.0–v0.27.0: the owner rejected a poster of the plain in-game sprite ("simply showed my ship") and then the title lettering ("I hate the font") | For presentation pictures, a scaled-up sprite isn't enough: give the hero image its own art (a detailed model, a dramatic angle, a designed logo). Ask what "iconic" means to them by showing options, not by describing them. |
 | v0.28.0: the owner asked whether the music was in, two releases after it shipped | People don't read changelogs closely. Say plainly how to notice each new thing (and what could hide it, like silent-until-tap audio), and keep a scannable "what's new" at the end of every release message. |
 | LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
+| v0.29.0: "Music sucks. It's not a baby toy" — and three style samples (rock / synthwave / space opera, one shared tune) were rejected too | One tune in three costumes still sounds like one piece. Write each piece fresh in a genre that fits its world, let them sound different from each other, and send recordings to judge by ear (measured for loudness and phone-speaker balance first, since I can't hear them). |
+| v0.29.0: the heavy instruments that made the music good took 4–12 minutes to record one minute of music on a server: a phone could never play them live | Write music as code but ship recordings made from that code (a rule change the owner approved): quality without a cost while playing. Keep the loop seamless by folding the reverb tail onto the loop start, and line up the loop from the file's own opening hit, not from what the decoder reports. |
 
 ## 5. Our working process (what works)
 
@@ -539,6 +549,10 @@ rock, pickups reachable) before the first hand-over.
   lettering was disliked, and six real start-screen designs (with the
   buttons in place) settled it at once.
 - Reusable: see "Making a game presentable" in section 8.
+- v0.29.0, the music redo: the owner found the music childish. Six new
+  pieces (three levels, three bosses) written as code, approved by ear
+  from recordings, then shipped as recordings (about 1 MB each) because
+  they're too heavy to play live. The menus play The Outer Belt's.
 
 ### Carry into Stage 3 (checklist for the plan)
 - Each boss: 3+ phases, 5+ attacks, entrance + name card, roar, music,
@@ -565,6 +579,15 @@ what's next only once the player gets there → music for every screen →
 fades → home-screen icon and full-screen manifest → link-preview picture.
 Draw menus with the game's own art so they match; find buttons by name in
 tests, not by position.
+
+**Music for an action game**: ask the genre per level and boss early, and
+send recordings, not descriptions. Write the music as code (instruments
+plus songs bar by bar) and record it to MP3 with a tool (headless
+browser's offline audio + ffmpeg): rich sound, nothing to compute while
+playing, still entirely your own. MP3 plays in Chrome, Chromium tests and
+Safari (AAC doesn't decode in Chromium). Loop it in the game with the
+buffer's loop points; fold the reverb tail onto the loop start; find the
+first hit in the decoded audio to cancel any decoder delay.
 
 
 The parts of this project that would carry over to any new game:

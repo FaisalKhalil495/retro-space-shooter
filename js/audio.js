@@ -69,7 +69,7 @@ export function setVolumes(music, sound) {
 
 // For the music player, which shares the same sound system.
 export function audioOut() {
-  return ac && master ? { ac, master: musicGain, noiseBuf } : null;
+  return ac && master ? { ac, master: musicGain } : null;
 }
 
 // A gritty overdrive, used to make boss sounds feel huge and ugly.
