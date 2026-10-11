@@ -11,6 +11,7 @@ const DEFAULTS = () => ({
   scores: [], // [{ name: 'ABC', score, level }], best first
   settings: { music: 4, sound: 4, vibrate: true, blood: true }, // volumes 0..5
   lastName: '', // the name last put on the table (offered again next time)
+  finished: false, // reached the end of the last level so far (then levels to come show as coming soon)
 });
 
 function load() {
@@ -25,6 +26,7 @@ function load() {
           .slice(0, TOP);
       }
       if (raw.settings && typeof raw.settings === 'object') Object.assign(d.settings, raw.settings);
+      if (raw.finished === true) d.finished = true;
       if (typeof raw.lastName === 'string') d.lastName = raw.lastName.replace(/[^A-Z]/g, '').slice(0, 8);
     }
   } catch {

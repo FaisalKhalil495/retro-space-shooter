@@ -242,9 +242,19 @@ export class Menu {
         drawText(ctx, `${lv.number}  ${lv.name}`, x + 35, y + 3, open ? PAL.cream : PAL.textDim);
         drawText(ctx, 'BOSS  ' + BOSS_NAMES[lv.boss], x + 35, y + 10, open ? PAL.bluePale : '#4d5570');
         if (open) chevron(ctx, x + 172, y + 5.5, PAL.amber);
-      } else {
+      } else if (save.finished) {
+        // (Only someone who has finished the last level learns it's the
+        // last one for now.)
         drawText(ctx, `${i + 1}  ???`, x + 35, y + 3, PAL.textDim);
         drawText(ctx, 'COMING SOON', x + 35, y + 10, PAL.amberSoft);
+      } else {
+        // Before that, it's just another locked level.
+        ctx.fillStyle = 'rgba(11, 15, 28, 0.6)';
+        ctx.fillRect(x + 2, y + 2, 28, 13);
+        lock(ctx, x + 13.5, y + 4.5);
+        drawText(ctx, `${i + 1}  ???`, x + 35, y + 3, PAL.textDim);
+        drawText(ctx, 'BOSS  ???', x + 35, y + 10, '#4d5570');
+        drawText(ctx, 'LOCKED', x + 180 - 40, y + 3, PAL.textDim);
       }
       if (lv && !open) {
         drawText(ctx, 'LOCKED', x + 180 - 40, y + 3, PAL.textDim);

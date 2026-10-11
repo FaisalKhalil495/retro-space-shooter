@@ -116,6 +116,8 @@ game.onLevelDone = () => {
     reachLevel(game.levelIndex + 2, LEVELS.length);
     game.nextLevel();
   } else {
+    save.finished = true; // (the level list now says what's coming)
+    store();
     stopMusic(0.5);
     fade = 1;
     mode = 'menu';
