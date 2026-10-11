@@ -57,7 +57,6 @@ function buildShip() {
       const c = rings[r + 1][j];
       const d = rings[r + 1][i];
       const up = a[1] + b[1] > 2 * stations[r][3];
-      const x0 = stations[r][0];
       // An amber stripe along the flanks towards the nose (as in the game).
       const side = Math.abs(Math.sin(((i + 0.5) / N) * Math.PI * 2)) < 0.32;
       const mat = side && (r === 4 || r === 5) ? 'amber' : up ? 'hull' : 'belly';
