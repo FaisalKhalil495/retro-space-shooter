@@ -14,7 +14,7 @@ stage — and, one day, a system for building more games.
 - At the end of every stage also add a retrospective (section 7) and move
   anything reusable into section 8 ("Recipe for future games").
 
-Last updated: v0.28.0 (the game made presentable up to level 3: final review).
+Last updated: v0.28.0, after the owner's questions about the music and real apps.
 
 ---
 
@@ -62,6 +62,21 @@ Last updated: v0.28.0 (the game made presentable up to level 3: final review).
 - **Prefers plain over arcade conventions.** "Enter your initials" puzzled
   the owner ("What is this?"); high scores take a first name instead (up
   to 8 letters). Explain any genre convention, or skip it.
+- **Asks "have you added X?" after big pushes.** After several releases
+  in a row the owner lost track of what was in ("Have you added the
+  music?"). Answer with a short table of what plays/happens where, plus
+  why they might not notice it (phones stay silent until the first tap;
+  the Options volume; the iPhone silent switch). Each release message
+  should end with a one-line "what's new" list the owner can scan.
+- **Thinking about real apps.** After v0.28.0 the owner asked how to turn
+  the game into an Android or iPhone app. App stores are still out of
+  scope (CLAUDE.md); the answer laid out both paths (Android: a $25
+  account, a Google-approved web-game wrapper, offline play for the app
+  only, a privacy policy, Google's closed test with testers before going
+  public, a signing key that must never go on GitHub; iPhone: $99 a year,
+  a Mac or a paid cloud build service, Apple's manual review) and
+  recommended finishing more levels first, then Android. Waiting on the
+  owner's decision whether to add it to the plan.
 - **Wants to understand the systems.** Questions like "how often do power-ups
   appear?" or "what are we supposed to get in the boss fight?" deserve a
   real audit of the code, with numbers — that's how the supply-pod bug
@@ -180,6 +195,16 @@ Last updated: v0.28.0 (the game made presentable up to level 3: final review).
   the game look".
 - Swearing is welcome in boss lines and death quips (adult game).
 - All sound is synthesised in code (warm, filtered, 16-bit feel).
+- **The title is the game's face.** The owner rejected the plain title
+  lettering and a "simple" ship picture, and asked for an iconic,
+  stylised logo ("like Star Fox") with the ship built in. Six complete
+  start-screen designs, each with its own hand-drawn lettering, settled it
+  (the owner called them all beautiful, picked the squadron badge). The
+  ship as a small 3D model drawn as pixel art gives a dramatic angle for
+  any poster; the logo is painted once, never per frame.
+- **Screens are split by job**: the opening screen is only the badge and
+  "tap to continue" (no buttons); the main menu is a vertical column of
+  buttons with a small badge beside it.
 
 ## 4. Things that went wrong, and the lesson from each
 
@@ -267,6 +292,8 @@ Last updated: v0.28.0 (the game made presentable up to level 3: final review).
 | v0.26.0: the "every letter exists" check failed on note names like 'F#5' in the music | A check that scans all source text needs to know which text is never shown; say why where it skips a file. |
 | v0.26.0: the link preview said "THREE WORLDS. THREE BOSSES. MORE COMING SOON" — the owner: "What the hell is this?" They don't want players told up front how many levels exist | Never advertise how much of the game is unfinished; say it at the end of the last level only. The level list now hides the coming-soon slots (they look locked) until level 3 is finished. |
 | v0.26.0: the owner disliked the title lettering and wanted something iconic, "like Star Fox", with the ship built in | For the one image people see first, show several complete designs as real start screens (with the buttons in place) and let the owner pick; style can be borrowed, never a real logo. A small 3D model of the ship, drawn as pixel art, gave any angle cheaply. The owner liked all six and picked the squadron badge. |
+| v0.26.0–v0.27.0: the owner rejected a poster of the plain in-game sprite ("simply showed my ship") and then the title lettering ("I hate the font") | For presentation pictures, a scaled-up sprite isn't enough: give the hero image its own art (a detailed model, a dramatic angle, a designed logo). Ask what "iconic" means to them by showing options, not by describing them. |
+| v0.28.0: the owner asked whether the music was in, two releases after it shipped | People don't read changelogs closely. Say plainly how to notice each new thing (and what could hide it, like silent-until-tap audio), and keep a scannable "what's new" at the end of every release message. |
 | LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
 
 ## 5. Our working process (what works)
