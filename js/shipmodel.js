@@ -1,4 +1,4 @@
-import { PAL } from './config.js?v=0.27.0';
+import { PAL } from './config.js?v=0.28.0';
 
 // Your ship as a small 3D model, built from its in-game shape (a long
 // pointed nose with the amber stripe, a glass canopy, swept wings with

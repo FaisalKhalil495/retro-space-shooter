@@ -14,7 +14,7 @@ stage — and, one day, a system for building more games.
 - At the end of every stage also add a retrospective (section 7) and move
   anything reusable into section 8 ("Recipe for future games").
 
-Last updated: v0.27.0 (the squadron-badge opening screen and a vertical main menu).
+Last updated: v0.28.0 (the game made presentable up to level 3: final review).
 
 ---
 
@@ -496,6 +496,23 @@ rock, pickups reachable) before the first hand-over.
   test, so it can't come back. Showing the owner every picture sheet
   before building kept the designs theirs.
 
+### Making it presentable (v0.25.0 → v0.28.0)
+- The owner, short on weekly budget, asked to make the three finished
+  levels feel like a complete game to show people before building more.
+  Plan: 3 releases (menus and saving; music and polish; final review),
+  one decision at a time, pictures before building.
+- Built: an opening screen (the squadron badge with the ship), a vertical
+  main menu, level select for practice, high scores with first names on
+  our own keyboard, options (volumes, vibration, blood), a pause button
+  and menu, game over with Continue and a boss checkpoint, a "to be
+  continued" ending, level and title music, fades, a home-screen app
+  icon and a link preview. Smoke test plays every menu with real taps.
+- What the owner corrected: initials ("what is this?") became first
+  names; the link preview must not count levels; the first title
+  lettering was disliked, and six real start-screen designs (with the
+  buttons in place) settled it at once.
+- Reusable: see "Making a game presentable" in section 8.
+
 ### Carry into Stage 3 (checklist for the plan)
 - Each boss: 3+ phases, 5+ attacks, entrance + name card, roar, music,
   real movement, **speech bubbles in first person**, a **stage bonus** per
@@ -511,6 +528,17 @@ rock, pickups reachable) before the first hand-over.
 - One new system per release where possible.
 
 ## 8. Recipe for future games (reusable)
+
+**Making a game presentable** (the order that worked here): opening
+screen with a strong logo (tap to continue) → main menu (continue / new
+game / levels / scores / options / help) → saving on the phone (progress,
+scores, options; never trust what's stored, check it on loading) → pause
+button + auto-pause → game over with continue → an ending that says
+what's next only once the player gets there → music for every screen →
+fades → home-screen icon and full-screen manifest → link-preview picture.
+Draw menus with the game's own art so they match; find buttons by name in
+tests, not by position.
+
 
 The parts of this project that would carry over to any new game:
 
