@@ -1,15 +1,15 @@
-import { VERSION, VIEW_W, VIEW_H, PAL } from './config.js?v=0.26.0';
-import { readSafeArea, computeLayout } from './layout.js?v=0.26.0';
-import { Controls } from './controls.js?v=0.26.0';
-import { Game } from './game.js?v=0.26.0';
-import { unlockAudio, suspendAudio, setVolumes, sfx } from './audio.js?v=0.26.0';
-import { startMusic, stopMusic, musicPlaying } from './music.js?v=0.26.0';
-import { useDetail } from './detail.js?v=0.26.0';
-import { Menu } from './menu.js?v=0.26.0';
-import { save, store, reachLevel, isHighScore, addScore } from './save.js?v=0.26.0';
-import { buzz, canVibrate, setVibrate, HAPTIC } from './feedback.js?v=0.26.0';
-import { Background } from './background.js?v=0.26.0';
-import { LEVELS } from './levels.js?v=0.26.0';
+import { VERSION, VIEW_W, VIEW_H, PAL } from './config.js?v=0.27.0';
+import { readSafeArea, computeLayout } from './layout.js?v=0.27.0';
+import { Controls } from './controls.js?v=0.27.0';
+import { Game } from './game.js?v=0.27.0';
+import { unlockAudio, suspendAudio, setVolumes, sfx } from './audio.js?v=0.27.0';
+import { startMusic, stopMusic, musicPlaying } from './music.js?v=0.27.0';
+import { useDetail } from './detail.js?v=0.27.0';
+import { Menu } from './menu.js?v=0.27.0';
+import { save, store, reachLevel, isHighScore, addScore } from './save.js?v=0.27.0';
+import { buzz, canVibrate, setVibrate, HAPTIC } from './feedback.js?v=0.27.0';
+import { Background } from './background.js?v=0.27.0';
+import { LEVELS } from './levels.js?v=0.27.0';
 
 const canvas = document.getElementById('screen');
 const ctx = useDetail(canvas.getContext('2d', { alpha: false }));
@@ -51,6 +51,13 @@ const menu = new Menu({
   canVibrate,
   play: (level, practice) => startLevel(level, practice),
   quickStart: () => startLevel(urlLevel, false, startAt),
+  // The opening screen's tap: on to the main menu (and full screen, which
+  // a phone only allows straight after a tap).
+  toMenu() {
+    goFullscreen();
+    fade = 1;
+    menu.open('title');
+  },
   setting(key, value) {
     save.settings[key] = value;
     store();
@@ -82,7 +89,7 @@ const menu = new Menu({
     else showTitle();
   },
 });
-menu.open(testStart ? 'quick' : 'title', { level: urlLevel });
+menu.open(testStart ? 'quick' : 'splash', { level: urlLevel });
 
 function startLevel(level, practice, at = 0) {
   game.levelIndex = level - 1;

@@ -1,4 +1,4 @@
-import { audioOut } from './audio.js?v=0.26.0';
+import { audioOut } from './audio.js?v=0.27.0';
 
 // All the music, generated live (no audio files). Each level has its own
 // theme and the title screen has a calm one (warm and a little moody: a

@@ -538,9 +538,21 @@ and 5 shown as coming soon. Menus approved from a picture sheet.)
   reached; locked levels show a padlock, levels 4 and 5 show "COMING
   SOON" with no name. Practice scores never go on the high-score table;
   clearing a practice level goes back to the level list.
-- **Title screen**: logo with drifting embers, tagline "DEFEND THE
-  WORLDS", your ship idling, Continue / New Game, then Levels, Scores,
-  Options, Help, and your best score. **Options**: music and sound volume
+- **Opening screen** (v0.27.0, owner's pick "Squadron badge" from six
+  designs): the **title badge** fills the screen over the drifting
+  starfield — "EMBER DRIFT" in our own angular, forward-slanted lettering
+  (metal face: pale above a dark horizon line, amber below; rust-red 3D
+  side; ink outline; a glint) on an angular dark-metal plate with an
+  amber border, and **your ship** (a 3D model of it, drawn as pixel art)
+  crossing the plate's corner, its engine trail sweeping under it;
+  "DEFEND THE WORLDS" and a blinking "TAP TO CONTINUE". No buttons: one
+  tap (which also goes full screen) leads to the main menu. The owner
+  hated the old title lettering; menu and in-game text keep our small
+  smooth letters.
+- **Main menu** (owner: "vertically aligned"): one column of buttons on
+  the right — Continue (the level's name under it) or Play, New Game,
+  Levels, High Scores, Options, How to Play — and a smaller badge on the
+  left with your best score under it. **Options**: music and sound volume
   (0–5, 4 is normal), vibration on/off (Android; "not supported" on
   iPhone), blood on/off. **Help**: the controls, cargo pods, power-ups,
   ammo, and the boss rule.
@@ -726,7 +738,13 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - `js/main.js` — start-up, screen sizing, game loop, which screen is up
   (`mode`: menu / play / paused / over), the pause button, menu taps,
   applying options, full screen.
-- `js/menu.js` — every menu screen (title, levels, scores, options, help,
+- `js/titleart.js` — the title badge (plate, lettering, trail, ship),
+  painted pixel by pixel at double detail: `titleBadge()` (the opening
+  screen, 208x144) and `menuBadge()` (the main menu, 104x48), each painted
+  once; `paintBadge`/`paintSky` also make the link preview.
+  `js/shipmodel.js` — your ship as a small 3D model, lit and drawn as
+  pixel art from any angle (`renderShip`).
+- `js/menu.js` — every menu screen (opening screen 'splash', main menu 'title', levels, scores, options, help,
   pause, game over, name entry, "to be continued", the test-link start),
   drawn in game pixels with our lettering; buttons act when the finger
   lifts on them. `js/save.js` — what's remembered on the phone.
@@ -803,7 +821,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - `manifest.webmanifest` + `icons/` — the home-screen app (opens full
   screen, sideways, with the game's own icon: your ship) and the picture a
   shared link shows (`icons/preview.png`, 1200x630, named in index.html's
-  `og:` tags). `tools/make-icons.mjs` redraws them from the game's art.
+  `og:` tags: the title badge on space). `tools/make-icons.mjs` redraws
+  them from the game's art.
 - `js/gore.js` — blood (creatures only), chunks/debris, stains, screen-glass
   smears, boss corpses; pixel-map pieces (teeth, wreckage) are painted
   once as small pictures (`pieceImage`).
@@ -815,7 +834,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - `tools/smoke-test.mjs` — simulated-phone test (Android + iPhone sizes):
   `PLAYWRIGHT_PATH=/opt/node22/lib/node_modules/playwright node tools/smoke-test.mjs <screenshot-dir>`
 - The smoke test's "menus" check (v0.25.0) plays every menu with real
-  taps: options saved, the pause button, game over -> save score (a
+  taps: the opening screen leads to the main menu (buttons found by name),
+  options saved, the pause button, game over -> save score (a
   typed name) -> continue, the boss checkpoint (proven to fail without it), the level reached remembered, practice,
   "to be continued" -> table -> title, and all of it still there after
   reopening (proven to fail when the level reached isn't saved).
