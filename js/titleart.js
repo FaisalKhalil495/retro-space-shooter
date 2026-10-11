@@ -1,6 +1,6 @@
-import { PAL } from './config.js?v=0.27.0';
-import { detailCanvas, rgba } from './detail.js?v=0.27.0';
-import { renderShip } from './shipmodel.js?v=0.27.0';
+import { PAL } from './config.js?v=0.28.0';
+import { detailCanvas, rgba } from './detail.js?v=0.28.0';
+import { renderShip } from './shipmodel.js?v=0.28.0';
 
 // The title: "EMBER DRIFT" in our own angular, forward-slanted lettering
 // (a metal face lit pale above a dark horizon line and amber below, a

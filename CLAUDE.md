@@ -724,8 +724,8 @@ Approved by the owner. Keep the status column up to date.
 | 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C built (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2; owner testing) |
 | G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | Done (v0.24.0) — step 1 (v0.20.0), step 2 (v0.21.0: level 1 enemies, cargo pod, asteroids, Rockjaw; review fixes v0.21.1–v0.21.2), step 3 (v0.22.0: Rust Moon set, spires, floor, Siege Crawler; review fixes v0.22.1, smoother stage 2 v0.22.2), step 4 (v0.23.0: Frostring's enemies and ice; v0.23.1: the Glacier Warden; review fixes v0.23.2), step 5 wrap-up review (v0.24.0; owner testing) |
 | 4 | **Levels 6–9** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. | |
-| 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | Built early (v0.25.0, owner's "make it presentable" request; owner testing) |
-| 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | Mostly built early (v0.26.0: level and title themes, fades between menus and game, home-screen icon and full-screen app, link preview); final check on both phones still to come |
+| 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | Done early (v0.25.0 menus and saving, v0.25.1 boss checkpoint, v0.27.0 squadron-badge opening screen and vertical main menu; owner's "make it presentable" request) |
+| 6 | **Music & Polish** | Warm retro music per level + boss music; screen shake, explosions, transitions; "Add to Home Screen" full-screen support (extra Claude suggested); final check on both phones. | Done early for levels 1–3 (v0.26.0: level and title themes, fades between menus and game, home-screen icon and full-screen app, link preview; v0.28.0 final review on both phone sizes). New levels add their own themes as they're built. |
 
 Testing: Claude checks each stage on a simulated phone screen before handing
 it over. The owner tests on Android; ideally the friend checks iPhone each stage.
@@ -874,7 +874,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   341 calls, 4.2 MB; v0.24.0: calls 299 / 354 / 294 / 343 / 584, garbage
   4.0 / 2.9 / 2.5 / 3.6 / 4.3 MB (frames 35–47 on that session's slower
   computer, the same as v0.23.2 run alongside: frame counts only compare
-  on the same computer).
+  on the same computer); v0.28.0: calls 303 / 358 / 298 / 348 / 590 (+4:
+  the pause button), garbage 3.8 / 2.9 / 2.6 / 3.7 / 4.4 MB.
   Rule: nothing big is repainted every frame if it never changes (paint it
   once into a picture), and no full-screen gradients per frame.
 - `tools/serve.mjs` — the tests' tiny web server (this computer only; refuses

@@ -1,4 +1,4 @@
-import { audioOut } from './audio.js?v=0.27.0';
+import { audioOut } from './audio.js?v=0.28.0';
 
 // All the music, generated live (no audio files). Each level has its own
 // theme and the title screen has a calm one (warm and a little moody: a
@@ -232,8 +232,12 @@ let STEP = 60 / song.bpm / 4; // one 16th note
 export function startMusic(name) {
   const out = audioOut();
   if (!out || playing === name) return;
+  if (!SONGS[name] && !TUNES[name]) {
+    stopMusic(1); // (a level without a theme of its own: quiet)
+    return;
+  }
   if (timer) stopMusic(1);
-  song = SONGS[name] || TUNES[name] || SONGS.rockjaw;
+  song = SONGS[name] || TUNES[name];
   playing = name;
   STEP = 60 / song.bpm / 4;
   const { ac, master } = out;

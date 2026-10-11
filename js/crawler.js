@@ -1,14 +1,14 @@
-import { VIEW_W, HUD_H, PAL } from './config.js?v=0.27.0';
-import { sfx } from './audio.js?v=0.27.0';
-import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.27.0';
-import { FINE, snapFine, fillCrisp, crispOf, detailCanvas } from './detail.js?v=0.27.0';
-import { METAL, MOLTEN } from './gore.js?v=0.27.0';
-import { GROUND_SPEED } from './terrain.js?v=0.27.0';
-import { drawText } from './font.js?v=0.27.0';
+import { VIEW_W, HUD_H, PAL } from './config.js?v=0.28.0';
+import { sfx } from './audio.js?v=0.28.0';
+import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.28.0';
+import { FINE, snapFine, fillCrisp, crispOf, detailCanvas } from './detail.js?v=0.28.0';
+import { METAL, MOLTEN } from './gore.js?v=0.28.0';
+import { GROUND_SPEED } from './terrain.js?v=0.28.0';
+import { drawText } from './font.js?v=0.28.0';
 import {
   CRAWLER, CRAWLER_W, CRAWLER_H, PIVOT, CORE, MORTAR_RACK, FLAK_GUNS, DRONE_BAY, MINE_HATCH, SLIT,
   drawLegs, drawBarrel, drawCore,
-} from './crawlerart.js?v=0.27.0';
+} from './crawlerart.js?v=0.28.0';
 
 // THE SIEGE CRAWLER · THE WALKING FORTRESS — boss of Rust Moon.
 //
