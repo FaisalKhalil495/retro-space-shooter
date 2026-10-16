@@ -17,7 +17,7 @@ function noise1(seed) { const r = rng(seed), v = Array.from({ length: 4096 }, r)
 export function shape(seed = 11) {
   const n1 = noise1(seed), n2 = noise1(seed + 7);
   return {
-    back: (xg) => 119 + (n1(xg / 46) - 0.5) * 14 + (n2(xg / 13) - 0.5) * 3,
+    back: (xg) => 124 + (n1(xg / 46) - 0.5) * 14 + (n2(xg / 13) - 0.5) * 3,
     depth: (xg) => 11 + (n2(xg / 70 + 30) - 0.5) * 3,
   };
 }
