@@ -98,7 +98,7 @@ function despeckle(d, w, h) {
   return o;
 }
 
-export async function cut(src, scale = 1, method = 'mode') {
+export async function cut(src, scale = 1, method = 'mode', order = ORDER, sizes = SIZES) {
   const img = await new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = src; });
   const W = img.width, H = img.height;
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
@@ -121,7 +121,7 @@ export async function cut(src, scale = 1, method = 'mode') {
     }
     comps.push({ n, x0, y0, x1, y1, id: comps.length });
   }
-  const big = comps.filter((k) => k.n > 300).sort((a, b) => b.n - a.n).slice(0, 6);
+  const big = comps.filter((k) => k.n > 300).sort((a, b) => b.n - a.n).slice(0, order.length);
   const owner = new Int32Array(comps.length).fill(-1);
   for (const b of big) owner[b.id] = b.id;
   // small bits (icicles, antennas, flames) join the nearest big piece
@@ -134,7 +134,7 @@ export async function cut(src, scale = 1, method = 'mode') {
   big.sort((a, b) => ((a.y0 + a.y1) / 2 > gh / 2) - ((b.y0 + b.y1) / 2 > gh / 2) || a.x0 - b.x0);
   const out = {};
   big.forEach((b, i) => {
-    const name = ORDER[i];
+    const name = order[i];
     const bx = b.x0 * S, by = b.y0 * S, bw = (b.x1 - b.x0 + 1) * S, bh = (b.y1 - b.y0 + 1) * S;
     const crop = document.createElement('canvas'); crop.width = bw; crop.height = bh;
     const cc = crop.getContext('2d'); cc.drawImage(cv, bx, by, bw, bh, 0, 0, bw, bh);
@@ -145,7 +145,7 @@ export async function cut(src, scale = 1, method = 'mode') {
       if (L < 0 || owner[L] !== b.id) cd.data[(y * bw + x) * 4 + 3] = 0;
     }
     cc.putImageData(cd, 0, 0);
-    const TW = Math.round(SIZES[name][0] * scale), TH = Math.round(SIZES[name][1] * scale);
+    const TW = Math.round(sizes[name][0] * scale), TH = Math.round(sizes[name][1] * scale);
     // fit inside the box, leaving 1 pixel all round for the outline
     const k = Math.min((TW - 2) / bw, (TH - 2) / bh), w = Math.max(1, Math.round(bw * k)), h = Math.max(1, Math.round(bh * k));
     const sd = method === 'mode' ? despeckle(modeShrink(crop, w, h), w, h) : method === 'avg' ? (() => { const d = shrink(crop, w, h).getContext('2d').getImageData(0, 0, w, h).data; return d; })() : sharpShrink(crop, w, h);
