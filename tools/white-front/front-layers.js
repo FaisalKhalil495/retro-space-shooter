@@ -17,7 +17,7 @@ function shrink(src, w, h) {
 
 export const FAR_K = 288 / 941; // the far view fills the screen's height
 export const LINE_K = 0.35;     // the front line's scale
-export const LINE_Y = 124;      // where the front line's band top (source row 300) sits on screen
+export const LINE_Y = 140;      // where the front line's band top (source row 300) sits on screen
 
 export async function build(farSrc, lineSrc) {
   // ---- the far view: one picture, panned very slowly
