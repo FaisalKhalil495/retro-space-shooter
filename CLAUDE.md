@@ -518,6 +518,13 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    in the new look → 3D-2 the three new enemies → 3D-3 the boss (4 designs
    to pick from, its song approved by ear) → review; then "to be continued"
    moves to after level 4.
+   **Art direction (owner, after playing two samples)**: the "right" look —
+   ChatGPT's far background (mountains, ice cliff, bunkers, landing ships;
+   cleaned, shrunk, made to repeat; `tools/white-front/`, originals in
+   `art/white-front/`) with the **ground drawn by code** (a snow band seen
+   from slightly above, ice face below; `tools/white-front/ground.js`) and
+   effects by code. Not the all-code look. ChatGPT's enemy designs (the
+   camouflaged set) were **rejected**: new enemy designs still to be chosen.
 5. **The Ember Mines** — underground tunnels lit by soft amber crystals;
    ceiling and floor squeeze the space. Boss: **The Drill Worm**, a mechanical
    worm bursting from walls above and below.
