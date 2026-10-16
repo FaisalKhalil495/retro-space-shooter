@@ -48,7 +48,57 @@ function modeShrink(src, w, h) {
   return out;
 }
 
-export async function cut(src, scale = 1) {
+// Shrink by averaging (true colours), then sharpen at the small size and
+// reduce to a small set of colours, so edges and panels come out crisp.
+function sharpShrink(src, w, h, amount = 0.9, colours = 24) {
+  const small = shrink(src, w, h);
+  const d = small.getContext('2d').getImageData(0, 0, w, h).data;
+  const px = new Float32Array(w * h * 4);
+  for (let i = 0; i < d.length; i++) px[i] = d[i];
+  // un-premultiply soft edges against themselves
+  for (let i = 0; i < w * h; i++) { const a = px[i * 4 + 3] / 255; if (a > 0.05) for (let c = 0; c < 3; c++) px[i * 4 + c] = Math.min(255, px[i * 4 + c] / Math.max(a, 0.5)); }
+  const out = new Float32Array(px);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const i = (y * w + x) * 4; if (px[i + 3] < 128) continue;
+    for (let c = 0; c < 3; c++) {
+      let sum = 0, n = 0;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const X = x + dx, Y = y + dy; if (X < 0 || Y < 0 || X >= w || Y >= h) continue; const j = (Y * w + X) * 4; if (px[j + 3] < 128) continue; sum += px[j + c]; n++; }
+      if (n) out[i + c] = Math.max(0, Math.min(255, px[i + c] + amount * (px[i + c] - sum / n)));
+    }
+  }
+  // k-means to a few colours
+  const pts = []; for (let i = 0; i < w * h; i++) if (out[i * 4 + 3] >= 128) pts.push(i);
+  const k = Math.min(colours, pts.length);
+  let cent = []; for (let j = 0; j < k; j++) { const i = pts[Math.floor((j * pts.length) / k)]; cent.push([out[i * 4], out[i * 4 + 1], out[i * 4 + 2]]); }
+  const asg = new Int32Array(pts.length);
+  for (let it = 0; it < 12; it++) {
+    pts.forEach((i, n) => { let b = 0, bd = 1e9; cent.forEach((c, j) => { const dd = (out[i * 4] - c[0]) ** 2 + (out[i * 4 + 1] - c[1]) ** 2 + (out[i * 4 + 2] - c[2]) ** 2; if (dd < bd) { bd = dd; b = j; } }); asg[n] = b; });
+    const sum = cent.map(() => [0, 0, 0, 0]);
+    pts.forEach((i, n) => { const s2 = sum[asg[n]]; s2[0] += out[i * 4]; s2[1] += out[i * 4 + 1]; s2[2] += out[i * 4 + 2]; s2[3]++; });
+    cent = cent.map((c, j) => (sum[j][3] ? [sum[j][0] / sum[j][3], sum[j][1] / sum[j][3], sum[j][2] / sum[j][3]] : c));
+  }
+  const res = new Uint8ClampedArray(w * h * 4);
+  pts.forEach((i, n) => { const c = cent[asg[n]]; res[i * 4] = c[0]; res[i * 4 + 1] = c[1]; res[i * 4 + 2] = c[2]; res[i * 4 + 3] = 255; });
+  return res;
+}
+
+// Remove lone stray pixels: a pixel unlike all four neighbours takes the
+// colour most of them share (keeps edges, cleans the noise).
+function despeckle(d, w, h) {
+  const o = new Uint8ClampedArray(d);
+  const same = (i, j) => Math.abs(d[i] - d[j]) + Math.abs(d[i + 1] - d[j + 1]) + Math.abs(d[i + 2] - d[j + 2]) < 40;
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const i = (y * w + x) * 4; if (d[i + 3] < 128) continue;
+    const nb = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => ((y + dy) * w + x + dx) * 4).filter((j) => d[j + 3] >= 128);
+    if (nb.length < 4 || nb.some((j) => same(i, j))) continue;
+    let best = nb[0], bc = 0;
+    for (const j of nb) { const c = nb.filter((k) => same(j, k)).length; if (c > bc) { bc = c; best = j; } }
+    if (bc >= 2) for (let ch = 0; ch < 3; ch++) o[i + ch] = d[best + ch];
+  }
+  return o;
+}
+
+export async function cut(src, scale = 1, method = 'mode') {
   const img = await new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = src; });
   const W = img.width, H = img.height;
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
@@ -98,7 +148,7 @@ export async function cut(src, scale = 1) {
     const TW = Math.round(SIZES[name][0] * scale), TH = Math.round(SIZES[name][1] * scale);
     // fit inside the box, leaving 1 pixel all round for the outline
     const k = Math.min((TW - 2) / bw, (TH - 2) / bh), w = Math.max(1, Math.round(bw * k)), h = Math.max(1, Math.round(bh * k));
-    const sd = modeShrink(crop, w, h);
+    const sd = method === 'mode' ? despeckle(modeShrink(crop, w, h), w, h) : method === 'avg' ? (() => { const d = shrink(crop, w, h).getContext('2d').getImageData(0, 0, w, h).data; return d; })() : sharpShrink(crop, w, h);
     const fin = document.createElement('canvas'); fin.width = TW; fin.height = TH;
     const fc = fin.getContext('2d'), fd = fc.createImageData(TW, TH);
     const ox = Math.floor((TW - w) / 2), oy = Math.floor((TH - h) / 2);
