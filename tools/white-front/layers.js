@@ -95,7 +95,8 @@ export async function buildGround(src, k = 288 / 1024) {
   const small = document.createElement('canvas'); small.width = SW; small.height = SH;
   const s = small.getContext('2d'); s.imageSmoothingQuality = 'high'; s.drawImage(cv, 0, 0, SW, SH);
   // Blend the ends (the join avoids the rocks and the wreck).
-  const O = 24, S0 = 54, E0 = Math.min(408, SW - O), TW = E0 - S0;
+  const f = k / (288 / 1024); // (the join points were chosen at the first scale)
+  const O = Math.round(24 * f), S0 = Math.round(54 * f), E0 = Math.min(Math.round(408 * f), SW - O), TW = E0 - S0;
   const tile = document.createElement('canvas'); tile.width = TW; tile.height = SH;
   const t = tile.getContext('2d'); t.drawImage(small, -S0, 0);
   const a = s.getImageData(0, 0, SW, SH).data, td = t.getImageData(0, 0, TW, SH);
@@ -108,4 +109,54 @@ export async function buildGround(src, k = 288 / 1024) {
   const top = [];
   for (let x = 0; x < TW; x++) { let y = 0; while (y < SH && td.data[(y * TW + x) * 4 + 3] < 128) y++; top.push(y); }
   return { tile, top };
+}
+
+// Ground seen from slightly above (a walkable snow band on top, its front
+// face below). Green cut away, shrunk, and repeated with the join placed
+// where the two ends look most alike. Returns the band's back edge per
+// column and how deep the snow band is.
+export async function buildGround2(src, k = 0.23) {
+  const img = await new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.src = src; });
+  const W = img.width, H = img.height;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const c = cv.getContext('2d'); c.drawImage(img, 0, 0);
+  const id = c.getImageData(0, 0, W, H), d = id.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const r = d[i], g = d[i + 1], b = d[i + 2], m = Math.max(r, b);
+    if (g > 150 && g - m > 90) d[i + 3] = 0;
+    else if (g > m + 20) { d[i + 3] = Math.round(255 * Math.min(1, Math.max(0, 1 - (g - m - 20) / 90))); d[i + 1] = m; }
+  }
+  c.putImageData(id, 0, 0);
+  // the ground's top in the big picture, and where its snow band ends (the
+  // front face starts where the colour turns to deep blue ice)
+  let topMin = H; for (let x = 0; x < W; x += 4) { let y = 0; while (y < H && d[(y * W + x) * 4 + 3] < 128) y++; topMin = Math.min(topMin, y); }
+  let faceY = 0, rows = 0;
+  for (let x = 0; x < W; x += 8) {
+    for (let y = topMin + 60; y < H; y++) { const i = (y * W + x) * 4; if (d[i + 2] > 150 && d[i] < 120 && d[i + 1] < 170) { faceY += y; rows++; break; } }
+  }
+  faceY = faceY / Math.max(1, rows);
+  const SW = Math.round(W * k), SH = Math.round(H * k);
+  const small = document.createElement('canvas'); small.width = SW; small.height = SH;
+  const s = small.getContext('2d'); s.imageSmoothingQuality = 'high'; s.drawImage(cv, 0, 0, SW, SH);
+  const a = s.getImageData(0, 0, SW, SH).data;
+  // choose the join: the two strips of the picture that look most alike
+  const O = 28, y0 = Math.floor(topMin * k);
+  let best = null;
+  for (let S0 = 0; S0 < 60; S0 += 2) for (let E0 = Math.max(S0 + 280, SW - 90); E0 <= SW - O; E0 += 2) {
+    let diff = 0;
+    for (let x = 0; x < O; x += 2) for (let y = y0; y < SH; y += 2) { const p = (y * SW + S0 + x) * 4, q = (y * SW + E0 + x) * 4; diff += Math.abs(a[p] - a[q]) + Math.abs(a[p + 1] - a[q + 1]) + Math.abs(a[p + 2] - a[q + 2]) + Math.abs(a[p + 3] - a[q + 3]); }
+    if (!best || diff < best.diff) best = { S0, E0, diff };
+  }
+  const { S0, E0 } = best, TW = E0 - S0;
+  const tile = document.createElement('canvas'); tile.width = TW; tile.height = SH;
+  const t = tile.getContext('2d'); t.drawImage(small, -S0, 0);
+  const td = t.getImageData(0, 0, TW, SH);
+  for (let y = 0; y < SH; y++) for (let x = 0; x < O; x++) {
+    const f = x / O, i = (y * TW + x) * 4, p = (y * SW + S0 + x) * 4, q = (y * SW + E0 + x) * 4;
+    for (let ch = 0; ch < 4; ch++) td.data[i + ch] = Math.round(a[q + ch] * (1 - f) + a[p + ch] * f);
+  }
+  t.putImageData(td, 0, 0);
+  const top = [];
+  for (let x = 0; x < TW; x++) { let y = 0; while (y < SH && td.data[(y * TW + x) * 4 + 3] < 128) y++; top.push(y); }
+  return { tile, top, band: Math.round((faceY - topMin) * k), topMin: Math.round(topMin * k) };
 }
