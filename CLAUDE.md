@@ -496,7 +496,8 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
 3. **Frostring** — frozen comet ring, pale blues and whites, drifting ice.
    Boss: **The Glacier Warden**, an ice-armoured ship; chip armour off to
    expose the core.
-4. **The ice planet** (name to be chosen; owner, after v0.18.0) — the
+4. **The White Front** (the ice planet; owner, after v0.18.0; named after
+   v0.29.0) — the
    frozen planet below Frostring's ring, where the invaders are fighting
    their way across the surface: daylight snowfields and a battle going on
    around you (the owner's picture: a Hoth-style ground battle, but every
@@ -505,7 +506,18 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    different from Frostring (space) and Rust Moon (the other ground
    level). Its own new enemies and its own boss (not a walking machine:
    that's the Siege Crawler). Plan, looks and boss to be agreed with the
-   owner when we reach it.
+   owner when we reach it. **Plan (owner agreed after v0.29.0)**: bright
+   cold daylight (every level so far is dark); rolling snow drifts and
+   ridges as the ground, with frozen wrecks (not Rust Moon's flat floor and
+   towers); the battle as background only (the defenders' bunkers firing
+   up at invader landing ships, explosions, smoke, tracers; never hurts);
+   one new danger, invader artillery landing on warning rings. Steps:
+   3D-0 choices from pictures (name done; a sheet of 4+ complete looks for
+   the invaders' force here; 3 new enemy designs, each one shoots; a
+   recording of the level music) → 3D-1 the world with today's enemy types
+   in the new look → 3D-2 the three new enemies → 3D-3 the boss (4 designs
+   to pick from, its song approved by ear) → review; then "to be continued"
+   moves to after level 4.
 5. **The Ember Mines** — underground tunnels lit by soft amber crystals;
    ceiling and floor squeeze the space. Boss: **The Drill Worm**, a mechanical
    worm bursting from walls above and below.
