@@ -523,8 +523,8 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    cleaned, shrunk, made to repeat; `tools/white-front/`, originals in
    `art/white-front/`) with the **ground drawn by code** (a snow band seen
    from slightly above, ice face below; `tools/white-front/ground.js`) and
-   effects by code. Not the all-code look. ChatGPT's enemy designs (the
-   camouflaged set) were **rejected**: new enemy designs still to be chosen.
+   effects by code. Not the all-code look. Enemy designs: the owner
+   doesn't like them (being clarified which set).
 5. **The Ember Mines** — underground tunnels lit by soft amber crystals;
    ceiling and floor squeeze the space. Boss: **The Drill Worm**, a mechanical
    worm bursting from walls above and below.
