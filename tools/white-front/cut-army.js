@@ -85,7 +85,7 @@ function sharpShrink(src, w, h, amount = 0.9, colours = 24) {
 // Shrink keeping what matters on dark armour: ember glow wins its patch even
 // when small, snow only where it lies on a top edge, and the gunmetal is
 // lifted out of near-black so its plates read on a phone.
-function armyShrink(src, w, h) {
+function armyShrink(src, w, h, info) {
   const sw = src.width, sh = src.height;
   const d = src.getContext('2d').getImageData(0, 0, sw, sh).data;
   const out = new Uint8ClampedArray(w * h * 4), kind = new Uint8Array(w * h); // 1 metal, 2 ember, 3 snow
@@ -121,6 +121,7 @@ function armyShrink(src, w, h) {
     const k = y * w + x; if (kind[k] !== 1 || out[(k - w) * 4 + 3]) continue;
     for (let c = 0; c < 3; c++) out[k * 4 + c] = Math.min(255, out[k * 4 + c] + 34);
   }
+  if (info) info.kind = kind;
   return out;
 }
 
@@ -198,6 +199,51 @@ function armySharp(src, w, h) {
   return out;
 }
 
+// Sharp, same colours: yesterday's lifted colours, sharpened (each armour
+// pixel pushed away from its neighbours' average, so plates and seams stand
+// out), then reduced to this sprite's own ten armour colours (no noise), lone
+// pixels cleaned, ember and frost untouched.
+function armySharpColour(src, w, h, amount = 0.4, colours = 8) {
+  const info = {}, d = armyShrink(src, w, h, info), kind = info.kind;
+  const f = new Float32Array(d.length); for (let i = 0; i < d.length; i++) f[i] = d[i];
+  const g = new Float32Array(f);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const k = y * w + x; if (kind[k] !== 1) continue;
+    const nb = [];
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) { const X = x + dx, Y = y + dy; if (X >= 0 && Y >= 0 && X < w && Y < h && kind[Y * w + X] === 1) nb.push(Y * w + X); }
+    if (!nb.length) continue;
+    for (let c = 0; c < 3; c++) { let m = 0; for (const j of nb) m += f[j * 4 + c]; m /= nb.length; g[k * 4 + c] = Math.max(0, Math.min(255, f[k * 4 + c] + amount * (f[k * 4 + c] - m))); }
+  }
+  // k-means on the armour pixels only
+  const pts = []; for (let k = 0; k < w * h; k++) if (kind[k] === 1) pts.push(k);
+  const K = Math.min(colours, pts.length);
+  const byL = pts.slice().sort((a, b) => (g[a * 4] + g[a * 4 + 1] + g[a * 4 + 2]) - (g[b * 4] + g[b * 4 + 1] + g[b * 4 + 2]));
+  let cent = []; for (let j = 0; j < K; j++) { const k = byL[Math.floor(((j + 0.5) * byL.length) / K)]; cent.push([g[k * 4], g[k * 4 + 1], g[k * 4 + 2]]); }
+  const asg = new Int32Array(pts.length);
+  for (let it = 0; it < 14; it++) {
+    pts.forEach((k, n) => { let b = 0, bd = 1e9; cent.forEach((c, j) => { const dd = (g[k * 4] - c[0]) ** 2 + (g[k * 4 + 1] - c[1]) ** 2 + (g[k * 4 + 2] - c[2]) ** 2; if (dd < bd) { bd = dd; b = j; } }); asg[n] = b; });
+    const sum = cent.map(() => [0, 0, 0, 0]);
+    pts.forEach((k, n) => { const s2 = sum[asg[n]]; s2[0] += g[k * 4]; s2[1] += g[k * 4 + 1]; s2[2] += g[k * 4 + 2]; s2[3]++; });
+    cent = cent.map((c, j) => (sum[j][3] ? [sum[j][0] / sum[j][3], sum[j][1] / sum[j][3], sum[j][2] / sum[j][3]] : c));
+  }
+  const lab = new Int32Array(w * h).fill(-1); pts.forEach((k, n) => { lab[k] = asg[n]; });
+  // clean lone pixels: unlike all four neighbours -> their majority colour
+  let lab2 = Int32Array.from(lab);
+  for (let pass = 0; pass < 2; pass++) {
+    const src2 = Int32Array.from(lab2);
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+      const k = y * w + x; if (src2[k] < 0) continue;
+      const nb = [k - 1, k + 1, k - w, k + w].map((j) => src2[j]).filter((v) => v >= 0);
+      if (nb.length < 3 || nb.includes(src2[k])) continue;
+      const cnt = {}; for (const v of nb) cnt[v] = (cnt[v] || 0) + 1;
+      const [bv, bc] = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0]; if (bc >= 2) lab2[k] = +bv;
+    }
+  }
+  const out = new Uint8ClampedArray(d);
+  for (let k = 0; k < w * h; k++) if (lab2[k] >= 0) { const c = cent[lab2[k]]; out[k * 4] = c[0]; out[k * 4 + 1] = c[1]; out[k * 4 + 2] = c[2]; }
+  return out;
+}
+
 // Remove lone stray pixels: a pixel unlike all four neighbours takes the
 // colour most of them share (keeps edges, cleans the noise).
 function despeckle(d, w, h) {
@@ -266,7 +312,7 @@ export async function cut(src, scale = 1, method = 'mode', order = ORDER, sizes 
     const TW = Math.round(sizes[name][0] * scale), TH = Math.round(sizes[name][1] * scale);
     // fit inside the box, leaving 1 pixel all round for the outline
     const k = Math.min((TW - 2) / bw, (TH - 2) / bh), w = Math.max(1, Math.round(bw * k)), h = Math.max(1, Math.round(bh * k));
-    const sd = method === 'sharp-army' ? armySharp(crop, w, h) : method === 'army' ? despeckle(armyShrink(crop, w, h), w, h) : method === 'mode' ? despeckle(modeShrink(crop, w, h), w, h) : method === 'avg' ? (() => { const d = shrink(crop, w, h).getContext('2d').getImageData(0, 0, w, h).data; return d; })() : sharpShrink(crop, w, h);
+    const sd = method === 'sharp-colour' ? armySharpColour(crop, w, h) : method === 'sharp-army' ? armySharp(crop, w, h) : method === 'army' ? despeckle(armyShrink(crop, w, h), w, h) : method === 'mode' ? despeckle(modeShrink(crop, w, h), w, h) : method === 'avg' ? (() => { const d = shrink(crop, w, h).getContext('2d').getImageData(0, 0, w, h).data; return d; })() : sharpShrink(crop, w, h);
     const fin = document.createElement('canvas'); fin.width = TW; fin.height = TH;
     const fc = fin.getContext('2d'), fd = fc.createImageData(TW, TH);
     const ox = Math.floor((TW - w) / 2), oy = Math.floor((TH - h) / 2);
