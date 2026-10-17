@@ -1,0 +1,26 @@
+// Your ship, more detail at the same size (proposal).
+export const NEW_KEYS = { w: '#5d79ad', v: '#34446f', z: '#f4f7fc', u: '#7c8dba' };
+export const SHIP = [
+  '........kkkkk.......................',
+  '......kkpzPPpkk.....................',
+  '.....kBpPzcPPbpk....................',
+  '.....kBppPccbpwpk...................',
+  '.....kBBpppPbpwwpk..................',
+  '....kkbbPbbbPbbbPbkk................',
+  'kkkkkBBBBPPPPPPPPPPPPkkkk...........',
+  'koAAkBBBBBpppppppppppppppkkk........',
+  'kAyAkBBBBBBpppppppppppaaaallzkk.....',
+  'kAylkBBBBBBBpppppppppppoooaacczPkk..',
+  'kAyckBBBBBBBBBuuuuuuuuuuuuuuuccccPkk',
+  'kAclkBBPBBBBBPBBBBBPBBBBBbbbbnGGGkk.',
+  'kAlAkbBBBBBBBBBBBBBBBBBBbbbkkkkk....',
+  'koAAkbbBBDBBBBBBBBBBbbbkkk..........',
+  'kAAAkbpbBBDBBaaBBBbbkk..............',
+  'kkkkkkbpbBBDBaaBbbk.................',
+  '....kkbbpbBBDBbbk...................',
+  '.....kbbbpbBBbbk....................',
+  '......kbbbbbbbk.....................',
+  '......kDbbbbbDk.....................',
+  '.......kDDDDDk......................',
+  '........kkkkk.......................',
+];
