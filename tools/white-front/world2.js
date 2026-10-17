@@ -14,7 +14,7 @@ const mix = (a, b, t) => { const A = hex(a), B = hex(b); t = Math.max(0, Math.mi
 const canvas = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
 export const L = 1024;
 const TAU = Math.PI * 2;
-export const groundY = (xg) => 144 - (13 + 7 * Math.sin(xg * (TAU * 7 / L) + 0.5) + 4 * Math.sin(xg * (TAU * 18 / L) + 2));
+export const groundY = () => 131; // a flat snowfield (owner: make the surface flat)
 
 // ------------------------------------------------------------ the sky
 export function sky() {
@@ -181,7 +181,8 @@ export function ground() {
     if ((x * 11) % 37 === 0) px(x, y + 14, '#d6e7f4', 1, 2);
     if ((x * 3) % 41 === 0) px(x, y + 20, '#89b0d6', 1, 4);
     // wind ripples on the drifts
-    if (Math.sin(x * 0.21) > 0.7 && (x % 4) < 3) px(x, y + 4 + Math.round(Math.sin(x * 0.05) * 1.5), '#d3e0ec');
+    if (Math.sin(x * 0.21) > 0.7 && (x % 4) < 3) px(x, y + 4, '#d3e0ec');
+    if (Math.sin(x * 0.13 + 2) > 0.85 && (x % 3) < 2) px(x, y + 8, '#cbd9e7');
   }
   seed = 77;
   for (let i = 0; i < 150; i++) { const x = Math.round(rnd() * (W - 2)) + 1, y = gy(x) + 1 + Math.round(rnd() * 8); px(x, y, '#ffffff'); if (rnd() < 0.3) { px(x - 1, y, 'rgba(255,255,255,0.6)'); px(x + 1, y, 'rgba(255,255,255,0.6)'); } }
