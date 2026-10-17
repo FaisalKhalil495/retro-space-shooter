@@ -126,7 +126,7 @@ function resetFront() {
 }
 function spawnShip(x) {
   const k = Math.floor(rand() * PACK.shipCount);
-  A.ships.push({ k, x: x ?? 430, y: 14 + rand() * 50, vx: -(8 + rand() * 10), vy: 0.6 + rand() * 1.4, hit: 0, trail: 0 });
+  A.ships.push({ k, x: x ?? 430, y: 8 + rand() * 34, vx: -(8 + rand() * 10), vy: 0.6 + rand() * 1.4, hit: 0, trail: 0 });
 }
 const tileW = () => IMG.front.width;
 function gunsOnScreen() {
@@ -180,7 +180,7 @@ function updateFront(dt) {
 function drawFront() {
   g.drawImage(IMG.far, -Math.round(Math.min(S.t * FAR_PAN * 2, IMG.far.width - 416)), 0);
   for (const sh of A.ships) {
-    const im = IMG['ship' + sh.k]; g.globalAlpha = 0.85; g.drawImage(im, Math.round(sh.x), Math.round(sh.y)); g.globalAlpha = 1;
+    const im = IMG['ship' + sh.k]; g.globalAlpha = 0.8; g.drawImage(im, Math.round(sh.x), Math.round(sh.y)); g.globalAlpha = 1;
     if (Math.random() < 0.5) { g.fillStyle = 'rgba(242,207,138,0.5)'; g.fillRect(Math.round(sh.x + im.width * 0.35), Math.round(sh.y + im.height - 1), 2, 2 + Math.floor(Math.random() * 3)); }
   }
   for (const f of A.flak) {
@@ -293,7 +293,7 @@ function updateUnit(o, dt) {
     const px0 = ox + t.pivot[0], py0 = oy + t.pivot[1];
     let want = Math.atan2(S.p.y - py0, S.p.x - px0); if (want > 0) want = want > Math.PI / 2 ? Math.PI : 0;
     const d = ((want - o.ang + Math.PI * 3) % (Math.PI * 2)) - Math.PI; o.ang += Math.max(-1.8 * dt, Math.min(1.8 * dt, d));
-    if (o.burst > 0) { o.bt -= dt; if (o.bt <= 0) { o.burst--; o.bt = 0.15; const mx = px0 + Math.cos(o.ang) * 9, my = py0 + Math.sin(o.ang) * 9; eshot(mx, my, Math.cos(o.ang) * 75, Math.sin(o.ang) * 75); tone(700, 400, 0.06, 'square', 0.03); if (!o.burst) o.cd = 2.2; } }
+    if (o.burst > 0) { o.bt -= dt; if (o.bt <= 0) { o.burst--; o.bt = 0.15; const bl = PACK.barrel ? 9 : 0, mx = px0 + Math.cos(o.ang) * bl, my = py0 + Math.sin(o.ang) * bl; eshot(mx, my, Math.cos(o.ang) * 75, Math.sin(o.ang) * 75); tone(700, 400, 0.06, 'square', 0.03); if (!o.burst) o.cd = 2.2; } }
     else if (o.blink > 0) { o.blink -= dt; if (o.blink <= 0) { o.burst = 3; o.bt = 0; } }
     else if ((o.cd -= dt) <= 0) { o.blink = 0.4; o.cd = 99; }
   } else if (o.type === 'rocketsled') {
@@ -340,26 +340,26 @@ function kill(o) {
 // the timeline: one minute of waves, repeated a little faster each time ----
 const RY = () => 24 + rand() * 50;
 const WAVES = [
-  [0.5, () => { for (let i = 0; i < 3; i++) flyer('drifter', 215 + i * 14, 30 + i * 14); }],
+  [0.5, () => { for (let i = 0; i < 3; i++) flyer('drifter', 215 + i * 20, 26 + i * 18); }],
   [3, () => { flyer('weaver', 215, 40); flyer('weaver', 235, 60); }],
   [5, () => unit('skitank', 225)],
   [7.5, () => flyer('gunner', 222, 50, { hold: 165 })],
-  [10, () => { const y = RY(); for (let i = 0; i < 3; i++) flyer('seeker', 215 + i * 18, y + i * 6); }],
+  [10, () => { const y = RY(); for (let i = 0; i < 3; i++) flyer('seeker', 215 + i * 24, y + i * 8); }],
   [12.5, () => unit('rocketsled', 230)],
   [15, () => flyer('sniper', 220, 28, { hold: 186 })],
   [17.5, () => flyer('spinner', 220, 50, { hold: 158 })],
-  [20, () => { for (let i = 0; i < 4; i++) flyer('drifter', 215 + i * 12, 28 + Math.abs(i - 1.5) * 14); }],
+  [20, () => { for (let i = 0; i < 4; i++) flyer('drifter', 215 + i * 20, 24 + Math.abs(i - 1.5) * 20); }],
   [21, () => unit('flakbunker', 225)],
   [24, () => { flyer('gunner', 222, 30, { hold: 170 }); flyer('gunner', 236, 70, { hold: 182 }); }],
   [27, () => { for (let i = 0; i < 3; i++) flyer('weaver', 215 + i * 16, 30 + i * 18); }],
   [29, () => { unit('skitank', 225); flyer('seeker', 220, RY()); flyer('seeker', 240, RY()); }],
-  [32, () => { flyer('sniper', 220, 70, { hold: 188 }); for (let i = 0; i < 3; i++) flyer('drifter', 225 + i * 14, 24 + i * 10); }],
+  [32, () => { flyer('sniper', 220, 70, { hold: 188 }); for (let i = 0; i < 3; i++) flyer('drifter', 225 + i * 20, 22 + i * 16); }],
   [35, () => { unit('rocketsled', 228); flyer('gunner', 222, 40, { hold: 168 }); }],
   [38.5, () => { flyer('spinner', 220, 35, { hold: 160 }); flyer('weaver', 230, 70); flyer('weaver', 250, 55); }],
   [42, () => { unit('flakbunker', 222); unit('skitank', 262); }],
   [45, () => { flyer('gunner', 222, 28, { hold: 172 }); flyer('gunner', 236, 66, { hold: 184 }); flyer('seeker', 250, RY()); }],
   [49, () => { flyer('sniper', 220, 26, { hold: 186 }); flyer('sniper', 220, 74, { hold: 192 }); }],
-  [52, () => { for (let i = 0; i < 5; i++) flyer('drifter', 215 + i * 12, 22 + i * 12); unit('rocketsled', 240); }],
+  [52, () => { for (let i = 0; i < 5; i++) flyer('drifter', 215 + i * 18, 20 + i * 15); unit('rocketsled', 240); }],
   [55, () => { flyer('spinner', 220, 50, { hold: 160 }); flyer('gunner', 236, 30, { hold: 180 }); unit('flakbunker', 230); }],
 ];
 const CYCLE = 60;
@@ -368,7 +368,7 @@ function update(dt) {
   S.t += dt; S.scroll += GROUND_SPEED * dt; S.far += FAR_SPEED * dt; S.ships += FAR_SPEED * 0.55 * dt;
   S.shake = Math.max(0, (S.shake || 0) - dt);
   const ct = S.t - S.cycle * CYCLE;
-  while (!FRONT && S.step < WAVES.length && ct >= WAVES[S.step][0]) WAVES[S.step++][1]();
+  while (!PACK.noEnemies && S.step < WAVES.length && ct >= WAVES[S.step][0]) WAVES[S.step++][1]();
   if (FRONT) updateFront(dt);
   if (ct >= CYCLE) { S.cycle++; S.step = 0; }
   // the player
@@ -405,7 +405,7 @@ function update(dt) {
     if (e.life > 0 && pAlive() && Math.abs(e.x - p.x) < 5.5 && Math.abs(e.y - p.y) < 3.5) { e.life = 0; hurt(e.dmg); }
   }
   // artillery from beyond the screen, and flak bursts
-  if (!FRONT && S.t > S.nextArt) {
+  if (!PACK.noEnemies && S.t > S.nextArt) {
     S.nextArt = S.t + Math.max(3.5, 6.5 - S.cycle * 0.6) + rand() * 2;
     const x = Math.max(16, Math.min(VW - 16, p.x + (rand() - 0.3) * 40));
     S.arts.push({ k: 'shell', wx: S.scroll + x, t: 0, dur: 1.4 });
@@ -465,12 +465,12 @@ function draw() {
     const t = T[o.type];
     g.fillStyle = 'rgba(40,70,115,0.32)'; g.beginPath(); g.ellipse(o.x * 2, o.base * 2 - 1, t.w * 1.1, 3.2, 0, 0, 7); g.fill();
     sprite('u_' + o.type, o);
-    if (o.type === 'skitank') {
+    if (o.type === 'skitank' && PACK.barrel) {
       const px0 = (o.x - t.w / 2 + t.pivot[0]) * 2, py0 = (o.y - t.h / 2 + t.pivot[1]) * 2, c = Math.cos(o.ang), s = Math.sin(o.ang);
       g.strokeStyle = PACK.barrel[0]; g.lineWidth = 3; g.beginPath(); g.moveTo(px0, py0); g.lineTo(px0 + c * 18, py0 + s * 18); g.stroke();
       g.strokeStyle = PACK.barrel[1]; g.lineWidth = 1; g.beginPath(); g.moveTo(px0, py0 - 1); g.lineTo(px0 + c * 18, py0 - 1 + s * 18); g.stroke();
       if (o.blink > 0 || o.burst > 0) { g.fillStyle = '#f2cf8a'; g.fillRect(Math.round(px0 + c * 19) - 2, Math.round(py0 + s * 19) - 2, 4, 4); }
-    } else if (o.blink > 0 && Math.floor(o.blink * 16) % 2 === 0) { g.fillStyle = '#f2cf8a'; g.fillRect(Math.round((o.x - t.w / 2 + t.muzzle[0]) * 2) - 2, Math.round((o.y - t.h / 2 + t.muzzle[1]) * 2) - 2, 4, 4); }
+    } else if (t.muzzle && (o.blink > 0 || o.burst > 0) && Math.floor((o.blink || o.bt || 0) * 16) % 2 === 0) { g.fillStyle = '#f2cf8a'; g.fillRect(Math.round((o.x - t.w / 2 + t.muzzle[0]) * 2) - 2, Math.round((o.y - t.h / 2 + t.muzzle[1]) * 2) - 2, 4, 4); }
   }
   // flak warning rings in the air
   for (const a of S.arts) if (a.k === 'flak') {

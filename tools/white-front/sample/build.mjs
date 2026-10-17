@@ -98,7 +98,33 @@ const packs = await page.evaluate(async () => {
     layers: [], ground: right.ground, types: {}, barrel: right.barrel,
     front: { lineY: L3.lineY, guns: L3.guns, fires: L3.fires }, shipCount: ships.length,
   };
-  ships.forEach((s, i) => { front.images['ship' + i] = url(s.canvas); });
+  // the invaders' army (ChatGPT's designs, brought to game size sharp, in the colours the owner chose)
+  const C2 = await import('/white/cut2.js?' + Date.now());
+  const AO = ['pod', 'wasp', 'gunship', 'dart', 'lancer', 'wheel', 'skiff', 'turret', 'drum', 'lander'];
+  const AS = { pod: [32, 26], wasp: [36, 30], gunship: [48, 34], dart: [34, 24], lancer: [58, 22], wheel: [36, 36], skiff: [48, 28], turret: [40, 34], drum: [52, 32], lander: [100, 44] };
+  const ARMY = await C2.cut('/white/army-src.png', 1, 'sharp-colour', AO, AS);
+  // the game's enemy jobs, played by the new army
+  const ROLE = { drifter: 'pod', weaver: 'wasp', gunner: 'gunship', seeker: 'dart', sniper: 'lancer', spinner: 'wheel', skitank: 'skiff', rocketsled: 'drum', flakbunker: 'turret' };
+  for (const [job, n] of Object.entries(ROLE)) {
+    const cv = ARMY[n].canvas;
+    front.images[(job in { skitank: 1, rocketsled: 1, flakbunker: 1 } ? 'u_' : 'e_') + job] = url(cv);
+    front.types[job] = { w: cv.width / 2, h: cv.height / 2 };
+  }
+  Object.assign(front.types.skitank, { pivot: [2.5, 2.5], muzzle: [2.5, 2.5], foot: 1 });
+  Object.assign(front.types.rocketsled, { muzzle: [10, 2], foot: 1 });
+  Object.assign(front.types.flakbunker, { muzzle: [1.5, 1], foot: 1 });
+  front.barrel = null;
+  // the landing ships in the sky: the intact version of the wrecks, two sizes
+  // far away: smaller than any enemy and hazed with the sky's colour, so nobody mistakes them for targets
+  const distant = (k, haze) => {
+    const src = ARMY.lander.canvas, c3 = document.createElement('canvas');
+    c3.width = Math.round(src.width * k); c3.height = Math.round(src.height * k);
+    const x3 = c3.getContext('2d'); x3.imageSmoothingQuality = 'high'; x3.drawImage(src, 0, 0, c3.width, c3.height);
+    x3.globalCompositeOperation = 'source-atop'; x3.fillStyle = `rgba(150,176,210,${haze})`; x3.fillRect(0, 0, c3.width, c3.height);
+    return c3;
+  };
+  front.images.ship0 = url(distant(0.5, 0.4)); front.images.ship1 = url(distant(0.34, 0.5)); front.shipCount = 2;
+  front.sub = 'THE FRONT LINE|+ the invaders'; front.label = 'THE WHITE FRONT: PREVIEW';
   return { left, right, front };
 });
 const tpl = fs.readFileSync(HERE + 'game.html', 'utf8');
