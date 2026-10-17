@@ -518,13 +518,16 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    in the new look → 3D-2 the three new enemies → 3D-3 the boss (4 designs
    to pick from, its song approved by ear) → review; then "to be continued"
    moves to after level 4.
-   **Art direction (owner, after playing two samples)**: the "right" look —
-   ChatGPT's far background (mountains, ice cliff, bunkers, landing ships;
-   cleaned, shrunk, made to repeat; `tools/white-front/`, originals in
-   `art/white-front/`) with the **ground drawn by code** (a snow band seen
-   from slightly above, ice face below; `tools/white-front/ground.js`) and
-   effects by code. Not the all-code look. Enemy designs: the owner
-   doesn't like them (being clarified which set).
+   **Art direction (owner, final, after trying ChatGPT pictures)**: the
+   **all-code look** ("left" sample: halo sun, ice mountains, a glacier of
+   seracs with the defenders' bunkers, a frozen lake with ice spires,
+   rolling snow drifts), so the whole game looks consistent; **no ChatGPT
+   art** (owner: "screw ChatGPT"). To do: make the location richer and more
+   alive (moving battle, weather, decorations) and improve the **Siege
+   Legion** enemies (white armour, red markings, heavy guns; set A), plus
+   new enemy and decoration designs, all shown as picture sheets first.
+   (The ChatGPT experiments stay in `art/white-front/` and
+   `tools/white-front/` for reference only.)
 5. **The Ember Mines** — underground tunnels lit by soft amber crystals;
    ceiling and floor squeeze the space. Boss: **The Drill Worm**, a mechanical
    worm bursting from walls above and below.
