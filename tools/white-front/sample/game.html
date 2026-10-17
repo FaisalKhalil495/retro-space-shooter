@@ -261,7 +261,7 @@ function drawWorld() {
   g.drawImage(IMG.sky, 0, 0);
   tileX(IMG.clouds, S.t * 5, -38);
   for (const sh of Wd.ships) {
-    const im = IMG['lander' + sh.k]; g.globalAlpha = 0.72 - sh.k * 0.1; g.drawImage(im, Math.round(sh.x), Math.round(sh.y)); g.globalAlpha = 1;
+    const im = IMG['lander' + sh.k]; g.globalAlpha = 0.88 - sh.k * 0.1; g.drawImage(im, Math.round(sh.x), Math.round(sh.y)); g.globalAlpha = 1;
     if (Math.random() < 0.5) { g.fillStyle = 'rgba(242,207,138,0.45)'; for (const f of [0.3, 0.5, 0.7]) g.fillRect(Math.round(sh.x + im.width * f), Math.round(sh.y + im.height - 2), 1, 2 + Math.floor(Math.random() * 3)); }
   }
   const off = (S.far * 2) % farW();

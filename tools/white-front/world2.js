@@ -192,11 +192,13 @@ export function ground() {
   // 1. a Legion landing ship's wreck, nose down in a drift (smokes)
   const wreck = (wx) => {
     const wy = gy(wx) + 4;
-    P([[wx - 30, wy], [wx - 26, wy - 16], [wx - 6, wy - 26], [wx + 22, wy - 22], [wx + 30, wy - 8], [wx + 26, wy]], '#d8dde6');
-    P([[wx - 26, wy - 16], [wx - 6, wy - 26], [wx - 4, wy - 22], [wx - 22, wy - 13]], '#f4f6f9');
-    P([[wx + 22, wy - 22], [wx + 30, wy - 8], [wx + 26, wy], [wx + 18, wy], [wx + 20, wy - 14]], '#9aa3b2');
-    P([[wx - 2, wy - 25], [wx + 4, wy - 24], [wx + 2, wy], [wx - 4, wy]], '#a8544a');
-    P([[wx + 6, wy - 23], [wx + 9, wy - 23], [wx + 7, wy], [wx + 4, wy]], '#a8544a');
+    P([[wx - 30, wy], [wx - 26, wy - 16], [wx - 6, wy - 26], [wx + 22, wy - 22], [wx + 30, wy - 8], [wx + 26, wy]], '#6e7252');
+    P([[wx - 26, wy - 16], [wx - 6, wy - 26], [wx - 4, wy - 22], [wx - 22, wy - 13]], '#8b8d6c');
+    P([[wx + 22, wy - 22], [wx + 30, wy - 8], [wx + 26, wy], [wx + 18, wy], [wx + 20, wy - 14]], '#40442f');
+    P([[wx - 2, wy - 25], [wx + 4, wy - 24], [wx + 2, wy], [wx - 4, wy]], '#3b4548');
+    P([[wx + 6, wy - 23], [wx + 9, wy - 23], [wx + 7, wy], [wx + 4, wy]], '#3b4548');
+    P([[wx - 30, wy], [wx - 26, wy - 16], [wx - 16, wy - 21], [wx - 18, wy]], '#c9c5ac'); // the cream nose plate
+    P([[wx - 26, wy - 16], [wx - 16, wy - 21], [wx - 16, wy - 17], [wx - 23, wy - 13]], '#e0dcc1');
     P([[wx - 18, wy - 8], [wx - 8, wy - 14], [wx - 2, wy - 6], [wx - 10, wy - 2]], '#2b2f38'); // a torn hole
     R(wx - 12, wy - 9, 3, 2, '#e3a857'); R(wx - 11, wy - 9, 1, 1, '#f6dcae');
     for (let x = wx - 34; x < wx + 34; x++) R(x, wy - 1, 1, 3, '#f7fafd');
@@ -255,20 +257,31 @@ export function ground() {
 }
 
 // ------------------------------------------------------------ moving things
-// A Legion landing ship (white armour, red bands, glowing thrusters), any size.
+// An invader landing ship: a big cousin of the coast army (olive armour, a
+// cream nose plate, panel seams, dark vents, amber lights, engine pods
+// with glowing thrusters underneath), any size.
 export function lander(c, x, y, s, t = 0, hit = false) {
   const P = (pts, col) => { c.fillStyle = col; c.beginPath(); c.moveTo(x + pts[0][0] * s, y + pts[0][1] * s); for (const p of pts.slice(1)) c.lineTo(x + p[0] * s, y + p[1] * s); c.closePath(); c.fill(); };
-  P([[-14, 1], [-9, -5], [8, -6], [15, -1], [12, 4], [-11, 4]], '#0e1222');
-  P([[-13, 1], [-8.5, -4.4], [7.6, -5.2], [14, -1], [11, 3.2], [-10, 3.2]], '#c7ccd6');
-  P([[-13, 1], [-8.5, -4.4], [7.6, -5.2], [9, -3], [-8, -2.4]], '#eef1f5');
-  P([[-12, 2], [11, 1.4], [11, 3.2], [-10, 3.2]], '#6f7888');
-  P([[-1, -5], [2, -5.3], [1.4, 3.2], [-1.6, 3.2]], '#a8544a');
-  P([[4, -5.4], [5.6, -5.5], [5, 3.2], [3.4, 3.2]], '#a8544a');
-  P([[9, -4], [13, -1.4], [9.6, -1]], '#34446f');
-  for (const tx of [-7, 0, 7]) {
+  const Rr = (x0, y0, w, h, col) => { c.fillStyle = col; c.fillRect(x + x0 * s, y + y0 * s, w * s, h * s); };
+  // engine pods under the hull
+  for (const px0 of [-6, 5]) { P([[px0 - 1, 2], [px0 + 5, 2], [px0 + 4.4, 5.6], [px0 - 0.4, 5.6]], '#202a32'); P([[px0 - 0.4, 2.4], [px0 + 4.4, 2.4], [px0 + 3.9, 5], [px0 + 0.1, 5]], '#3b4548'); }
+  P([[-15, 1], [-10, -5.6], [9, -6.4], [15.4, -2], [14.4, 4], [-12, 4]], '#202a32');
+  P([[-14, 1], [-9.5, -4.8], [8.6, -5.6], [14.2, -1.8], [13.2, 3.2], [-11, 3.2]], '#6e7252');
+  P([[-13.2, 0], [-9.2, -4.8], [8.6, -5.6], [10.4, -3.6], [-7.6, -2.8]], '#8b8d6c');
+  P([[-11, 2], [13.2, 1.6], [13.2, 3.2], [-11, 3.2]], '#40442f');
+  // the cream nose plate
+  P([[-14, 1], [-9.5, -4.8], [-4.6, -5], [-5.6, 3.2], [-11, 3.2]], '#c9c5ac');
+  P([[-13.2, 0], [-9.2, -4.8], [-4.6, -5], [-4.9, -2.6], [-8, -2.4]], '#e0dcc1');
+  // panel seams and a dark vent at the back
+  Rr(-0.5, -5.2, 0.7, 7.4, '#40442f'); Rr(5, -5.4, 0.7, 7.6, '#40442f');
+  Rr(9, -2.6, 4, 4, '#2c3539'); for (let k = 0; k < 2; k++) Rr(9.4, -1.8 + k * 1.6, 3.2, 0.6, '#596264');
+  // a lamp on the nose and running lights
+  Rr(-9, -3.6, 1.6, 1.2, '#f1d69a'); Rr(2, -4.6, 1, 0.8, '#d99b43'); Rr(7.4, 0.2, 1, 0.8, '#d99b43');
+  // thrusters, flickering a little with t
+  for (const tx of [-4, 7]) {
     const f = 0.7 + 0.3 * Math.sin(t * 30 + tx);
-    c.fillStyle = 'rgba(242,207,138,0.85)'; c.fillRect(x + (tx - 1) * s, y + 3.4 * s, 2 * s, 1.6 * s);
-    c.fillStyle = `rgba(242,207,138,${0.35 * f})`; c.fillRect(x + (tx - 0.6) * s, y + 5 * s, 1.2 * s, 4 * s * f);
+    Rr(tx - 1, 5.4, 2, 1, 'rgba(241,214,154,0.95)');
+    c.fillStyle = `rgba(241,214,154,${0.35 * f})`; c.fillRect(x + (tx - 0.6) * s, y + 6.4 * s, 1.2 * s, 4 * s * f);
   }
   if (hit) { c.fillStyle = '#e3a857'; c.fillRect(x + 8 * s, y - 4 * s, 2 * s, 2 * s); }
 }
