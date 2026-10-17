@@ -125,11 +125,28 @@ const packs = await page.evaluate(async () => {
   };
   front.images.ship0 = url(distant(0.5, 0.4)); front.images.ship1 = url(distant(0.34, 0.5)); front.shipCount = 2;
   front.sub = 'THE FRONT LINE|+ the invaders'; front.label = 'THE WHITE FRONT: PREVIEW';
-  return { left, right, front };
+  // ---------------- WORLD: the all-code White Front (the look the owner chose) + the coast army
+  const W2 = await import('/white/world2.js?' + Date.now());
+  const CA = await import('/white/sample/coast-art.js?' + Date.now());
+  const gridC = (gr) => { const c = canvas(gr.w, gr.h), x = c.getContext('2d'); gr.a.forEach((row, j) => row.forEach((col, i) => { if (col) { x.fillStyle = col; x.fillRect(i, j, 1, 1); } })); return c; };
+  const far2 = W2.far(), g2 = W2.ground();
+  const world = {
+    side: 'THE WHITE FRONT', sub: 'all drawn by code|+ the coast army', tag: 'PREVIEW', label: 'THE WHITE FRONT: PREVIEW',
+    images: { player, sky: url(W2.sky()), clouds: url(W2.clouds()), far: url(far2.canvas), ground: url(g2.canvas) },
+    layers: [], ground: { y0: g2.y0, L: W2.L, top: g2.top, lane: g2.lane }, types: {}, barrel: null,
+    world: { guns: far2.guns, lights: far2.lights, deco: g2.deco }, coastTypes: {},
+  };
+  [1.3, 0.95, 0.65].forEach((s, k) => { const w = Math.ceil(32 * s) + 4, h = Math.ceil(16 * s) + 4, c = canvas(w, h); W2.lander(c.getContext('2d'), w / 2, h / 2 - 1 * s, s, 0); world.images['lander' + k] = url(c); });
+  for (const n of ['skiff', 'anchor', 'roller', 'dart', 'bomber', 'needle', 'hunter', 'charge', 'bomb']) {
+    const idle = gridC(CA.COAST[n](false)), open = gridC(CA.COAST[n](true));
+    world.images['c_' + n] = url(idle); world.images['c_' + n + '_open'] = url(open);
+    world.coastTypes[n] = { w: idle.width / 2, h: idle.height / 2 };
+  }
+  return { left, right, front, world };
 });
 const tpl = fs.readFileSync(HERE + 'game.html', 'utf8');
 const OUT = WHITE + '../';
-for (const [key, pack, title] of [['LEFT', packs.left, 'White Front Left Sample'], ['RIGHT', packs.right, 'White Front Right Sample'], ['FRONT', packs.front, 'White Front Background']]) {
+for (const [key, pack, title] of [['LEFT', packs.left, 'White Front Left Sample'], ['RIGHT', packs.right, 'White Front Right Sample'], ['FRONT', packs.front, 'White Front Background'], ['WORLD', packs.world, 'White Front Preview']]) {
   const body = tpl.replace('/*TITLE*/', title).replace('/*PACK*/null', JSON.stringify(pack));
   // the artifact version (the host adds the page skeleton) and a stand-alone file to download
   fs.writeFileSync(HERE + `artifact-${key}.html`, body);
