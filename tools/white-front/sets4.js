@@ -269,3 +269,48 @@ export const SETS4 = [
   { key: 'furnace', title: 'FURNACE CORPS', sub: 'iron and copper, glowing grilles', fns: furnace },
 ];
 void not;
+
+// ---------------- four new Iron Wolves bombers (owner: "their bomber sucks")
+const bay = (g, x, y, w, o) => { // hazard-striped bay doors; open: the bomb rack shows
+  if (o) { part(g, R(x, y, w, 4), C.visor); for (let i = 1; i < w - 2; i += 4) { part(g, R(x + i, y + 1, 2, 3), C.haz); px(g, x + i, y + 3, C.eye[2]); } }
+  else { part(g, R(x, y, w, 2), M.gun, { flat: true }); for (let i = 0; i < w; i += 2) px(g, x + i, y, C.haz[1]); }
+};
+export const WOLF_BOMBERS = {
+  talon(o) { // heavy wedge with forward-raked talon wings
+    const g = G(36, 20);
+    part(g, P([[14, 9], [26, 1], [31, 1.4], [22, 9.6]]), C.wolf); part(g, P([[14, 12], [27, 19], [32, 18.6], [22, 11.4]]), C.wolf);
+    for (const [x0, y0, x1, y1] of [[24, 3, 29, 2], [25, 17, 30, 18]]) line(g, x0, y0, x1, y1, C.haz[1]);
+    const hull = P([[0.6, 10], [8, 6.4], [30, 6.6], [35.4, 9], [35.4, 12.4], [30, 14.6], [8, 14.6]]);
+    part(g, hull, C.wolf); stripe(g, hull, 18, 2); stripe(g, hull, 22, 1);
+    redEye(g, 3, 9, 5); bay(g, 11, 14, 14, o);
+    for (const y of [10, 11]) { px(g, 35, y, o ? C.glow[0] : C.glow[2]); }
+    return ink(g, [9, 10, 14, 15, 27, 28], []); },
+  manta(o) { // a wide flat flying wing, hazard chevrons on top
+    const g = G(36, 20);
+    const wing = P([[0.6, 11], [10, 4], [18, 3], [26, 4], [35.4, 11], [30, 12], [26, 15.4], [10, 15.4], [6, 12]]);
+    part(g, wing, C.wolf);
+    for (const [x, y] of [[13, 6], [20, 6]]) { line(g, x, y + 3, x + 3, y, C.haz[1]); line(g, x + 3, y, x + 6, y + 3, C.haz[1]); }
+    redEye(g, 4, 10, 5); bay(g, 12, 14, 12, o);
+    for (const x of [27, 31]) px(g, x, 11, o ? C.glow[0] : C.glow[2]);
+    return ink(g, [10, 11, 18, 25, 26], []); },
+  hammer(o) { // a hammerhead nose, armoured body, twin glowing engines
+    const g = G(36, 20);
+    part(g, P([[1, 4], [6, 4], [8, 8], [8, 13], [6, 17], [1, 17], [3, 10.6]]), C.wolf);
+    stripe(g, P([[1, 4], [6, 4], [8, 8], [8, 13], [6, 17], [1, 17], [3, 10.6]]), 3, 2);
+    redEye(g, 4, 6, 3); redEye(g, 4, 15, 3);
+    const body = P([[7, 7], [12, 5.6], [28, 5.6], [31, 8], [31, 13], [28, 15.4], [12, 15.4], [7, 13]]);
+    part(g, body, C.wolf); stripe(g, body, 20, 2);
+    for (const y of [5, 13]) { part(g, R(28, y, 7, 4), M.gun); px(g, 35, y + 1, o ? C.glow[0] : C.glow[2]); px(g, 35, y + 2, o ? C.glow[1] : C.glow[3]); }
+    part(g, P([[22, 6], [27, 0.6], [30, 0.6], [27, 6]]), C.wolf);
+    bay(g, 12, 15, 12, o);
+    return ink(g, [13, 14, 17, 25], []); },
+  twinboom(o) { // two engine booms joined by a wing, the cockpit pod in the middle
+    const g = G(36, 20);
+    for (const y of [2, 13]) { part(g, P([[8, y + 2], [12, y], [34, y], [35.4, y + 2.6], [34, y + 5], [12, y + 5]]), C.wolf); stripe(g, P([[8, y + 2], [12, y], [34, y], [35.4, y + 2.6], [34, y + 5], [12, y + 5]]), 26, 2); px(g, 35, y + 2, o ? C.glow[0] : C.glow[2]); }
+    part(g, R(14, 6, 16, 8), C.wolf);
+    const pod = P([[0.6, 10], [6, 7], [16, 7], [18, 10], [16, 13], [6, 13]]);
+    part(g, pod, C.wolf); redEye(g, 3, 9, 5);
+    bay(g, 18, 14, 10, o);
+    for (const x of [9, 10]) px(g, x, 2, C.haz[1]);
+    return ink(g, [14, 15, 20, 21], []); },
+};
