@@ -314,3 +314,22 @@ export const WOLF_BOMBERS = {
     for (const x of [9, 10]) px(g, x, 2, C.haz[1]);
     return ink(g, [14, 15, 20, 21], []); },
 };
+
+// ---------------- the Crest Bomber (the shape the owner liked) in Iron Wolves colours
+import { COAST } from './sample/coast-art.js';
+const RECOLOUR = {
+  // cream armour -> light gunmetal, olive armour -> dark gunmetal
+  '#f3efd9': '#b9bfca', '#e0dcc1': '#959ca9', '#c9c5ac': '#767d8a', '#a8a48c': '#5a606c', '#84816c': '#434852',
+  '#a9ac84': '#6a717e', '#8b8d6c': '#4e5461', '#6e7252': '#383d48', '#575b40': '#2c3039', '#40442f': '#202329',
+};
+WOLF_BOMBERS.crest = (o) => {
+  const g = COAST.bomber(o);
+  for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) { const c = g.a[y][x]; if (c && RECOLOUR[c]) g.a[y][x] = RECOLOUR[c]; }
+  // the Wolves' hazard stripe across the fuselage and the wing tips
+  const body = (x, y) => g.a[y][x] && g.a[y][x] !== K && !g.a[y][x].startsWith('#e') && !g.a[y][x].startsWith('#f');
+  for (let y = 5; y < 16; y++) for (const x of [21, 22]) if (body(x, y)) g.a[y][x] = y < 9 ? C.haz[1] : C.haz[2];
+  for (const [x, y] of [[4, 4], [5, 4], [30, 4], [31, 4]]) if (body(x, y)) g.a[y][x] = C.haz[1];
+  // a red eye slit instead of the amber lamp
+  for (let x = 10; x <= 13; x++) g.a[9][x] = x === 10 ? C.eye[0] : C.eye[2];
+  return g;
+};
