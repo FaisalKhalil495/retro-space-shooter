@@ -333,3 +333,36 @@ WOLF_BOMBERS.crest = (o) => {
   for (let x = 10; x <= 13; x++) g.a[9][x] = x === 10 ? C.eye[0] : C.eye[2];
   return g;
 };
+
+// ------------------------------------------------------------ the coast shapes in Iron Wolves colours
+// The owner liked ChatGPT's coast army shapes, so every one of them keeps
+// its shape and size and only changes paint: cream and olive armour become
+// gunmetal, copper fittings become hazard orange, a hazard stripe goes across
+// the armour, and the amber nose lamp becomes a red eye slit.
+const COPPER = { '#e0b783': C.haz[0], '#c09363': C.haz[1], '#9b7953': C.haz[2], '#7a5e40': C.haz[3], '#57422e': C.haz[4] };
+const ARMOUR = new Set(Object.values(RECOLOUR));
+const WOLF_MARKS = {
+  //        eye slit [x, y]   stripe columns  rows        extra hazard pixels
+  skiff:  { eye: [8, 5],  stripe: [18, 19], rows: [3, 12] },
+  anchor: { eye: [15, 3], stripe: [13, 14], rows: [1, 11] },
+  roller: { eye: [13, 7], stripe: [19, 20], rows: [6, 17] },
+  dart:   { eye: [10, 5], stripe: [15, 16], rows: [1, 15], dots: [[19, 3], [20, 3], [19, 12], [20, 12]] },
+  needle: { eye: [13, 7], stripe: [18, 19], rows: [8, 12], dots: [[25, 2], [26, 2], [26, 1]] },
+  hunter: { eye: [8, 9],  stripe: [14, 15], rows: [8, 13], dots: [[27, 1], [28, 1], [27, 18], [28, 18]] },
+  charge: {}, bomb: {},
+};
+export function wolvesCoast(name) {
+  return (o) => {
+    const g = COAST[name](o), m = WOLF_MARKS[name];
+    for (let y = 0; y < g.h; y++) for (let x = 0; x < g.w; x++) {
+      const c = g.a[y][x]; if (c && (RECOLOUR[c] || COPPER[c])) g.a[y][x] = RECOLOUR[c] || COPPER[c];
+    }
+    const armour = (x, y) => y >= 0 && y < g.h && x >= 0 && x < g.w && ARMOUR.has(g.a[y][x]);
+    if (m.stripe) for (let y = m.rows[0]; y <= m.rows[1]; y++) for (const x of m.stripe) if (armour(x, y)) g.a[y][x] = (y - m.rows[0]) < (m.rows[1] - m.rows[0]) / 2 ? C.haz[1] : C.haz[2];
+    for (const [x, y] of m.dots || []) if (armour(x, y)) g.a[y][x] = C.haz[1];
+    if (m.eye) { const [x, y] = m.eye; for (let i = 0; i < 3; i++) if (g.a[y][x + i] && g.a[y][x + i] !== K) g.a[y][x + i] = i === 0 ? C.eye[0] : (o ? C.eye[1] : C.eye[2]); }
+    return g;
+  };
+}
+export const WOLF_COAST = Object.fromEntries(Object.keys(WOLF_MARKS).map((n) => [n, wolvesCoast(n)]));
+WOLF_COAST.bomber = WOLF_BOMBERS.crest;

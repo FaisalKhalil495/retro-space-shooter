@@ -130,7 +130,7 @@ const packs = await page.evaluate(async () => {
   const CA = await import('/white/sample/coast-art.js?' + Date.now());
   const S4 = await import('/white/sets4.js?' + Date.now());
   const WF = S4.SETS4.find((x) => x.key === 'wolves').fns;
-  const ARMY_FN = { skiff: WF.skiff, anchor: WF.anchor, roller: WF.roller, dart: WF.dart, bomber: S4.WOLF_BOMBERS.crest, needle: WF.needle, hunter: WF.hunter, charge: CA.COAST.charge, bomb: CA.COAST.bomb };
+  const ARMY_FN = S4.WOLF_COAST;
   const gridC = (gr) => { const c = canvas(gr.w, gr.h), x = c.getContext('2d'); gr.a.forEach((row, j) => row.forEach((col, i) => { if (col) { x.fillStyle = col; x.fillRect(i, j, 1, 1); } })); return c; };
   const far2 = W2.far(), g2 = W2.ground();
   const world = {
