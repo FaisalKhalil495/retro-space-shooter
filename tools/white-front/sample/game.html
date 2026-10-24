@@ -581,11 +581,11 @@ const CYCLE = 60;
 const pair = (y) => { coast('dart', 215, y, { lane: 0 }); coast('dart', 226, y + 26, { lane: 1 }); };
 const COAST_WAVES = [
   [0.5, () => pair(30)], [3.5, () => coast('skiff', 222)], [6.5, () => coast('needle', 220, 56)],
-  [9.5, () => coast('bomber', 222, 24)], [12.5, () => coast('anchor', 222)], [15.5, () => coast('roller', 224)],
+  [9.5, () => coast('bomber', 222, 24)], [12.5, () => coast('skiff', 222)], [15.5, () => coast('roller', 224)],
   [18.5, () => { pair(24); pair(70); }], [21.5, () => coast('hunter', 220, 46)],
-  [24.5, () => { coast('skiff', 222); coast('anchor', 262); }], [28, () => { coast('bomber', 222, 26); pair(76); }],
+  [24.5, () => { coast('skiff', 222); coast('roller', 262); }], [28, () => { coast('bomber', 222, 26); pair(76); }],
   [32, () => { coast('needle', 220, 30); coast('needle', 236, 84); }], [36, () => { coast('roller', 224); coast('hunter', 222, 64); }],
-  [40, () => { coast('anchor', 222); coast('bomber', 236, 22); }], [44, () => { pair(26); pair(64); }],
+  [40, () => { coast('needle', 220, 60); coast('bomber', 236, 22); }], [44, () => { pair(26); pair(64); }],
   [48, () => { coast('hunter', 220, 36); coast('hunter', 236, 82); }], [52, () => { coast('skiff', 222); coast('roller', 262); }],
   [55, () => { coast('needle', 220, 50); coast('bomber', 238, 24); }],
 ];
