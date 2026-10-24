@@ -4,7 +4,7 @@
 //   { line: [x0, y0, x1, y1], m, t }  a one-pixel line (barrels, seams, ribs, antennae)
 //   { dot: [x, y], m, t }             a single pixel (lamps, rivets)
 // A shape can say flat: true (no lit top edge / dark underside), only: 'wolves' or
-// 'coast' (drawn in that paint only). Each sprite pixel takes the shape covering
+// 'coast' (drawn in that paint only), when: 'open' or 'closed' (only about to fire, or only not). Each sprite pixel takes the shape covering
 // most of it; a panel's top row is lit and its bottom row shaded, so neighbouring
 // panels read as separate plates. An outline goes round the outside.
 export const RAMPS = {
@@ -71,12 +71,12 @@ function norm(v) {
   v._norm = true; return v;
 }
 // Returns { w, h, id[y][x] (shape index), tone[y][x], X0, Y0, scale }.
-export function raster(v, pal) {
+export function raster(v, pal, open = false) {
   norm(v);
   const [X0, Y0, X1, Y1] = bounds(v), scale = v.width / (X1 - X0);
   const tw = v.width, th = Math.round((Y1 - Y0) * scale), w = tw + 2, h = th + 2;
   const id = Array.from({ length: h }, () => Array(w).fill(-1));
-  const use = (s) => !s.only || s.only === pal;
+  const use = (s) => (!s.only || s.only === pal) && (!s.when || (s.when === 'open') === !!open);
   const fills = v.shapes.map((s, i) => [s, i]).filter(([s]) => (s.poly || s.rect || s.ell) && use(s));
   const S = 4;
   for (let ty = 0; ty < th; ty++) for (let tx = 0; tx < tw; tx++) {
@@ -113,7 +113,7 @@ export function raster(v, pal) {
   return { w, h, id, tone, X0, Y0, scale, map };
 }
 export function paint(v, pal, open) {
-  const r = raster(v, pal), R = RAMPS[pal];
+  const r = raster(v, pal, open), R = RAMPS[pal];
   const a = r.id.map((row, y) => row.map((i, x) => (i < 0 ? null : R[v.shapes[i].m][r.tone[y][x]])));
   // snow lying in clumps on the upward-facing edges, as in the paintings
   if (v.snow !== false) for (let y = 1; y < r.h; y++) for (let x = 0; x < r.w; x++) {
