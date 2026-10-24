@@ -522,10 +522,32 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    **all-code look** ("left" sample: halo sun, ice mountains, a glacier of
    seracs with the defenders' bunkers, a frozen lake with ice spires,
    rolling snow drifts), so the whole game looks consistent; **no ChatGPT
-   art** (owner: "screw ChatGPT"). To do: make the location richer and more
-   alive (moving battle, weather, decorations) and improve the **Siege
-   Legion** enemies (white armour, red markings, heavy guns; set A), plus
-   new enemy and decoration designs, all shown as picture sheets first.
+   art** (owner: "screw ChatGPT") for the location. The ground is **flat**
+   (owner), and the location is alive: landing ships, tracers, flak,
+   searchlights, smoke, a waving flag, blowing snow (preview, all code,
+   `tools/white-front/world2.js`).
+   **The invaders here: the "Iron Wolves"** (owner's pick over the Siege
+   Legion and three other armies): dark gunmetal armour, orange hazard
+   stripes, red eye lamps; landing ships and wrecks in the same paint.
+   Their shapes come from the owner's own paintings (ChatGPT, olive and
+   cream; the owner's exception for enemy shapes), **traced shape by shape
+   and drawn sharp by code** (`tools/white-front/wolves3/`: `vehicles.js`
+   traced over each painting, `vec.js` turns shapes into double-detail
+   pixels, `designs.js` the two drawn without a painting). About 20–25%
+   bigger than the old coast sprites. Like levels 2 and 3, level 4 has
+   level 1's six kinds in this look plus its own (owner agreed, after
+   counting: levels 1–3 have 9–11 types and 200–400 enemies; the preview
+   had 6 types and a third of the enemies):
+   pod → **Twin Dart** (pairs, aimed shots), sniper → **Needle Wing** (aim
+   line, rail shot), seeker → **Wake Hunter** (crescent blades; locks on,
+   dashes), gunship → **Crest Bomber** (target ring, bomb), weaver →
+   **Wolf Hound** (a wolf's-head drone; its jaw drops before it spits),
+   spinner → **Flak Star** (armoured octagon, a gun on each corner,
+   8-way bursts); its own: **Shelf Skiff** (sled, twin guns, 3-shot
+   spread) and **Snow Roller** (big snow-crusted drum wheel, rolling
+   charges), plus the planned artillery; cargo pods as on every level.
+   The owner removed the big armoured sled (and with it the Anchor Gun).
+   The real level needs about 220–250 enemies (harder than Frostring).
    (The ChatGPT experiments stay in `art/white-front/` and
    `tools/white-front/` for reference only.)
 5. **The Ember Mines** — underground tunnels lit by soft amber crystals;

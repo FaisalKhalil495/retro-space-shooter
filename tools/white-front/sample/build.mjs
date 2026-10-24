@@ -140,7 +140,7 @@ const packs = await page.evaluate(async () => {
     world: { guns: far2.guns, lights: far2.lights, deco: g2.deco }, coastTypes: {},
   };
   [1.3, 0.95, 0.65].forEach((s, k) => { const w = Math.ceil(32 * s) + 4, h = Math.ceil(16 * s) + 4, c = canvas(w, h); W2.lander(c.getContext('2d'), w / 2, h / 2 - 1 * s, s, 0); world.images['lander' + k] = url(c); });
-  for (const n of ['skiff', 'roller', 'dart', 'bomber', 'needle', 'hunter', 'charge', 'bomb']) {
+  for (const n of ['hound', 'flak', 'skiff', 'roller', 'dart', 'bomber', 'needle', 'hunter', 'charge', 'bomb']) {
     const idle = gridC(ARMY_FN[n](false)), open = gridC(ARMY_FN[n](true));
     world.images['c_' + n] = url(idle); world.images['c_' + n + '_open'] = url(open);
     world.coastTypes[n] = { w: idle.width / 2, h: idle.height / 2 };

@@ -299,8 +299,8 @@ function drawWorldNear() {
 // The army (ChatGPT's coast designs, redrawn sharp at game size), with the
 // attacks from its sample: every one warns before it fires (its "open" look).
 const CT = PACK.coastTypes || {};
-const CHP = { skiff: 4, anchor: 4, roller: 5, dart: 2, bomber: 5, needle: 3, hunter: 3, charge: 1, bomb: 1 };
-const CPTS = { skiff: 40, anchor: 50, roller: 60, dart: 30, bomber: 60, needle: 50, hunter: 50, charge: 10, bomb: 10 };
+const CHP = { hound: 2, flak: 5, skiff: 4, anchor: 4, roller: 5, dart: 2, bomber: 5, needle: 3, hunter: 3, charge: 1, bomb: 1 };
+const CPTS = { hound: 20, flak: 80, skiff: 40, anchor: 50, roller: 60, dart: 30, bomber: 60, needle: 50, hunter: 50, charge: 10, bomb: 10 };
 const CGROUND = { skiff: 1, anchor: 1, roller: 1, charge: 1 };
 function coast(type, x, y = 0, extra = {}) {
   const t = CT[type];
@@ -389,6 +389,18 @@ function updateCoast(o, dt) {
         if (!facingC(o)) ph(o, 'leave');
         else if ((o.timer -= dt) <= 0) { fireA(nose(o), o.ang, 115, 'rail'); o.n++; ph(o, o.n < 2 ? 'aim' : 'leave', 1.0); }
       }
+      break;
+    case 'hound': // weaves up and down; its jaw drops (warning) before it spits once
+      o.x -= 44 * dt; o.y = o.baseY + Math.sin(o.t * 2.8 + (o.ph || 0)) * 16;
+      if (o.mode === 'enter' && o.t > (o.spitAt ?? 1.2) && facingC(o) && !o.n) ph(o, 'warn', 0.4);
+      else if (o.mode === 'warn') { if (!facingC(o)) ph(o, 'fly'); else if ((o.timer -= dt) <= 0) { const m = nose(o, 1); fireA(m, aimFrom(m), 62); o.n = 1; ph(o, 'fly'); } }
+      break;
+    case 'flak': // turns as it hovers; its lamps glow before each 8-way burst
+      o.rot = (o.rot || 0) + dt * 2.2;
+      if (o.mode === 'enter') { o.x += (150 - o.x) * Math.min(1, dt * 1.5) - 3 * dt; if (o.x < 156) ph(o, 'wait', 0.6); }
+      else if (o.mode === 'leave') o.x -= 40 * dt;
+      else if (o.mode === 'wait') { if ((o.timer -= dt) <= 0) ph(o, 'warn', 0.45); }
+      else if (o.mode === 'warn') { if ((o.timer -= dt) <= 0) { const off = o.n * Math.PI / 8; for (let k = 0; k < 8; k++) fireA([o.x, o.y], off + k * Math.PI / 4, 52); o.n++; ph(o, o.n < 3 ? 'wait' : 'leave', 1.65); } }
       break;
     case 'hunter':
       if (o.mode === 'enter') { o.x -= 52 * dt; if (o.x <= 147) { o.ang = aimFrom(nose(o)); ph(o, 'warn', 0.8); } }
@@ -578,17 +590,19 @@ const WAVES = [
   [55, () => { flyer('spinner', 220, 50, { hold: 160 }); flyer('gunner', 236, 30, { hold: 180 }); unit('flakbunker', 230); }],
 ];
 const CYCLE = 60;
+const hounds = (n, y) => { for (let i = 0; i < n; i++) coast('hound', 216 + i * 14, y, { ph: i * 0.7, spitAt: rand() < 0.66 ? 0.9 + rand() * 2 : 99 }); };
 const pair = (y) => { coast('dart', 215, y, { lane: 0 }); coast('dart', 226, y + 26, { lane: 1 }); };
 const COAST_WAVES = [
-  [0.5, () => pair(30)], [3.5, () => coast('skiff', 222)], [6.5, () => coast('needle', 220, 56)],
+  [0.5, () => pair(30)], [3.5, () => coast('skiff', 222)], [5, () => hounds(5, 46)], [6.5, () => coast('needle', 220, 56)],
   [9.5, () => coast('bomber', 222, 24)], [12.5, () => coast('skiff', 222)], [15.5, () => coast('roller', 224)],
-  [18.5, () => { pair(24); pair(70); }], [21.5, () => coast('hunter', 220, 46)],
+  [18.5, () => { pair(24); pair(70); }], [21.5, () => coast('hunter', 220, 46)], [26, () => coast('flak', 222, 40)],
   [24.5, () => { coast('skiff', 222); coast('roller', 262); }], [28, () => { coast('bomber', 222, 26); pair(76); }],
   [32, () => { coast('needle', 220, 30); coast('needle', 236, 84); }], [36, () => { coast('roller', 224); coast('hunter', 222, 64); }],
-  [40, () => { coast('needle', 220, 60); coast('bomber', 236, 22); }], [44, () => { pair(26); pair(64); }],
+  [40, () => { coast('needle', 220, 60); coast('bomber', 236, 22); }], [34, () => hounds(5, 70)], [44, () => { pair(26); pair(64); }], [46, () => coast('flak', 222, 76)],
   [48, () => { coast('hunter', 220, 36); coast('hunter', 236, 82); }], [52, () => { coast('skiff', 222); coast('roller', 262); }],
-  [55, () => { coast('needle', 220, 50); coast('bomber', 238, 24); }],
+  [55, () => { coast('needle', 220, 50); coast('bomber', 238, 24); }], [57, () => hounds(4, 36)],
 ];
+COAST_WAVES.sort((a, b) => a[0] - b[0]);
 if (PACK.coastTypes) WAVES.splice(0, WAVES.length, ...COAST_WAVES);
 
 function update(dt) {
