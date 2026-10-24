@@ -211,7 +211,7 @@ function drawFront() {
 const WORLD = PACK.world || null;
 let Wd = null;
 function resetWorld() {
-  Wd = { ships: [], tracers: [], flak: [], puffs: [], gunT: WORLD.guns.map((_, i) => 0.4 + i * 0.55), shipT: 4 };
+  Wd = { strikes: [], flashes: [], ships: [], tracers: [], flak: [], puffs: [], gunT: WORLD.guns.map((_, i) => 0.4 + i * 0.55), shipT: 4 };
   for (let i = 0; i < 3; i++) wShip(50 + i * 150);
 }
 function wShip(x) {
@@ -220,6 +220,14 @@ function wShip(x) {
 }
 const farW = () => IMG.far.width;
 function updateWorld(dt) {
+  // the Spotter's strikes: a shell from the far guns lands when its ring closes
+  for (const k of Wd.strikes) {
+    k.t += dt;
+    if (k.t >= k.dur) { k.done = true; blast(k.x, k.y, 0.9); if (near(k.x, k.y, 10)) hurt(2); for (let i = 0; i < 4; i++) eshot(k.x, k.y, Math.cos(i * Math.PI / 2 + 0.785) * 50, Math.sin(i * Math.PI / 2 + 0.785) * 50); }
+  }
+  Wd.strikes = Wd.strikes.filter((k) => !k.done);
+  for (const f of Wd.flashes) f.t -= dt;
+  Wd.flashes = Wd.flashes.filter((f) => f.t > 0);
   if ((Wd.shipT -= dt) <= 0) { Wd.shipT = 6 + rand() * 5; if (Wd.ships.length < 4) wShip(); }
   for (const sh of Wd.ships) {
     sh.x += sh.vx * dt; sh.y += sh.vy * dt;
@@ -284,6 +292,17 @@ function drawWorld() {
   }
   for (const tr of Wd.tracers) if (tr.d >= 0) { const a = Math.atan2(tr.ty - tr.y, tr.tx - tr.x); g.strokeStyle = '#f1d69a'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(tr.px, tr.py); g.lineTo(tr.px - Math.cos(a) * 5, tr.py - Math.sin(a) * 5); g.stroke(); }
 }
+function drawStrikes() {
+  for (const f of Wd.flashes) { g.globalAlpha = f.t / 0.3; g.fillStyle = '#ffe6bc'; g.beginPath(); g.arc(f.x * 2, f.y * 2, 5, 0, 7); g.fill(); g.globalAlpha = 1; }
+  for (const k of Wd.strikes) {
+    const f = k.t / k.dur, x = k.x * 2, y = k.y * 2;
+    g.strokeStyle = '#c8643f'; g.lineWidth = 2; g.setLineDash([4, 3]); g.beginPath(); g.arc(x, y, 9 + 22 * (1 - f), 0, 7); g.stroke(); g.setLineDash([]);
+    g.strokeStyle = Math.floor(k.t * 10) % 2 ? '#e8a060' : '#c8643f'; g.beginPath(); g.arc(x, y, 9, 0, 7); g.stroke();
+    g.fillStyle = '#c8643f'; g.fillRect(x - 5, y - 1, 10, 2); g.fillRect(x - 1, y - 5, 2, 10);
+    const fall = (k.t - (k.dur - 0.55)) / 0.55;
+    if (fall > 0) { const sy = (HUD + (k.y - HUD) * fall * fall) * 2; g.fillStyle = 'rgba(255,255,255,0.7)'; g.fillRect(x - 1, sy - 22, 2, 14); g.fillStyle = '#0e1222'; g.fillRect(x - 3, sy - 8, 6, 11); g.fillStyle = '#5a5f68'; g.fillRect(x - 2, sy - 7, 4, 8); g.fillStyle = '#eab25a'; g.fillRect(x - 2, sy + 1, 4, 1); }
+  }
+}
 function drawWorldNear() {
   const goff = (S.scroll * 2) % (GR.L * 2);
   for (const p of Wd.puffs) if (p.ground) { g.fillStyle = `rgba(92,96,108,${p.a * (p.life / p.max)})`; g.beginPath(); g.arc(p.x, p.y, p.r, 0, 7); g.fill(); }
@@ -299,8 +318,8 @@ function drawWorldNear() {
 // The army (ChatGPT's coast designs, redrawn sharp at game size), with the
 // attacks from its sample: every one warns before it fires (its "open" look).
 const CT = PACK.coastTypes || {};
-const CHP = { hound: 2, flak: 5, skiff: 4, anchor: 4, roller: 5, dart: 2, bomber: 5, needle: 3, hunter: 3, charge: 1, bomb: 1 };
-const CPTS = { hound: 20, flak: 80, skiff: 40, anchor: 50, roller: 60, dart: 30, bomber: 60, needle: 50, hunter: 50, charge: 10, bomb: 10 };
+const CHP = { spotter: 3, hound: 2, flak: 5, skiff: 4, anchor: 4, roller: 5, dart: 2, bomber: 5, needle: 3, hunter: 3, charge: 1, bomb: 1 };
+const CPTS = { spotter: 60, hound: 20, flak: 80, skiff: 40, anchor: 50, roller: 60, dart: 30, bomber: 60, needle: 50, hunter: 50, charge: 10, bomb: 10 };
 const CGROUND = { skiff: 1, anchor: 1, roller: 1, charge: 1 };
 function coast(type, x, y = 0, extra = {}) {
   const t = CT[type];
@@ -390,6 +409,21 @@ function updateCoast(o, dt) {
         else if ((o.timer -= dt) <= 0) { fireA(nose(o), o.ang, 115, 'rail'); o.n++; ph(o, o.n < 2 ? 'aim' : 'leave', 1.0); }
       }
       break;
+    case 'spotter': { // shines a red beam on you; the guns far behind fire on its mark
+      o.y = o.baseY + Math.sin(o.t * 1.6) * 2;
+      if (o.mode === 'enter') { o.x -= 40 * dt; if (o.x <= (o.hold || 176)) ph(o, 'cool', 0.4); }
+      else if (o.mode === 'leave') { o.x -= 30 * dt; o.y = o.baseY -= 26 * dt; }
+      else if (o.mode === 'cool') { if ((o.timer -= dt) <= 0 && pAlive()) { ph(o, 'track', 1.0); tone(900, 1300, 0.12, 'triangle', 0.03); } }
+      else if (o.mode === 'track') {
+        if (!pAlive()) ph(o, 'cool', 0.6);
+        else if ((o.timer -= dt) <= 0) {
+          Wd.strikes.push({ x: p.x, y: p.y, t: 0, dur: 1.1 }); Wd.flashes.push({ x: 20 + rand() * 168, y: 90 + rand() * 8, t: 0.3 });
+          boom(0.1, 0.4, 500); tone(1400, 700, 0.1, 'square', 0.03); o.n++; ph(o, o.n < 3 ? 'cool' : 'leave', 1.5);
+        }
+      }
+      o.open = o.mode === 'track' && o.timer < 0.35;
+      break;
+    }
     case 'hound': // weaves up and down; its jaw drops (warning) before it spits once
       o.x -= 44 * dt; o.y = o.baseY + Math.sin(o.t * 2.8 + (o.ph || 0)) * 16;
       if (o.mode === 'enter' && o.t > (o.spitAt ?? 1.2) && facingC(o) && !o.n) ph(o, 'warn', 0.4);
@@ -422,6 +456,10 @@ function drawCoast(o) {
   if (o.type === 'bomber' && o.mode === 'warn') ringAt(o.tx, o.ty, Math.floor(o.t * 8) % 2 === 0);
   if (o.type === 'bomb') ringAt(o.tx, o.ty, Math.floor(o.t * 8) % 2 === 0);
   if (o.type === 'charge' && o.open) ringAt(o.x, o.y - 8, Math.floor(o.t * 10) % 2 === 0);
+  if (o.type === 'spotter' && o.mode === 'track' && pAlive()) {
+    const lx = o.x - CT.spotter.w / 2 + 2; dotted(lx, o.y + 0.5, S.p.x, S.p.y, Math.floor(o.t * 12) % 2 ? '#d2553a' : 'rgba(210,85,58,0.6)');
+    g.strokeStyle = 'rgba(200,100,63,0.8)'; g.lineWidth = 2; g.setLineDash([4, 3]); g.beginPath(); g.arc(S.p.x * 2, S.p.y * 2, 22, 0, 7); g.stroke(); g.setLineDash([]);
+  }
   if ((o.type === 'needle' && (o.mode === 'aim' || o.mode === 'warn')) || (o.type === 'hunter' && o.mode === 'warn')) {
     const [mx, my] = nose(o), locked = o.mode === 'warn';
     dotted(mx, my, mx + Math.cos(o.ang) * 220, my + Math.sin(o.ang) * 220, locked ? '#d99b43' : 'rgba(168,137,105,0.8)');
@@ -594,11 +632,11 @@ const hounds = (n, y) => { for (let i = 0; i < n; i++) coast('hound', 216 + i * 
 const pair = (y) => { coast('dart', 215, y, { lane: 0 }); coast('dart', 226, y + 26, { lane: 1 }); };
 const COAST_WAVES = [
   [0.5, () => pair(30)], [3.5, () => coast('skiff', 222)], [5, () => hounds(5, 46)], [6.5, () => coast('needle', 220, 56)],
-  [9.5, () => coast('bomber', 222, 24)], [12.5, () => coast('skiff', 222)], [15.5, () => coast('roller', 224)],
+  [9.5, () => coast('bomber', 222, 24)], [11, () => coast('spotter', 220, 52)], [12.5, () => coast('skiff', 222)], [15.5, () => coast('roller', 224)],
   [18.5, () => { pair(24); pair(70); }], [21.5, () => coast('hunter', 220, 46)], [26, () => coast('flak', 222, 40)],
   [24.5, () => { coast('skiff', 222); coast('roller', 262); }], [28, () => { coast('bomber', 222, 26); pair(76); }],
   [32, () => { coast('needle', 220, 30); coast('needle', 236, 84); }], [36, () => { coast('roller', 224); coast('hunter', 222, 64); }],
-  [40, () => { coast('needle', 220, 60); coast('bomber', 236, 22); }], [34, () => hounds(5, 70)], [44, () => { pair(26); pair(64); }], [46, () => coast('flak', 222, 76)],
+  [40, () => { coast('needle', 220, 60); coast('bomber', 236, 22); }], [34, () => hounds(5, 70)], [38, () => coast('spotter', 220, 58, { hold: 184 })], [44, () => { pair(26); pair(64); }], [46, () => coast('flak', 222, 76)],
   [48, () => { coast('hunter', 220, 36); coast('hunter', 236, 82); }], [52, () => { coast('skiff', 222); coast('roller', 262); }],
   [55, () => { coast('needle', 220, 50); coast('bomber', 238, 24); }], [57, () => hounds(4, 36)],
 ];
@@ -734,6 +772,7 @@ function draw() {
       g.restore();
     }
   }
+  if (WORLD) drawStrikes();
   // shots
   for (const s of S.shots) { g.fillStyle = '#0e1222'; g.fillRect(Math.round(s.x * 2) - 5, Math.round(s.y * 2) - 2, 10, 4); g.fillStyle = '#efe3cf'; g.fillRect(Math.round(s.x * 2) - 4, Math.round(s.y * 2) - 1, 8, 2); }
   for (const e of S.eshots) {
