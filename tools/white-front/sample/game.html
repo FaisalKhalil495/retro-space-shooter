@@ -331,6 +331,7 @@ function drawWorldNear() {
 // The army (ChatGPT's coast designs, redrawn sharp at game size), with the
 // attacks from its sample: every one warns before it fires (its "open" look).
 const CT = PACK.coastTypes || {};
+const NEEDLE_SHOTS = 5; // Needle Wing: shots before it leaves (was 2)
 const CHP = { rsled: 6, hound: 2, flak: 5, skiff: 4, anchor: 4, roller: 5, dart: 2, bomber: 5, needle: 3, hunter: 3, charge: 1, bomb: 1 };
 const CPTS = { rsled: 60, hound: 20, flak: 80, skiff: 40, anchor: 50, roller: 60, dart: 30, bomber: 60, needle: 50, hunter: 50, charge: 10, bomb: 10 };
 const CGROUND = { rsled: 1, skiff: 1, anchor: 1, roller: 1, charge: 1 };
@@ -413,13 +414,14 @@ function updateCoast(o, dt) {
       if (k >= 1) { o.hp = 0; blast(o.tx, o.ty, 0.7); if (near(o.tx, o.ty, 9)) hurt(1); for (let i = 0; i < 6; i++) eshot(o.tx, o.ty, Math.cos(i * Math.PI / 3) * 58, Math.sin(i * Math.PI / 3) * 58, 'shard'); }
       break;
     }
-    case 'needle':
-      if (o.mode === 'enter') { o.x -= 46 * dt; if (o.x <= 152) ph(o, 'aim', 0.5); }
+    case 'needle': // parks on the right and snipes: aim line, locks, fast rail shot; 5 shots before it leaves
+      if (o.mode !== 'enter' && o.mode !== 'leave') o.y = o.baseY + Math.sin(o.t * 0.9) * 3; // a gentle hover while it holds its spot
+      if (o.mode === 'enter') { o.x -= 46 * dt; if (o.x <= 152) { o.baseY = o.y; ph(o, 'aim', 0.5); } }
       else if (o.mode === 'leave') o.x -= 78 * dt;
-      else if (o.mode === 'aim') { o.ang = aimFrom(nose(o)); if ((o.timer -= dt) <= 0) ph(o, facingC(o) ? 'warn' : 'leave', 0.65); }
+      else if (o.mode === 'aim') { o.ang = aimFrom(nose(o)); if ((o.timer -= dt) <= 0) { if (!pAlive()) o.timer = 0.3; else ph(o, facingC(o) ? 'warn' : 'leave', 0.65); } }
       else if (o.mode === 'warn') {
         if (!facingC(o)) ph(o, 'leave');
-        else if ((o.timer -= dt) <= 0) { fireA(nose(o), o.ang, 115, 'rail'); o.n++; ph(o, o.n < 2 ? 'aim' : 'leave', 1.0); }
+        else if ((o.timer -= dt) <= 0) { fireA(nose(o), o.ang, 115, 'rail'); o.n++; ph(o, o.n < NEEDLE_SHOTS ? 'aim' : 'leave', 0.85); }
       }
       break;
     case 'rsled': { // Rocket Sled: tubes glow, a ripple of 5 rockets leaves its launcher, and they come down on rings boxing you in

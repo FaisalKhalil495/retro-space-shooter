@@ -542,7 +542,8 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    counting: levels 1–3 have 9–11 types and 200–400 enemies; the preview
    had 6 types and a third of the enemies):
    pod → **Twin Dart** (pairs, aimed shots), sniper → **Needle Wing** (aim
-   line, rail shot), seeker → **Wake Hunter** (crescent blades; locks on,
+   line, rail shot; owner: stays longer and fires more, so it parks on the
+   right hovering gently and fires 5 shots, 0.85 s apart, about 7 s, was 2), seeker → **Wake Hunter** (crescent blades; locks on,
    dashes), gunship → **Crest Bomber** (target ring, bomb), weaver →
    **Wolf Hound** (a wolf's-head drone; its jaw drops before it spits),
    spinner → **Flak Star** (armoured octagon, a gun on each corner,
