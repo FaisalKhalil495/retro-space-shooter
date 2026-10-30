@@ -510,15 +510,18 @@ const near = (x, y, r) => pAlive() && Math.hypot(S.p.x - x, S.p.y - y) < r;
 const aim = (x, y, sp) => { const dx = S.p.x - x, dy = S.p.y - y, d = Math.hypot(dx, dy) || 1; return [dx / d * sp, dy / d * sp]; };
 const speedUp = () => 1 + S.cycle * 0.12;
 // Every Iron Wolves enemy has its own bullet, each with a dark outline so it shows on snow and sky:
-// slug (Shelf Skiff), tracer (Twin Dart), rail (Needle Wing), slag (Wolf Hound), flak (Flak Star),
-// shard (Crest Bomber's bomb), ice (Snow Roller's charge); shell and ball for the older test armies.
+// each a different shape as well as colour, so no two can be mixed up at phone size:
+// slug (Shelf Skiff: brass arrowhead), tracer (Twin Dart: red bolt), rail (Needle Wing: long icy needle),
+// slag (Wolf Hound: red-hot glob), flak (Flak Star: round grey ball with an orange band), shard (Crest
+// Bomber's bomb: jagged triangle), ice (Snow Roller's charge: white four-pointed crystal); shell and ball for older armies.
 function drawBullet(e) {
   const x = Math.round(e.x * 2), y = Math.round(e.y * 2), K = '#0e1222', t = S.t + (e.seed || 0);
   const spin = (a, f) => { g.save(); g.translate(x, y); g.rotate(a); f(); g.restore(); };
   const along = Math.atan2(e.vy, e.vx);
   switch (e.kind) {
-    case 'slug': spin(along, () => { // a brass twin-gun slug
-      g.fillStyle = K; g.fillRect(-4, -3, 8, 6); g.fillStyle = '#b8873e'; g.fillRect(-3, -2, 6, 4); g.fillStyle = '#eab25a'; g.fillRect(-1, -2, 4, 3); g.fillStyle = '#fff1cf'; g.fillRect(1, -1, 2, 1); }); break;
+    case 'slug': spin(along, () => { // a brass arrowhead pointing where it flies (a chevron, nose first)
+      g.fillStyle = K; g.beginPath(); g.moveTo(6, 0); g.lineTo(-4, -5); g.lineTo(-1, 0); g.lineTo(-4, 5); g.closePath(); g.fill();
+      g.fillStyle = '#e8a845'; g.beginPath(); g.moveTo(4, 0); g.lineTo(-2, -3); g.lineTo(0, 0); g.lineTo(-2, 3); g.closePath(); g.fill(); g.fillStyle = '#fff1cf'; g.fillRect(2, 0, 2, 1); }); break;
     case 'tracer': spin(along, () => { // a red tracer bolt with a hot head and a fading tail
       g.fillStyle = 'rgba(200,100,63,0.35)'; g.fillRect(-12, -1, 8, 2); g.fillStyle = K; g.fillRect(-6, -2, 11, 4);
       g.fillStyle = '#c8643f'; g.fillRect(-5, -1, 7, 2); g.fillStyle = '#ffe6bc'; g.fillRect(2, -1, 2, 2); }); break;
@@ -531,14 +534,16 @@ function drawBullet(e) {
       g.fillStyle = '#8a3326'; g.beginPath(); g.ellipse(x, y, 4 + w, 3 - w, 0, 0, 7); g.fill();
       g.fillStyle = '#e2683e'; g.fillRect(x - 2, y - 2, 3, 3); g.fillStyle = '#ffe6bc'; g.fillRect(x - 1, y - 1, 1, 1);
       if (Math.floor(t * 12) % 3 === 0) { g.fillStyle = '#c8643f'; g.fillRect(x + 2 + w, y + 3, 1, 1); } break; }
-    case 'flak': spin(t * 9, () => { // a tumbling steel flak shell with a hazard band
-      g.fillStyle = K; g.fillRect(-4, -4, 8, 8); g.fillStyle = '#626871'; g.fillRect(-3, -3, 6, 6); g.fillStyle = '#9aa0a8'; g.fillRect(-3, -3, 6, 1);
-      g.fillStyle = '#eab25a'; g.fillRect(-3, 0, 6, 1); }); break;
-    case 'shard': spin(t * 14, () => { // a jagged spinning shard of bomb casing
-      g.fillStyle = K; g.beginPath(); g.moveTo(-5, -2); g.lineTo(1, -4); g.lineTo(5, 0); g.lineTo(0, 4); g.lineTo(-3, 2); g.closePath(); g.fill();
-      g.fillStyle = '#8a9099'; g.beginPath(); g.moveTo(-3, -1); g.lineTo(1, -2); g.lineTo(3, 0); g.lineTo(0, 2); g.closePath(); g.fill(); g.fillStyle = '#d6dbe3'; g.fillRect(0, -2, 2, 1); }); break;
-    case 'ice': spin(along + Math.PI / 4, () => { // a chunk of packed snow and ice thrown out by a burst charge
-      g.fillStyle = K; g.fillRect(-4, -4, 8, 8); g.fillStyle = '#7d9cbc'; g.fillRect(-3, -3, 6, 6); g.fillStyle = '#d6e7f4'; g.fillRect(-3, -3, 4, 3); g.fillStyle = '#ffffff'; g.fillRect(-2, -2, 1, 1); }); break;
+    case 'flak': { // a round grey flak ball with an orange band and a blinking fuse
+      g.fillStyle = K; g.beginPath(); g.arc(x, y, 4.5, 0, 7); g.fill(); g.fillStyle = '#626871'; g.beginPath(); g.arc(x, y, 3.5, 0, 7); g.fill();
+      g.fillStyle = '#9aa0a8'; g.fillRect(x - 2, y - 3, 2, 1); g.fillStyle = '#eab25a'; g.fillRect(x - 3, y, 7, 1);
+      if (Math.floor(t * 16) % 2) { g.fillStyle = '#ffe6bc'; g.fillRect(x + 2, y - 4, 2, 2); } break; }
+    case 'shard': spin(t * 14, () => { // a jagged triangle of bomb casing, still glowing at one edge
+      g.fillStyle = K; g.beginPath(); g.moveTo(-5, 4); g.lineTo(0, -5); g.lineTo(5, 4); g.closePath(); g.fill();
+      g.fillStyle = '#5b5f66'; g.beginPath(); g.moveTo(-3, 3); g.lineTo(0, -3); g.lineTo(3, 3); g.closePath(); g.fill(); g.fillStyle = '#f2864e'; g.fillRect(-3, 2, 6, 1); }); break;
+    case 'ice': spin(t * 4, () => { // a white four-pointed ice crystal (a little snowflake) from a burst charge
+      g.fillStyle = K; g.fillRect(-1, -6, 3, 13); g.fillRect(-6, -1, 13, 3); g.fillRect(-2, -2, 5, 5);
+      g.fillStyle = '#ffffff'; g.fillRect(0, -5, 1, 11); g.fillRect(-5, 0, 11, 1); g.fillStyle = '#9fbedc'; g.fillRect(-1, -1, 3, 3); g.fillStyle = '#ffffff'; g.fillRect(0, 0, 1, 1); }); break;
     case 'shell': g.fillStyle = K; g.beginPath(); g.arc(x, y, 4, 0, 7); g.fill(); g.fillStyle = '#9b7953'; g.beginPath(); g.arc(x, y, 3, 0, 7); g.fill(); g.fillStyle = '#f1d69a'; g.fillRect(x - 1, y - 2, 2, 2); break;
     default: g.fillStyle = K; g.fillRect(x - 3, y - 2, 6, 4); g.fillRect(x - 2, y - 3, 4, 6); g.fillStyle = e.kind === 'acid' ? '#c9a05a' : '#e3a857'; g.fillRect(x - 2, y - 1, 4, 2); g.fillRect(x - 1, y - 2, 2, 4); g.fillStyle = '#f6dcae'; g.fillRect(x - 1, y - 1, 1, 1);
   }
