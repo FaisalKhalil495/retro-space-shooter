@@ -219,6 +219,7 @@ function wShip(x) {
   Wd.ships.push({ k, x: x ?? 430, y: 22 + rand() * 50 + k * 10, vx: -(5 + rand() * 7) * (1 - k * 0.2), vy: 1 + rand() * 1.4, hit: 0 });
 }
 const farW = () => IMG.far.width;
+const ROCKET_G = 110, ROCKET_T = 1.65, ROCKET_GAP = 0.24; // Rocket Sled: gravity, time in the air, time between rockets
 function updateWorld(dt) {
   // artillery strikes: a rocket lands when its ring closes
   for (const k of Wd.strikes) {
@@ -227,11 +228,12 @@ function updateWorld(dt) {
   }
   Wd.strikes = Wd.strikes.filter((k) => !k.done);
   // rockets climbing out of a Rocket Sled's tubes (they come back down on the rings)
+  // a real arc under gravity: up out of the tubes, over the top, and down onto its ring
   for (const r of Wd.rockets) {
-    r.vy -= 220 * dt; r.x += r.vx * dt; r.y += r.vy * dt; r.puff -= dt;
-    if (r.puff <= 0) { r.puff = 0.03; S.fx.push({ k: 'smoke', x: r.x, y: r.y + 2, vx: (Math.random() - 0.5) * 8, vy: 6, life: 0.6, max: 0.6, r: 1.2 + Math.random() }); }
+    r.t += dt; r.vy += ROCKET_G * dt; r.x += r.vx * dt; r.y += r.vy * dt; r.puff -= dt;
+    if (r.puff <= 0) { r.puff = 0.04; S.fx.push({ k: 'smoke', x: r.x - r.vx * 0.02, y: r.y - r.vy * 0.02, vx: (Math.random() - 0.5) * 8, vy: 4, life: 0.6, max: 0.6, r: 1.2 + Math.random() }); }
   }
-  Wd.rockets = Wd.rockets.filter((r) => r.y > -12);
+  Wd.rockets = Wd.rockets.filter((r) => r.t < r.T);
   if ((Wd.shipT -= dt) <= 0) { Wd.shipT = 6 + rand() * 5; if (Wd.ships.length < 4) wShip(); }
   for (const sh of Wd.ships) {
     sh.x += sh.vx * dt; sh.y += sh.vy * dt;
@@ -309,7 +311,7 @@ function drawStrikes() {
     g.strokeStyle = Math.floor(k.t * 10) % 2 ? '#e8a060' : '#c8643f'; g.beginPath(); g.arc(x, y, 9, 0, 7); g.stroke();
     g.fillStyle = '#c8643f'; g.fillRect(x - 5, y - 1, 10, 2); g.fillRect(x - 1, y - 5, 2, 10);
     const fall = (k.t - (k.dur - 0.55)) / 0.55;
-    if (fall > 0) { const sy = (HUD + (k.y - HUD) * fall * fall) * 2; g.fillStyle = 'rgba(255,255,255,0.7)'; g.fillRect(x - 1, sy - 22, 2, 14); g.fillStyle = '#0e1222'; g.fillRect(x - 3, sy - 8, 6, 11); g.fillStyle = '#5a5f68'; g.fillRect(x - 2, sy - 7, 4, 8); g.fillStyle = '#eab25a'; g.fillRect(x - 2, sy + 1, 4, 1); }
+    if (fall > 0 && !k.rocket) { const sy = (HUD + (k.y - HUD) * fall * fall) * 2; g.fillStyle = 'rgba(255,255,255,0.7)'; g.fillRect(x - 1, sy - 22, 2, 14); g.fillStyle = '#0e1222'; g.fillRect(x - 3, sy - 8, 6, 11); g.fillStyle = '#5a5f68'; g.fillRect(x - 2, sy - 7, 4, 8); g.fillStyle = '#eab25a'; g.fillRect(x - 2, sy + 1, 4, 1); }
   }
 }
 function drawWorldNear() {
@@ -438,11 +440,11 @@ function updateCoast(o, dt) {
       } else if (o.mode === 'fire') {
         if ((o.timer -= dt) <= 0) {
           const mx = o.x - 2.5, my = o.y - 4.5, [tx, ty] = o.tg[o.k];
-          Wd.rockets.push({ x: mx, y: my, vx: -40 + o.k * 6, vy: -70, puff: 0 });
-          Wd.strikes.push({ x: tx, y: ty, t: 0, dur: 0.95, frags: 0 });
+          const T = ROCKET_T; Wd.rockets.push({ x: mx, y: my, vx: (tx - mx) / T, vy: (ty - my - 0.5 * ROCKET_G * T * T) / T, t: 0, T, puff: 0 });
+          Wd.strikes.push({ x: tx, y: ty, t: 0, dur: T, frags: 0, rocket: true });
           S.fx.push({ k: 'flash', x: mx, y: my, life: 0.08, max: 0.08, r: 4 });
-          tone(220, 900, 0.18, 'sawtooth', 0.03); o.timer = 0.11; o.k++;
-          if (o.k >= o.tg.length) { o.n++; ph(o, o.n < 3 ? 'reload' : 'leave', 1.2); }
+          tone(220, 900, 0.18, 'sawtooth', 0.03); o.timer = ROCKET_GAP; o.k++;
+          if (o.k >= o.tg.length) { o.n++; ph(o, o.n < 3 ? 'reload' : 'leave', 1.8); }
         }
       }
       o.open = o.mode === 'warn' || o.mode === 'fire';

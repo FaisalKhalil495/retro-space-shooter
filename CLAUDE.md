@@ -550,12 +550,14 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    the owner's test: "it's easy to dodge"): a sled with a four-tube
    launcher that slides in and **holds its spot** (drives against the
    scroll) while it fires; its tubes glow 0.5 s, then a ripple of **5
-   rockets visibly leaves the launcher** (muzzle flash, smoke trails,
-   climbing off the top), and each one marks a red ring as it goes:
-   where you're heading, where you are, above, below and ahead of you, so
-   you're boxed in and must move out; each ring tightens and its rocket
-   comes down on it 0.95 s later (2 blocks if you're inside, no
-   fragments). 3 salvos 1.2 s apart (it waits while you respawn), then it
+   rockets visibly leaves the launcher** (0.24 s apart; muzzle flash,
+   smoke trails) and each flies **a real arc under gravity** (owner:
+   "it's not even following the laws of gravity"; then it was too fast)
+   onto its own red ring, 1.65 s in the air: where you're heading, where
+   you are, above, below and ahead of you, so you're boxed in and must
+   move out; each ring tightens until its rocket lands (2 blocks if
+   you're inside, no
+   fragments). 3 salvos 1.8 s apart (it waits while you respawn), then it
    leaves; 6 hits to destroy; about 3 a minute. Cargo pods as on every
    level.
    The owner removed the big armoured sled (and with it the Anchor Gun).
