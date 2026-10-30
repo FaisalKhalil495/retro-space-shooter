@@ -525,7 +525,10 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    art** (owner: "screw ChatGPT") for the location. The ground is **flat**
    (owner), and the location is alive: landing ships, tracers, flak,
    searchlights, smoke, a waving flag, blowing snow (preview, all code,
-   `tools/white-front/world2.js`).
+   `tools/white-front/world2.js`). Ground decorations are scenery only:
+   nothing collides with them (owner: a solid dark wreck hurt the ship
+   and hid enemies from its shots), and the wrecks are faded and
+   snow-dusted so they never look like an enemy.
    **The invaders here: the "Iron Wolves"** (owner's pick over the Siege
    Legion and three other armies): dark gunmetal armour, orange hazard
    stripes, red eye lamps; landing ships and wrecks in the same paint.
@@ -559,7 +562,7 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    on the snow (2 blocks if you're hit, or within 9 px of the burst).
    Each column shows as a dotted red line from the top of the screen to
    a ring on the snow (brightening and blinking as its rocket comes,
-   1.4–1.6 s): where you're heading, where you are, 20 px either side of
+   about 1.6 s; it falls a little more gently than it climbs): where you're heading, where you are, 20 px either side of
    you and further ahead, so moving up or down doesn't help; slip between
    columns or get clear sideways. (Owner's notes along the way: "not
    following the laws of gravity", "too slow", "faster and more towards

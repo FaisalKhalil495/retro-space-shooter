@@ -191,16 +191,17 @@ export function ground() {
   const snowCap = (x0, x1, y) => { for (let x = x0; x < x1; x++) R(x, y - 1 - (Math.sin(x * 0.7) > 0.3 ? 1 : 0), 1, 2, '#f7fafd'); };
   const deco = [];
   // 1. a Legion landing ship's wreck, nose down in a drift (smokes)
+  // (scenery only: faded and snow-dusted so it never looks like an enemy, and nothing collides with it)
   const wreck = (wx) => {
     const wy = gy(wx) + 4;
-    P([[wx - 30, wy], [wx - 26, wy - 16], [wx - 6, wy - 26], [wx + 22, wy - 22], [wx + 30, wy - 8], [wx + 26, wy]], '#4e5461');
-    P([[wx - 26, wy - 16], [wx - 6, wy - 26], [wx - 4, wy - 22], [wx - 22, wy - 13]], '#6a717e');
-    P([[wx + 22, wy - 22], [wx + 30, wy - 8], [wx + 26, wy], [wx + 18, wy], [wx + 20, wy - 14]], '#383d48');
-    P([[wx - 2, wy - 25], [wx + 4, wy - 24], [wx + 2, wy], [wx - 4, wy]], '#3b4548');
-    P([[wx + 6, wy - 23], [wx + 9, wy - 23], [wx + 7, wy], [wx + 4, wy]], '#3b4548');
-    P([[wx - 30, wy], [wx - 26, wy - 16], [wx - 16, wy - 21], [wx - 18, wy]], '#383d48'); // the cream nose plate
-    P([[wx - 26, wy - 16], [wx - 16, wy - 21], [wx - 16, wy - 17], [wx - 23, wy - 13]], '#4e5461');
-    P([[wx - 18, wy - 8], [wx - 8, wy - 14], [wx - 2, wy - 6], [wx - 10, wy - 2]], '#2b2f38'); // a torn hole
+    P([[wx - 30, wy], [wx - 26, wy - 16], [wx - 6, wy - 26], [wx + 22, wy - 22], [wx + 30, wy - 8], [wx + 26, wy]], '#98a2b2');
+    P([[wx - 26, wy - 16], [wx - 6, wy - 26], [wx - 4, wy - 22], [wx - 22, wy - 13]], '#b4bdca');
+    P([[wx + 22, wy - 22], [wx + 30, wy - 8], [wx + 26, wy], [wx + 18, wy], [wx + 20, wy - 14]], '#808a9a');
+    P([[wx - 2, wy - 25], [wx + 4, wy - 24], [wx + 2, wy], [wx - 4, wy]], '#768090');
+    P([[wx + 6, wy - 23], [wx + 9, wy - 23], [wx + 7, wy], [wx + 4, wy]], '#768090');
+    P([[wx - 30, wy], [wx - 26, wy - 16], [wx - 16, wy - 21], [wx - 18, wy]], '#808a9a'); // the cream nose plate
+    P([[wx - 26, wy - 16], [wx - 16, wy - 21], [wx - 16, wy - 17], [wx - 23, wy - 13]], '#98a2b2');
+    P([[wx - 18, wy - 8], [wx - 8, wy - 14], [wx - 2, wy - 6], [wx - 10, wy - 2]], '#636c7c'); // a torn hole
     R(wx - 12, wy - 9, 3, 2, '#e3a857'); R(wx - 11, wy - 9, 1, 1, '#f6dcae');
     for (let x = wx - 34; x < wx + 34; x++) R(x, wy - 1, 1, 3, '#f7fafd');
     snowCap(wx - 24, wx + 18, wy - 18);
@@ -251,9 +252,6 @@ export function ground() {
   wreck(260); trap(430); trap(452); bags(560); crater(700); dish(820); flag(940); wreck(1180); bags(1330); trap(1460); crater(1560); trap(1700); flag(1820); dish(1940);
   const top = [], lane = [];
   for (let x = 0; x < L; x++) { top.push(+groundY(x).toFixed(2)); lane.push(+(groundY(x) + 1.5).toFixed(2)); }
-  for (const wx of [260, 1180]) for (let x = Math.floor((wx - 30) / 2); x < (wx + 30) / 2; x++) {
-    const d = Math.min(1, Math.abs(x - wx / 2) / 15); top[x] = Math.min(top[x], +(groundY(wx / 2) + 2 - 13 * (1 - d * d)).toFixed(2));
-  }
   return { canvas: cv, y0, top, lane, deco };
 }
 

@@ -219,7 +219,7 @@ function wShip(x) {
   Wd.ships.push({ k, x: x ?? 430, y: 22 + rand() * 50 + k * 10, vx: -(5 + rand() * 7) * (1 - k * 0.2), vy: 1 + rand() * 1.4, hit: 0 });
 }
 const farW = () => IMG.far.width;
-const ROCKET_G = 480, ROCKET_TOP = -26, ROCKET_GAP = 0.15; // Rocket Sled: gravity, how high the arc peaks (above the screen), time between rockets
+const ROCKET_G = 480, ROCKET_FALL = 380, ROCKET_TOP = -26, ROCKET_GAP = 0.15; // Rocket Sled: gravity going up, gravity coming down (a little gentler), how high the arc peaks (above the screen), time between rockets
 function updateWorld(dt) {
   // artillery strikes: a rocket lands when its ring closes
   // Rocket Sled rockets: fired fast and steep, they climb to a peak above the screen right over
@@ -227,7 +227,7 @@ function updateWorld(dt) {
   for (const r of Wd.rockets) {
     r.t += dt; r.puff -= dt;
     if (r.t < r.up) { r.vy += ROCKET_G * dt; r.x += r.vx * dt; r.y += r.vy * dt; }
-    else { r.x = r.col.x; r.vx = 0; r.vy += ROCKET_G * dt; r.y += r.vy * dt; }
+    else { r.x = r.col.x; r.vx = 0; r.vy += ROCKET_FALL * dt; r.y += r.vy * dt; }
     if (r.puff <= 0) { r.puff = 0.025; S.fx.push({ k: 'smoke', x: r.x - r.vx * 0.02, y: r.y - r.vy * 0.02, vx: (Math.random() - 0.5) * 8, vy: 4, life: 0.6, max: 0.6, r: 1.2 + Math.random() }); }
     if (r.t >= r.up && r.y > HUD && pAlive() && Math.abs(r.x - S.p.x) < 6 && Math.abs(r.y - S.p.y) < 5) { r.done = true; blast(r.x, r.y, 0.9); hurt(2); }
     else if (r.y >= r.col.y) { r.done = true; blast(r.x, r.col.y, 0.9, true); if (near(r.x, r.col.y, 9)) hurt(2); }
@@ -442,7 +442,7 @@ function updateCoast(o, dt) {
         if ((o.timer -= dt) <= 0) {
           const mx = o.x - 2.5, my = o.y - 4.5, [tx, ty] = o.tg[o.k];
           // fired fast and steeply up to a peak above the screen over its column, then straight down it
-          const up = Math.sqrt(2 * (my - ROCKET_TOP) / ROCKET_G), gy = groundTop(S.scroll + tx) - 1, down = Math.sqrt(2 * (gy - ROCKET_TOP) / ROCKET_G);
+          const up = Math.sqrt(2 * (my - ROCKET_TOP) / ROCKET_G), gy = groundTop(S.scroll + tx) - 1, down = Math.sqrt(2 * (gy - ROCKET_TOP) / ROCKET_FALL);
           const col = { x: tx, y: gy, t: 0, dur: up + down };
           Wd.strikes.push(col); Wd.rockets.push({ x: mx, y: my, vx: (tx - mx) / up, vy: -ROCKET_G * up, t: 0, up, col, puff: 0 });
           S.fx.push({ k: 'flash', x: mx, y: my, life: 0.08, max: 0.08, r: 4 });
