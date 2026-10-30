@@ -356,7 +356,7 @@ function updateCoast(o, dt) {
       else if (o.mode === 'brake') { if ((o.timer -= dt) <= 0 && facingC(o)) ph(o, 'warn', 0.6); }
       else if (o.mode === 'warn') {
         if (!facingC(o)) ph(o, 'leave');
-        else if ((o.timer -= dt) <= 0) { const m = nose(o, -1), a = aimFrom(m); for (const d of [-0.17, 0, 0.17]) fireA(m, a + d, 72); o.n++; ph(o, o.n < 2 ? 'brake' : 'leave', 1.2); }
+        else if ((o.timer -= dt) <= 0) { const m = nose(o, -1), a = aimFrom(m); for (const d of [-0.17, 0, 0.17]) fireA(m, a + d, 72, 'slug'); o.n++; ph(o, o.n < 2 ? 'brake' : 'leave', 1.2); }
       }
       if (o.mode !== 'enter' && o.x < p.x + 12) ph(o, 'leave');
       break;
@@ -382,7 +382,7 @@ function updateCoast(o, dt) {
     case 'charge':
       o.x -= 54 * dt; placeC(o); o.rot = (o.rot || 0) - dt * 7;
       if (o.t >= o.life - 0.65) o.open = true;
-      if (o.t >= o.life) { o.hp = 0; blast(o.x, o.y, 0.6, true); for (let i = 0; i < 5; i++) { const a = -Math.PI + 0.25 + (i * (Math.PI - 0.5)) / 4; eshot(o.x, o.y - 2, Math.cos(a) * 62, Math.sin(a) * 62); } }
+      if (o.t >= o.life) { o.hp = 0; blast(o.x, o.y, 0.6, true); for (let i = 0; i < 5; i++) { const a = -Math.PI + 0.25 + (i * (Math.PI - 0.5)) / 4; eshot(o.x, o.y - 2, Math.cos(a) * 62, Math.sin(a) * 62, 'ice'); } }
       break;
     case 'dart':
       o.y = o.baseY + Math.sin(o.t * 2) * 2;
@@ -391,7 +391,7 @@ function updateCoast(o, dt) {
       else if (o.mode === 'wait') { if ((o.timer -= dt) <= 0) ph(o, facingC(o) ? 'warn' : 'leave', 0.45); }
       else if (o.mode === 'warn') {
         if (!facingC(o)) ph(o, 'leave');
-        else if ((o.timer -= dt) <= 0) { const m = nose(o); fireA(m, aimFrom(m), 82); o.n++; ph(o, o.n < 2 ? 'wait' : 'leave', 1.15); }
+        else if ((o.timer -= dt) <= 0) { const m = nose(o); fireA(m, aimFrom(m), 82, 'tracer'); o.n++; ph(o, o.n < 2 ? 'wait' : 'leave', 1.15); }
       }
       break;
     case 'bomber':
@@ -410,7 +410,7 @@ function updateCoast(o, dt) {
       break;
     case 'bomb': {
       const k = Math.min(1, o.t / 1.1); o.x = o.sx + (o.tx - o.sx) * k; o.y = o.sy + (o.ty - o.sy) * k * k; o.open = Math.floor(o.t * 10) % 2 === 0;
-      if (k >= 1) { o.hp = 0; blast(o.tx, o.ty, 0.7); if (near(o.tx, o.ty, 9)) hurt(1); for (let i = 0; i < 6; i++) eshot(o.tx, o.ty, Math.cos(i * Math.PI / 3) * 58, Math.sin(i * Math.PI / 3) * 58); }
+      if (k >= 1) { o.hp = 0; blast(o.tx, o.ty, 0.7); if (near(o.tx, o.ty, 9)) hurt(1); for (let i = 0; i < 6; i++) eshot(o.tx, o.ty, Math.cos(i * Math.PI / 3) * 58, Math.sin(i * Math.PI / 3) * 58, 'shard'); }
       break;
     }
     case 'needle':
@@ -457,14 +457,14 @@ function updateCoast(o, dt) {
     case 'hound': // weaves up and down; its jaw drops (warning) before it spits once
       o.x -= 44 * dt; o.y = o.baseY + Math.sin(o.t * 2.8 + (o.ph || 0)) * 16;
       if (o.mode === 'enter' && o.t > (o.spitAt ?? 1.2) && facingC(o) && !o.n) ph(o, 'warn', 0.4);
-      else if (o.mode === 'warn') { if (!facingC(o)) ph(o, 'fly'); else if ((o.timer -= dt) <= 0) { const m = nose(o, 1); fireA(m, aimFrom(m), 62); o.n = 1; ph(o, 'fly'); } }
+      else if (o.mode === 'warn') { if (!facingC(o)) ph(o, 'fly'); else if ((o.timer -= dt) <= 0) { const m = nose(o, 1); fireA(m, aimFrom(m), 62, 'slag'); o.n = 1; ph(o, 'fly'); } }
       break;
     case 'flak': // turns as it hovers; its lamps glow before each 8-way burst
       o.rot = (o.rot || 0) + dt * 2.2;
       if (o.mode === 'enter') { o.x += (150 - o.x) * Math.min(1, dt * 1.5) - 3 * dt; if (o.x < 156) ph(o, 'wait', 0.6); }
       else if (o.mode === 'leave') o.x -= 40 * dt;
       else if (o.mode === 'wait') { if ((o.timer -= dt) <= 0) ph(o, 'warn', 0.45); }
-      else if (o.mode === 'warn') { if ((o.timer -= dt) <= 0) { const off = o.n * Math.PI / 8; for (let k = 0; k < 8; k++) fireA([o.x, o.y], off + k * Math.PI / 4, 52); o.n++; ph(o, o.n < 3 ? 'wait' : 'leave', 1.65); } }
+      else if (o.mode === 'warn') { if ((o.timer -= dt) <= 0) { const off = o.n * Math.PI / 8; for (let k = 0; k < 8; k++) fireA([o.x, o.y], off + k * Math.PI / 4, 52, 'flak'); o.n++; ph(o, o.n < 3 ? 'wait' : 'leave', 1.65); } }
       break;
     case 'hunter':
       if (o.mode === 'enter') { o.x -= 52 * dt; if (o.x <= 147) { o.ang = aimFrom(nose(o)); ph(o, 'warn', 0.8); } }
@@ -509,7 +509,41 @@ const pAlive = () => S.p.dead <= 0;
 const near = (x, y, r) => pAlive() && Math.hypot(S.p.x - x, S.p.y - y) < r;
 const aim = (x, y, sp) => { const dx = S.p.x - x, dy = S.p.y - y, d = Math.hypot(dx, dy) || 1; return [dx / d * sp, dy / d * sp]; };
 const speedUp = () => 1 + S.cycle * 0.12;
-function eshot(x, y, vx, vy, kind = 'ball', dmg = 1) { S.eshots.push({ x, y, vx: vx * speedUp(), vy: vy * speedUp(), kind, dmg, life: 6 }); }
+// Every Iron Wolves enemy has its own bullet, each with a dark outline so it shows on snow and sky:
+// slug (Shelf Skiff), tracer (Twin Dart), rail (Needle Wing), slag (Wolf Hound), flak (Flak Star),
+// shard (Crest Bomber's bomb), ice (Snow Roller's charge); shell and ball for the older test armies.
+function drawBullet(e) {
+  const x = Math.round(e.x * 2), y = Math.round(e.y * 2), K = '#0e1222', t = S.t + (e.seed || 0);
+  const spin = (a, f) => { g.save(); g.translate(x, y); g.rotate(a); f(); g.restore(); };
+  const along = Math.atan2(e.vy, e.vx);
+  switch (e.kind) {
+    case 'slug': spin(along, () => { // a brass twin-gun slug
+      g.fillStyle = K; g.fillRect(-4, -3, 8, 6); g.fillStyle = '#b8873e'; g.fillRect(-3, -2, 6, 4); g.fillStyle = '#eab25a'; g.fillRect(-1, -2, 4, 3); g.fillStyle = '#fff1cf'; g.fillRect(1, -1, 2, 1); }); break;
+    case 'tracer': spin(along, () => { // a red tracer bolt with a hot head and a fading tail
+      g.fillStyle = 'rgba(200,100,63,0.35)'; g.fillRect(-12, -1, 8, 2); g.fillStyle = K; g.fillRect(-6, -2, 11, 4);
+      g.fillStyle = '#c8643f'; g.fillRect(-5, -1, 7, 2); g.fillStyle = '#ffe6bc'; g.fillRect(2, -1, 2, 2); }); break;
+    case 'rail': spin(along, () => { // a long icy needle of light from the rail gun
+      g.fillStyle = 'rgba(190,214,238,0.45)'; g.fillRect(-16, -1, 10, 2); g.fillStyle = K; g.fillRect(-9, -2, 18, 4);
+      g.fillStyle = '#9fbedc'; g.fillRect(-8, -1, 16, 2); g.fillStyle = '#ffffff'; g.fillRect(-2, -1, 9, 1); }); break;
+    case 'slag': { // a wobbling glob of molten slag spat from a Wolf Hound's jaw
+      const w = Math.sin(t * 22) > 0 ? 1 : 0;
+      g.fillStyle = K; g.beginPath(); g.ellipse(x, y, 5 + w, 4 - w, 0, 0, 7); g.fill();
+      g.fillStyle = '#8a3326'; g.beginPath(); g.ellipse(x, y, 4 + w, 3 - w, 0, 0, 7); g.fill();
+      g.fillStyle = '#e2683e'; g.fillRect(x - 2, y - 2, 3, 3); g.fillStyle = '#ffe6bc'; g.fillRect(x - 1, y - 1, 1, 1);
+      if (Math.floor(t * 12) % 3 === 0) { g.fillStyle = '#c8643f'; g.fillRect(x + 2 + w, y + 3, 1, 1); } break; }
+    case 'flak': spin(t * 9, () => { // a tumbling steel flak shell with a hazard band
+      g.fillStyle = K; g.fillRect(-4, -4, 8, 8); g.fillStyle = '#626871'; g.fillRect(-3, -3, 6, 6); g.fillStyle = '#9aa0a8'; g.fillRect(-3, -3, 6, 1);
+      g.fillStyle = '#eab25a'; g.fillRect(-3, 0, 6, 1); }); break;
+    case 'shard': spin(t * 14, () => { // a jagged spinning shard of bomb casing
+      g.fillStyle = K; g.beginPath(); g.moveTo(-5, -2); g.lineTo(1, -4); g.lineTo(5, 0); g.lineTo(0, 4); g.lineTo(-3, 2); g.closePath(); g.fill();
+      g.fillStyle = '#8a9099'; g.beginPath(); g.moveTo(-3, -1); g.lineTo(1, -2); g.lineTo(3, 0); g.lineTo(0, 2); g.closePath(); g.fill(); g.fillStyle = '#d6dbe3'; g.fillRect(0, -2, 2, 1); }); break;
+    case 'ice': spin(along + Math.PI / 4, () => { // a chunk of packed snow and ice thrown out by a burst charge
+      g.fillStyle = K; g.fillRect(-4, -4, 8, 8); g.fillStyle = '#7d9cbc'; g.fillRect(-3, -3, 6, 6); g.fillStyle = '#d6e7f4'; g.fillRect(-3, -3, 4, 3); g.fillStyle = '#ffffff'; g.fillRect(-2, -2, 1, 1); }); break;
+    case 'shell': g.fillStyle = K; g.beginPath(); g.arc(x, y, 4, 0, 7); g.fill(); g.fillStyle = '#9b7953'; g.beginPath(); g.arc(x, y, 3, 0, 7); g.fill(); g.fillStyle = '#f1d69a'; g.fillRect(x - 1, y - 2, 2, 2); break;
+    default: g.fillStyle = K; g.fillRect(x - 3, y - 2, 6, 4); g.fillRect(x - 2, y - 3, 4, 6); g.fillStyle = e.kind === 'acid' ? '#c9a05a' : '#e3a857'; g.fillRect(x - 2, y - 1, 4, 2); g.fillRect(x - 1, y - 2, 2, 4); g.fillStyle = '#f6dcae'; g.fillRect(x - 1, y - 1, 1, 1);
+  }
+}
+function eshot(x, y, vx, vy, kind = 'ball', dmg = 1) { S.eshots.push({ x, y, vx: vx * speedUp(), vy: vy * speedUp(), kind, dmg, life: 6, seed: Math.random() }); }
 
 // flyers ---------------------------------------------------------------
 function flyer(type, x, y, extra = {}) {
@@ -677,6 +711,131 @@ function update(dt) {
   if (FRONT) updateFront(dt);
   if (WORLD) updateWorld(dt);
   if (ct >= CYCLE) { S.cycle++; S.step = 0; }
+  // the player
+  const p = S.p;
+  if (p.dead > 0) { p.dead -= dt; if (p.dead <= 0 && p.lives > 0) { p.x = 34; p.y = 60; p.hp = PL.health; p.inv = 2.2; } }
+  else {
+    const s = steer(); p.x += s.x * PL.speed * dt; p.y += s.y * PL.speed * dt;
+    p.x = Math.max(9, Math.min(VW - 9, p.x)); p.y = Math.max(HUD + 4, p.y);
+    p.inv = Math.max(0, p.inv - dt);
+    // the ground is solid: crash, lose 2 blocks, bounce up
+    let top = 1e9; for (let dx = -8; dx <= 8; dx += 2) top = Math.min(top, groundTop(S.scroll + p.x + dx));
+    if (p.y + 3 > top) { p.y = top - 3; if (p.inv <= 0) { hurt(2); p.y = top - 9; } }
+    p.cool -= dt;
+    if (firing() && p.cool <= 0) { p.cool = PL.fire; S.shots.push({ x: p.x + 9, y: p.y + 1 }); tone(1500, 900, 0.04, 'square', 0.018); }
+  }
+  for (const s of S.shots) s.x += PL.bullet * dt;
+  // enemies
+  for (const o of S.foes) {
+    o.flash = Math.max(0, o.flash - dt);
+    if (o.kind === 'fly') updateFlyer(o, dt); else if (o.kind === 'unit') updateUnit(o, dt); else if (o.kind === 'coast') updateCoast(o, dt); else updateRocket(o, dt);
+    if (o.hp > 0 && pAlive() && hitBox(box(o), pBox())) { hurt(o.kind === 'rocket' || o.type === 'charge' || o.type === 'bomb' ? 1 : 2); if (o.kind !== 'unit' && o.type !== 'gunner' && o.type !== 'spinner' && !(o.kind === 'coast' && (o.ground || o.type === 'bomber'))) kill(o); }
+  }
+  // your shots hit
+  for (const s of S.shots) {
+    if (s.dead) continue;
+    const sb = { x: s.x - 2, y: s.y - 0.5, w: 4, h: 1.5 };
+    if (s.y > groundTop(S.scroll + s.x)) { s.dead = true; S.fx.push({ k: 'spray', x: s.x, y: s.y, vx: -10, vy: -15, life: 0.3, max: 0.3 }); continue; }
+    for (const o of S.foes) if (o.hp > 0 && hitBox(sb, box(o))) { s.dead = true; if (o.kind === 'coast' && coastArmoured(o)) { S.fx.push({ k: 'spark', x: s.x, y: s.y, vx: -40, vy: (Math.random() - 0.5) * 60, life: 0.2, max: 0.2 }); tone(1800, 1200, 0.03, 'square', 0.02); break; } o.hp--; o.flash = 0.08; if (o.hp <= 0) kill(o); else tone(300, 200, 0.03, 'square', 0.02); break; }
+  }
+  // enemy shots
+  for (const e of S.eshots) {
+    e.x += e.vx * dt; e.y += e.vy * dt; e.life -= dt;
+    if (e.y > groundTop(S.scroll + e.x)) { e.life = 0; S.fx.push({ k: 'spray', x: e.x, y: e.y, vx: 0, vy: -12, life: 0.3, max: 0.3 }); }
+    if (e.life > 0 && pAlive() && Math.abs(e.x - p.x) < (e.kind === 'shell' ? 6.5 : 5.5) && Math.abs(e.y - p.y) < (e.kind === 'shell' ? 4.5 : 3.5)) { e.life = 0; hurt(e.dmg); }
+  }
+  // artillery from beyond the screen, and flak bursts
+  if (!PACK.noEnemies && S.t > S.nextArt) {
+    S.nextArt = S.t + Math.max(3.5, 6.5 - S.cycle * 0.6) + rand() * 2;
+    const x = Math.max(16, Math.min(VW - 16, p.x + (rand() - 0.3) * 40));
+    S.arts.push({ k: 'shell', wx: S.scroll + x, t: 0, dur: 1.4 });
+    tone(1800, 400, 1.3, 'sine', 0.02);
+  }
+  for (const a of S.arts) {
+    a.t += dt;
+    if (a.t >= a.dur && !a.done) {
+      a.done = true;
+      if (a.k === 'shell') {
+        const x = a.wx - S.scroll, y = laneAt(a.wx);
+        blast(x, y - 2, 1.4, true); S.scorch.push({ wx: a.wx, y, r: 10, life: 9 }); S.shake = 0.2;
+        if (pAlive() && Math.abs(p.x - x) < 15 && p.y > y - 24) hurt(2);
+      } else { blast(a.x, a.y, 0.9); if (near(a.x, a.y, 11)) hurt(1); }
+    }
+  }
+  S.arts = S.arts.filter((a) => !a.done);
+  for (const f of S.fx) { f.life -= dt; f.x += (f.vx || 0) * dt - (f.k === 'spray' || f.k === 'smoke' ? 0 : 0); f.y += (f.vy || 0) * dt; if (f.k === 'spray') f.vy += 90 * dt; if (f.k === 'smoke') { f.x -= 10 * dt; f.r += dt * 3; } }
+  for (const s of S.scorch) s.life -= dt;
+  for (const f of S.snow) { f.x -= (f.v + 10) * dt; f.y += f.v * 0.6 * dt; if (f.x < -2) f.x += VW + 4; if (f.y > VH) f.y -= VH; }
+  S.foes = S.foes.filter((o) => o.hp > 0 && o.x > -40 && o.x < VW + 80 && o.y > -40 && o.y < VH + 30);
+  S.shots = S.shots.filter((s) => !s.dead && s.x < VW + 6);
+  S.eshots = S.eshots.filter((e) => e.life > 0 && e.x > -6 && e.x < VW + 6 && e.y > -6 && e.y < VH + 6);
+  S.fx = S.fx.filter((f) => f.life > 0);
+  S.scorch = S.scorch.filter((s) => s.life > 0);
+}
+
+// ---------------------------------------------------------------- drawing (on the 416x288 double-detail screen)
+function tileX(img, x, y) { const w = img.width; let s = -(((x % w) + w) % w); for (; s < VW * 2; s += w) g.drawImage(img, Math.round(s), y); }
+function sprite(key, o, flip) {
+  const i = IMG[key], x = Math.round(o.x * 2 - i.width / 2), y = Math.round(o.y * 2 - i.height / 2);
+  if (o.rot) { g.save(); g.translate(o.x * 2, o.y * 2); g.rotate(o.rot); g.drawImage(o.flash > 0 ? IMG[key + '_flash'] : i, -i.width / 2, -i.height / 2); g.restore(); return; }
+  g.drawImage(o.flash > 0 ? IMG[key + '_flash'] : i, x, y);
+  if (o.blink > 0 && Math.floor(o.blink * 16) % 2 === 0) { g.globalAlpha = 0.55; g.drawImage(IMG[key + '_flash'], x, y); g.globalAlpha = 1; }
+}
+function dotted(x0, y0, x1, y1, col) {
+  g.fillStyle = col; const d = Math.hypot(x1 - x0, y1 - y0), n = Math.floor(d / 3);
+  for (let i = 0; i < n; i += 2) { const t = i / n; g.fillRect(Math.round((x0 + (x1 - x0) * t) * 2), Math.round((y0 + (y1 - y0) * t) * 2), 2, 2); }
+}
+function draw() {
+  g.save();
+  if (S.shake > 0) g.translate(Math.round((Math.random() - 0.5) * 4), Math.round((Math.random() - 0.5) * 4));
+  // the world, far to near
+  if (WORLD) drawWorld(); else if (FRONT) drawFront(); else for (const l of PACK.layers) {
+    const x = l.speed === 'far' ? S.far * 2 : l.speed === 'ships' ? S.ships * 2 : 0;
+    g.globalAlpha = l.alpha || 1; if (l.speed === 0) g.drawImage(IMG[l.img], 0, l.y || 0); else tileX(IMG[l.img], x, l.y || 0); g.globalAlpha = 1;
+  }
+  // artillery warning rings on the ground (under the units)
+  for (const a of S.arts) if (a.k === 'shell') {
+    const x = a.wx - S.scroll, y = laneAt(a.wx), on = Math.floor(a.t * 8) % 2 === 0 || a.t > a.dur - 0.4;
+    if (on) { g.strokeStyle = '#a8544a'; g.lineWidth = 2; g.setLineDash([4, 3]); g.beginPath(); g.ellipse(x * 2, y * 2, 28, 8, 0, 0, 7); g.stroke(); g.setLineDash([]); g.fillStyle = '#a8544a'; g.fillRect(x * 2 - 6, y * 2 - 1, 12, 2); g.fillRect(x * 2 - 1, y * 2 - 4, 2, 8); }
+  }
+  tileX(IMG.ground, S.scroll * 2, GR.y0);
+  if (WORLD) drawWorldNear();
+  for (const s of S.scorch) { const x = (s.wx - S.scroll) * 2; g.globalAlpha = Math.min(1, s.life / 3) * 0.55; g.fillStyle = '#4a4e5a'; g.beginPath(); g.ellipse(x, s.y * 2, s.r * 2, 5, 0, 0, 7); g.fill(); g.globalAlpha = 1; }
+  // ground units: shadow, body, then the code-drawn barrel
+  for (const o of S.foes) if (o.kind === 'unit') {
+    const t = T[o.type];
+    g.fillStyle = 'rgba(40,70,115,0.32)'; g.beginPath(); g.ellipse(o.x * 2, o.base * 2 - 1, t.w * 1.1, 3.2, 0, 0, 7); g.fill();
+    sprite('u_' + o.type, o);
+    if (o.type === 'skitank' && PACK.barrel) {
+      const px0 = (o.x - t.w / 2 + t.pivot[0]) * 2, py0 = (o.y - t.h / 2 + t.pivot[1]) * 2, c = Math.cos(o.ang), s = Math.sin(o.ang);
+      g.strokeStyle = PACK.barrel[0]; g.lineWidth = 3; g.beginPath(); g.moveTo(px0, py0); g.lineTo(px0 + c * 18, py0 + s * 18); g.stroke();
+      g.strokeStyle = PACK.barrel[1]; g.lineWidth = 1; g.beginPath(); g.moveTo(px0, py0 - 1); g.lineTo(px0 + c * 18, py0 - 1 + s * 18); g.stroke();
+      if (o.blink > 0 || o.burst > 0) { g.fillStyle = '#f2cf8a'; g.fillRect(Math.round(px0 + c * 19) - 2, Math.round(py0 + s * 19) - 2, 4, 4); }
+    } else if (t.muzzle && (o.blink > 0 || o.burst > 0) && Math.floor((o.blink || o.bt || 0) * 16) % 2 === 0) { g.fillStyle = '#f2cf8a'; g.fillRect(Math.round((o.x - t.w / 2 + t.muzzle[0]) * 2) - 2, Math.round((o.y - t.h / 2 + t.muzzle[1]) * 2) - 2, 4, 4); }
+  }
+  // flak warning rings in the air
+  for (const a of S.arts) if (a.k === 'flak') {
+    const k = a.t / a.dur, r = 22 - k * 6;
+    g.strokeStyle = '#a8544a'; g.lineWidth = 2; g.setLineDash([3, 3]); g.beginPath(); g.arc(a.x * 2, a.y * 2, r, 0, 7); g.stroke(); g.setLineDash([]);
+    g.fillStyle = '#a8544a'; g.fillRect(a.x * 2 - 5, a.y * 2 - 1, 10, 2); g.fillRect(a.x * 2 - 1, a.y * 2 - 5, 2, 10);
+    const sx = a.sx + (a.x - a.sx) * k, sy = a.sy + (a.y - a.sy) * k; g.fillStyle = '#2e2e36'; g.fillRect(Math.round(sx * 2) - 2, Math.round(sy * 2) - 2, 4, 4);
+  }
+  // flyers and rockets
+  for (const o of S.foes) {
+    if (o.kind === 'coast') drawCoast(o);
+    else if (o.kind === 'fly') {
+      if (o.type === 'sniper' && o.aimT > 0) dotted(o.x - o.hw, o.y, o.aimAt[0], o.aimAt[1], o.aimT < 0.25 ? '#d07a5e' : 'rgba(168,84,74,0.9)');
+      sprite('e_' + o.type, o);
+    } else if (o.kind === 'rocket' && o.t >= 0) {
+      const a = Math.atan2(o.vy, o.vx); g.save(); g.translate(o.x * 2, o.y * 2); g.rotate(a);
+      g.fillStyle = '#0e1222'; g.fillRect(-6, -2, 11, 4); g.fillStyle = '#c3cbd6'; g.fillRect(-5, -1, 8, 2); g.fillStyle = '#a8544a'; g.fillRect(3, -1, 2, 2); g.fillStyle = '#f2cf8a'; g.fillRect(-7, -1, 2, 2);
+      g.restore();
+    }
+  }
+  if (WORLD) drawStrikes();
+  // shots
+  for (const s of S.shots) { g.fillStyle = '#0e1222'; g.fillRect(Math.round(s.x * 2) - 5, Math.round(s.y * 2) - 2, 10, 4); g.fillStyle = '#efe3cf'; g.fillRect(Math.round(s.x * 2) - 4, Math.round(s.y * 2) - 1, 8, 2); }
+  for (const e of S.eshots) drawBullet(e);
   // the player
   const p = S.p;
   if (p.dead > 0) { p.dead -= dt; if (p.dead <= 0 && p.lives > 0) { p.x = 34; p.y = 60; p.hp = PL.health; p.inv = 2.2; } }

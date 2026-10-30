@@ -570,6 +570,13 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    fragments). 3 salvos 1.8 s apart (it waits while you respawn), then it
    leaves; 6 hits to destroy; about 3 a minute. Cargo pods as on every
    level.
+   **Every enemy has its own bullet** (owner, after the Rocket Sled), all
+   with a dark outline so they show on snow and sky: Twin Dart a red
+   tracer bolt with a fading tail, Shelf Skiff a brass slug, Needle Wing a
+   long icy needle of light, Wolf Hound a wobbling glob of molten slag,
+   Flak Star a tumbling steel flak shell with a hazard band, the Crest
+   Bomber's bomb jagged spinning shards, the Snow Roller's charge chunks
+   of packed snow and ice; the Rocket Sled keeps its rockets.
    The owner removed the big armoured sled (and with it the Anchor Gun).
    The real level needs about 220–250 enemies (harder than Frostring).
    (The ChatGPT experiments stay in `art/white-front/` and
