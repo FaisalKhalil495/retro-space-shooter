@@ -546,13 +546,18 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    8-way bursts); its own: **Shelf Skiff** (sled, twin guns, 3-shot
    spread) and **Snow Roller** (big snow-crusted drum wheel, rolling
    charges), and the artillery, the **Rocket Sled** (owner's pick; the
-   Spotter was tried first and swapped out): a sled with a four-tube
-   launcher that slides in, stops, and tilts its launcher (tubes glow
-   0.7 s); then 4 rockets go up and 4 red rings appear in a line walking
-   from in front of it to where you are, each tightening until its rocket
-   lands (1.0 / 1.3 / 1.6 / 1.9 s; 2 blocks if you're inside, no
-   fragments); 2 salvos, then it leaves; 5 hits to destroy. Cargo pods as
-   on every level.
+   Spotter was tried first and swapped out; made more aggressive after
+   the owner's test: "it's easy to dodge"): a sled with a four-tube
+   launcher that slides in and **holds its spot** (drives against the
+   scroll) while it fires; its tubes glow 0.5 s, then a ripple of **5
+   rockets visibly leaves the launcher** (muzzle flash, smoke trails,
+   climbing off the top), and each one marks a red ring as it goes:
+   where you're heading, where you are, above, below and ahead of you, so
+   you're boxed in and must move out; each ring tightens and its rocket
+   comes down on it 0.95 s later (2 blocks if you're inside, no
+   fragments). 3 salvos 1.2 s apart (it waits while you respawn), then it
+   leaves; 6 hits to destroy; about 3 a minute. Cargo pods as on every
+   level.
    The owner removed the big armoured sled (and with it the Anchor Gun).
    The real level needs about 220–250 enemies (harder than Frostring).
    (The ChatGPT experiments stay in `art/white-front/` and

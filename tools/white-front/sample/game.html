@@ -211,7 +211,7 @@ function drawFront() {
 const WORLD = PACK.world || null;
 let Wd = null;
 function resetWorld() {
-  Wd = { strikes: [], ships: [], tracers: [], flak: [], puffs: [], gunT: WORLD.guns.map((_, i) => 0.4 + i * 0.55), shipT: 4 };
+  Wd = { strikes: [], rockets: [], ships: [], tracers: [], flak: [], puffs: [], gunT: WORLD.guns.map((_, i) => 0.4 + i * 0.55), shipT: 4 };
   for (let i = 0; i < 3; i++) wShip(50 + i * 150);
 }
 function wShip(x) {
@@ -223,9 +223,15 @@ function updateWorld(dt) {
   // artillery strikes: a rocket lands when its ring closes
   for (const k of Wd.strikes) {
     k.t += dt;
-    if (k.t >= k.dur) { k.done = true; blast(k.x, k.y, 0.9); if (near(k.x, k.y, 10)) hurt(2); for (let i = 0; i < (k.frags ?? 4); i++) eshot(k.x, k.y, Math.cos(i * Math.PI / 2 + 0.785) * 50, Math.sin(i * Math.PI / 2 + 0.785) * 50); }
+    if (k.t >= k.dur) { k.done = true; blast(k.x, k.y, 0.9); if (near(k.x, k.y, 11)) hurt(2); for (let i = 0; i < (k.frags ?? 4); i++) eshot(k.x, k.y, Math.cos(i * Math.PI / 2 + 0.785) * 50, Math.sin(i * Math.PI / 2 + 0.785) * 50); }
   }
   Wd.strikes = Wd.strikes.filter((k) => !k.done);
+  // rockets climbing out of a Rocket Sled's tubes (they come back down on the rings)
+  for (const r of Wd.rockets) {
+    r.vy -= 220 * dt; r.x += r.vx * dt; r.y += r.vy * dt; r.puff -= dt;
+    if (r.puff <= 0) { r.puff = 0.03; S.fx.push({ k: 'smoke', x: r.x, y: r.y + 2, vx: (Math.random() - 0.5) * 8, vy: 6, life: 0.6, max: 0.6, r: 1.2 + Math.random() }); }
+  }
+  Wd.rockets = Wd.rockets.filter((r) => r.y > -12);
   if ((Wd.shipT -= dt) <= 0) { Wd.shipT = 6 + rand() * 5; if (Wd.ships.length < 4) wShip(); }
   for (const sh of Wd.ships) {
     sh.x += sh.vx * dt; sh.y += sh.vy * dt;
@@ -291,6 +297,12 @@ function drawWorld() {
   for (const tr of Wd.tracers) if (tr.d >= 0) { const a = Math.atan2(tr.ty - tr.y, tr.tx - tr.x); g.strokeStyle = '#f1d69a'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(tr.px, tr.py); g.lineTo(tr.px - Math.cos(a) * 5, tr.py - Math.sin(a) * 5); g.stroke(); }
 }
 function drawStrikes() {
+  for (const r of Wd.rockets) {
+    const a = Math.atan2(r.vy, r.vx); g.save(); g.translate(r.x * 2, r.y * 2); g.rotate(a);
+    g.fillStyle = '#0e1222'; g.fillRect(-7, -2, 13, 4); g.fillStyle = '#7f899c'; g.fillRect(-6, -1, 10, 2); g.fillStyle = '#eab25a'; g.fillRect(3, -1, 2, 2);
+    g.fillStyle = '#ffe6bc'; g.fillRect(-10, -1, 3, 2); g.fillStyle = '#f2864e'; g.fillRect(-13, -1, 3, 2);
+    g.restore();
+  }
   for (const k of Wd.strikes) {
     const f = k.t / k.dur, x = k.x * 2, y = k.y * 2;
     g.strokeStyle = '#c8643f'; g.lineWidth = 2; g.setLineDash([4, 3]); g.beginPath(); g.arc(x, y, 9 + 22 * (1 - f), 0, 7); g.stroke(); g.setLineDash([]);
@@ -315,7 +327,7 @@ function drawWorldNear() {
 // The army (ChatGPT's coast designs, redrawn sharp at game size), with the
 // attacks from its sample: every one warns before it fires (its "open" look).
 const CT = PACK.coastTypes || {};
-const CHP = { rsled: 5, hound: 2, flak: 5, skiff: 4, anchor: 4, roller: 5, dart: 2, bomber: 5, needle: 3, hunter: 3, charge: 1, bomb: 1 };
+const CHP = { rsled: 6, hound: 2, flak: 5, skiff: 4, anchor: 4, roller: 5, dart: 2, bomber: 5, needle: 3, hunter: 3, charge: 1, bomb: 1 };
 const CPTS = { rsled: 60, hound: 20, flak: 80, skiff: 40, anchor: 50, roller: 60, dart: 30, bomber: 60, needle: 50, hunter: 50, charge: 10, bomb: 10 };
 const CGROUND = { rsled: 1, skiff: 1, anchor: 1, roller: 1, charge: 1 };
 function coast(type, x, y = 0, extra = {}) {
@@ -406,19 +418,34 @@ function updateCoast(o, dt) {
         else if ((o.timer -= dt) <= 0) { fireA(nose(o), o.ang, 115, 'rail'); o.n++; ph(o, o.n < 2 ? 'aim' : 'leave', 1.0); }
       }
       break;
-    case 'rsled': { // Rocket Sled: tilts its launcher (tubes glow), then walks a line of 4 rings towards you
-      o.x -= (o.mode === 'enter' ? 50 : o.mode === 'leave' ? 60 : GROUND_SPEED) * dt;
-      if (o.mode === 'enter' && o.x <= 170) ph(o, 'wait', 0.5);
-      else if (o.mode === 'wait') { if ((o.timer -= dt) <= 0) ph(o, facingC(o) ? 'warn' : 'leave', 0.7); }
+    case 'rsled': { // Rocket Sled: tubes glow, a ripple of 5 rockets leaves its launcher, and they come down on rings boxing you in
+      if (o.lpx !== undefined && dt > 0) { o.pvx = (o.pvx || 0) * 0.85 + ((p.x - o.lpx) / dt) * 0.15; o.pvy = (o.pvy || 0) * 0.85 + ((p.y - o.lpy) / dt) * 0.15; }
+      o.lpx = p.x; o.lpy = p.y;
+      // it drives against the scroll to hold its spot while it fires
+      o.x -= (o.mode === 'enter' ? 55 : o.mode === 'leave' ? 60 : 5) * dt;
+      if (o.mode === 'enter' && o.x <= 174) ph(o, 'warn', 0.5);
+      else if ((o.mode === 'reload' || o.mode === 'warn') && !pAlive()) o.timer = Math.max(o.timer, 0.45); // waits for you to come back
+      else if (o.mode === 'reload') { if ((o.timer -= dt) <= 0) ph(o, facingC(o) ? 'warn' : 'leave', 0.45); }
       else if (o.mode === 'warn') {
         if (!facingC(o)) ph(o, 'leave');
         else if ((o.timer -= dt) <= 0) {
-          const sx = o.x - CT.rsled.w / 2 - 20, top = groundTop(S.scroll + sx), sy = p.y + (top - 8 - p.y) * 0.6;
-          for (let i = 0; i < 4; i++) { const f = (i + 1) / 4; Wd.strikes.push({ x: sx + (p.x - sx) * f, y: sy + (p.y - sy) * f, t: 0, dur: 1.0 + i * 0.3, frags: 0 }); }
-          for (let i = 0; i < 8; i++) S.fx.push({ k: 'smoke', x: o.x - 2 + Math.random() * 4, y: o.y - CT.rsled.h / 2, vx: -6 + Math.random() * 6, vy: -30 - Math.random() * 20, life: 0.9, max: 0.9, r: 1.5 + Math.random() * 1.5 });
-          boom(0.12, 0.3, 900); tone(300, 1200, 0.4, 'sawtooth', 0.035); o.n++; ph(o, o.n < 2 ? 'wait' : 'leave', 1.9);
+          // where the salvo lands: where you're heading, where you are, and around that
+          const lead = 0.8, top = (x) => groundTop(S.scroll + x) - 6, cl = (x, y) => [Math.max(8, Math.min(200, x)), Math.max(HUD + 6, Math.min(top(x), y))];
+          const lx = p.x + (o.pvx || 0) * lead, ly = p.y + (o.pvy || 0) * lead;
+          o.tg = [cl(lx, ly), cl(p.x, p.y), cl(lx, ly - 17), cl(lx, ly + 17), cl(lx + 19, ly)];
+          ph(o, 'fire', 0); o.k = 0; o.timer = 0;
+        }
+      } else if (o.mode === 'fire') {
+        if ((o.timer -= dt) <= 0) {
+          const mx = o.x - 2.5, my = o.y - 4.5, [tx, ty] = o.tg[o.k];
+          Wd.rockets.push({ x: mx, y: my, vx: -40 + o.k * 6, vy: -70, puff: 0 });
+          Wd.strikes.push({ x: tx, y: ty, t: 0, dur: 0.95, frags: 0 });
+          S.fx.push({ k: 'flash', x: mx, y: my, life: 0.08, max: 0.08, r: 4 });
+          tone(220, 900, 0.18, 'sawtooth', 0.03); o.timer = 0.11; o.k++;
+          if (o.k >= o.tg.length) { o.n++; ph(o, o.n < 3 ? 'reload' : 'leave', 1.2); }
         }
       }
+      o.open = o.mode === 'warn' || o.mode === 'fire';
       if (o.mode !== 'enter' && o.mode !== 'leave' && o.x < p.x + 12) ph(o, 'leave');
       break;
     }
@@ -632,7 +659,7 @@ const COAST_WAVES = [
   [32, () => { coast('needle', 220, 30); coast('needle', 236, 84); }], [36, () => { coast('roller', 224); coast('hunter', 222, 64); }],
   [40, () => { coast('needle', 220, 60); coast('bomber', 236, 22); }], [34, () => hounds(5, 70)], [38, () => coast('rsled', 226)], [44, () => { pair(26); pair(64); }], [46, () => coast('flak', 222, 76)],
   [48, () => { coast('hunter', 220, 36); coast('hunter', 236, 82); }], [52, () => { coast('skiff', 222); coast('roller', 262); }],
-  [55, () => { coast('needle', 220, 50); coast('bomber', 238, 24); }], [57, () => hounds(4, 36)],
+  [55, () => { coast('needle', 220, 50); coast('bomber', 238, 24); }], [50, () => coast('rsled', 226)], [57, () => hounds(4, 36)],
 ];
 COAST_WAVES.sort((a, b) => a[0] - b[0]);
 if (PACK.coastTypes) WAVES.splice(0, WAVES.length, ...COAST_WAVES);
