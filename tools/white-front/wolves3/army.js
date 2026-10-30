@@ -8,7 +8,7 @@ import { paint } from './vec.js';
 import { WOLF_COAST } from '../sets4.js';
 const make = (n) => (open) => { const p = paint(V[n] || D[n] || AR[n], 'wolves', open); return { w: p.w, h: p.h, a: p.a }; };
 export const WOLVES = {
-  spotter: make('spotter'), // the owner's pick for the artillery: calls in the far guns
+  rsled: make('rocketSled'), // the owner's pick for the artillery: walks a barrage of rings at you
   hound: make('weaverA'), flak: make('spinnerB'), // the owner's picks: Wolf Hound, Flak Star
   skiff: make('skiff'), roller: make('roller'), dart: make('dart'),
   bomber: make('bomber'), needle: make('needle'), hunter: make('hunter'),

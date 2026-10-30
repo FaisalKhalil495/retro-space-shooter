@@ -545,13 +545,14 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    spinner → **Flak Star** (armoured octagon, a gun on each corner,
    8-way bursts); its own: **Shelf Skiff** (sled, twin guns, 3-shot
    spread) and **Snow Roller** (big snow-crusted drum wheel, rolling
-   charges), and the artillery, the **Spotter** (owner's pick of three):
-   a small drone with a big red eye that can't hurt you itself; it shines
-   a red beam on you, a ring follows you for 1 s then locks, the big guns
-   of the background battle fire (a flash on the horizon) and the shell
-   lands 1.1 s later as the ring tightens (2 blocks, 4 fragments); 3
-   strikes, then it leaves; 3 hits to destroy, and a shell already fired
-   still lands. Cargo pods as on every level.
+   charges), and the artillery, the **Rocket Sled** (owner's pick; the
+   Spotter was tried first and swapped out): a sled with a four-tube
+   launcher that slides in, stops, and tilts its launcher (tubes glow
+   0.7 s); then 4 rockets go up and 4 red rings appear in a line walking
+   from in front of it to where you are, each tightening until its rocket
+   lands (1.0 / 1.3 / 1.6 / 1.9 s; 2 blocks if you're inside, no
+   fragments); 2 salvos, then it leaves; 5 hits to destroy. Cargo pods as
+   on every level.
    The owner removed the big armoured sled (and with it the Anchor Gun).
    The real level needs about 220–250 enemies (harder than Frostring).
    (The ChatGPT experiments stay in `art/white-front/` and
