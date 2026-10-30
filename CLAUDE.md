@@ -552,14 +552,18 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    scroll) while it fires; its tubes glow 0.5 s, then a ripple of **5
    rockets visibly leaves the launcher** (0.15 s apart; muzzle flash,
    smoke trails), each **fired fast and steeply into the sky** (about
-   380 px/s), peaking just above the top of the screen, then falling a
-   long way under gravity onto its own red ring, 1.3–1.55 s in all
-   (owner: "not following the laws of gravity", then "too slow", then
-   "faster and more towards the sky ... fall on me at a greater
-   distance"): where you're heading, where you are, above, below and
-   ahead of you, so you're boxed in and must
-   move out; each ring tightens until its rocket lands (2 blocks if
-   you're inside, no
+   380 px/s) to a peak just above the screen over its own **column**,
+   then **dropping straight down the whole column from the sky to the
+   snow** (owner: it used to burst only on its ring, so a ring above you
+   missed you): it hits anything in its path on the way down and bursts
+   on the snow (2 blocks if you're hit, or within 9 px of the burst).
+   Each column shows as a dotted red line from the top of the screen to
+   a ring on the snow (brightening and blinking as its rocket comes,
+   1.4–1.6 s): where you're heading, where you are, 20 px either side of
+   you and further ahead, so moving up or down doesn't help; slip between
+   columns or get clear sideways. (Owner's notes along the way: "not
+   following the laws of gravity", "too slow", "faster and more towards
+   the sky".) No
    fragments). 3 salvos 1.8 s apart (it waits while you respawn), then it
    leaves; 6 hits to destroy; about 3 a minute. Cargo pods as on every
    level.

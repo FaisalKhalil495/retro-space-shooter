@@ -222,18 +222,20 @@ const farW = () => IMG.far.width;
 const ROCKET_G = 480, ROCKET_TOP = -26, ROCKET_GAP = 0.15; // Rocket Sled: gravity, how high the arc peaks (above the screen), time between rockets
 function updateWorld(dt) {
   // artillery strikes: a rocket lands when its ring closes
-  for (const k of Wd.strikes) {
-    k.t += dt;
-    if (k.t >= k.dur) { k.done = true; blast(k.x, k.y, 0.9); if (near(k.x, k.y, 11)) hurt(2); for (let i = 0; i < (k.frags ?? 4); i++) eshot(k.x, k.y, Math.cos(i * Math.PI / 2 + 0.785) * 50, Math.sin(i * Math.PI / 2 + 0.785) * 50); }
-  }
-  Wd.strikes = Wd.strikes.filter((k) => !k.done);
-  // rockets climbing out of a Rocket Sled's tubes (they come back down on the rings)
-  // a real arc under gravity: up out of the tubes, over the top, and down onto its ring
+  // Rocket Sled rockets: fired fast and steep, they climb to a peak above the screen right over
+  // their column, then drop straight down it; anything in the column is hit, and they burst on the snow
   for (const r of Wd.rockets) {
-    r.t += dt; r.vy += ROCKET_G * dt; r.x += r.vx * dt; r.y += r.vy * dt; r.puff -= dt;
+    r.t += dt; r.puff -= dt;
+    if (r.t < r.up) { r.vy += ROCKET_G * dt; r.x += r.vx * dt; r.y += r.vy * dt; }
+    else { r.x = r.col.x; r.vx = 0; r.vy += ROCKET_G * dt; r.y += r.vy * dt; }
     if (r.puff <= 0) { r.puff = 0.025; S.fx.push({ k: 'smoke', x: r.x - r.vx * 0.02, y: r.y - r.vy * 0.02, vx: (Math.random() - 0.5) * 8, vy: 4, life: 0.6, max: 0.6, r: 1.2 + Math.random() }); }
+    if (r.t >= r.up && r.y > HUD && pAlive() && Math.abs(r.x - S.p.x) < 6 && Math.abs(r.y - S.p.y) < 5) { r.done = true; blast(r.x, r.y, 0.9); hurt(2); }
+    else if (r.y >= r.col.y) { r.done = true; blast(r.x, r.col.y, 0.9, true); if (near(r.x, r.col.y, 9)) hurt(2); }
+    if (r.done) r.col.done = true;
   }
-  Wd.rockets = Wd.rockets.filter((r) => r.t < r.T);
+  Wd.rockets = Wd.rockets.filter((r) => !r.done);
+  for (const k of Wd.strikes) k.t += dt;
+  Wd.strikes = Wd.strikes.filter((k) => !k.done);
   if ((Wd.shipT -= dt) <= 0) { Wd.shipT = 6 + rand() * 5; if (Wd.ships.length < 4) wShip(); }
   for (const sh of Wd.ships) {
     sh.x += sh.vx * dt; sh.y += sh.vy * dt;
@@ -305,13 +307,13 @@ function drawStrikes() {
     g.fillStyle = '#ffe6bc'; g.fillRect(-10, -1, 3, 2); g.fillStyle = '#f2864e'; g.fillRect(-13, -1, 3, 2);
     g.restore();
   }
+  // each column: a dotted line from the sky to the snow, brightening as its rocket comes, and a ring where it lands
   for (const k of Wd.strikes) {
-    const f = k.t / k.dur, x = k.x * 2, y = k.y * 2;
-    g.strokeStyle = '#c8643f'; g.lineWidth = 2; g.setLineDash([4, 3]); g.beginPath(); g.arc(x, y, 9 + 22 * (1 - f), 0, 7); g.stroke(); g.setLineDash([]);
-    g.strokeStyle = Math.floor(k.t * 10) % 2 ? '#e8a060' : '#c8643f'; g.beginPath(); g.arc(x, y, 9, 0, 7); g.stroke();
-    g.fillStyle = '#c8643f'; g.fillRect(x - 5, y - 1, 10, 2); g.fillRect(x - 1, y - 5, 2, 10);
-    const fall = (k.t - (k.dur - 0.55)) / 0.55;
-    if (fall > 0 && !k.rocket) { const sy = (HUD + (k.y - HUD) * fall * fall) * 2; g.fillStyle = 'rgba(255,255,255,0.7)'; g.fillRect(x - 1, sy - 22, 2, 14); g.fillStyle = '#0e1222'; g.fillRect(x - 3, sy - 8, 6, 11); g.fillStyle = '#5a5f68'; g.fillRect(x - 2, sy - 7, 4, 8); g.fillStyle = '#eab25a'; g.fillRect(x - 2, sy + 1, 4, 1); }
+    const f = Math.min(1, k.t / k.dur), x = Math.round(k.x * 2), y = Math.round(k.y * 2), lit = f > 0.6 && Math.floor(k.t * 12) % 2 === 0;
+    g.fillStyle = lit ? '#e8a060' : f > 0.6 ? '#c8643f' : 'rgba(200,100,63,0.65)';
+    for (let yy = HUD * 2 + 2; yy < y - 4; yy += 6) g.fillRect(x - 1, yy, 2, 3);
+    g.strokeStyle = '#c8643f'; g.lineWidth = 2; g.setLineDash([4, 3]); g.beginPath(); g.ellipse(x, y, 7 + 14 * (1 - f), 3 + 4 * (1 - f), 0, 0, 7); g.stroke(); g.setLineDash([]);
+    g.fillStyle = '#c8643f'; g.fillRect(x - 5, y - 1, 10, 2);
   }
 }
 function drawWorldNear() {
@@ -431,19 +433,18 @@ function updateCoast(o, dt) {
       else if (o.mode === 'warn') {
         if (!facingC(o)) ph(o, 'leave');
         else if ((o.timer -= dt) <= 0) {
-          // where the salvo lands: where you're heading, where you are, and around that
-          const lead = 0.8, top = (x) => groundTop(S.scroll + x) - 6, cl = (x, y) => [Math.max(8, Math.min(200, x)), Math.max(HUD + 6, Math.min(top(x), y))];
-          const lx = p.x + (o.pvx || 0) * lead, ly = p.y + (o.pvy || 0) * lead;
-          o.tg = [cl(lx, ly), cl(p.x, p.y), cl(lx, ly - 17), cl(lx, ly + 17), cl(lx + 19, ly)];
+          // the salvo's columns: where you're heading, where you are, either side of you, and further ahead
+          const lx = p.x + (o.pvx || 0) * 1.2;
+          const xs = [lx, p.x, p.x - 20, p.x + 20, lx + 38]; o.tg = xs.map((x) => [Math.max(8, Math.min(200, x)), 0]);
           ph(o, 'fire', 0); o.k = 0; o.timer = 0;
         }
       } else if (o.mode === 'fire') {
         if ((o.timer -= dt) <= 0) {
           const mx = o.x - 2.5, my = o.y - 4.5, [tx, ty] = o.tg[o.k];
-          // fired fast and steeply up past the top of the screen, then a long fall onto its ring
-          const up = Math.sqrt(2 * (my - ROCKET_TOP) / ROCKET_G), down = Math.sqrt(2 * (ty - ROCKET_TOP) / ROCKET_G), T = up + down;
-          Wd.rockets.push({ x: mx, y: my, vx: (tx - mx) / T, vy: -ROCKET_G * up, t: 0, T, puff: 0 });
-          Wd.strikes.push({ x: tx, y: ty, t: 0, dur: T, frags: 0, rocket: true });
+          // fired fast and steeply up to a peak above the screen over its column, then straight down it
+          const up = Math.sqrt(2 * (my - ROCKET_TOP) / ROCKET_G), gy = groundTop(S.scroll + tx) - 1, down = Math.sqrt(2 * (gy - ROCKET_TOP) / ROCKET_G);
+          const col = { x: tx, y: gy, t: 0, dur: up + down };
+          Wd.strikes.push(col); Wd.rockets.push({ x: mx, y: my, vx: (tx - mx) / up, vy: -ROCKET_G * up, t: 0, up, col, puff: 0 });
           S.fx.push({ k: 'flash', x: mx, y: my, life: 0.08, max: 0.08, r: 4 });
           tone(220, 900, 0.18, 'sawtooth', 0.03); o.timer = ROCKET_GAP; o.k++;
           if (o.k >= o.tg.length) { o.n++; ph(o, o.n < 3 ? 'reload' : 'leave', 1.8); }
