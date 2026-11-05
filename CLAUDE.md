@@ -600,8 +600,31 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    Frostring's music for now, and it ends with an `'end'` event (no boss
    yet), then "to be continued". Twin Darts carry the loot gamble (20%,
    35% when hurt, "A" ammo in it; about 10–15 items a level), the others
-   drop rarely, Wolf Hounds never. Next: step 2 (the Shelf Skiff, Snow
-   Roller and Rocket Sled; 220–250 enemies).
+   drop rarely, Wolf Hounds never.
+   **Step 2 built (v0.31.0)**: the ground Wolves and the artillery, as in
+   the preview: **Shelf Skiff** (races in on the snow, brakes, blinks
+   0.6 s, 3 brass arrowheads in a spread, twice; 5 hits, 40 pts),
+   **Snow Roller** (blinks 0.8 s, sends a charge rolling along the snow
+   that blinks a ring for its last 0.65 s and bursts into 5 ice crystals
+   fanning upwards; twice; touching the charge bursts it (1 block),
+   shooting it breaks it (10 pts); 5 hits, 60 pts), **Rocket Sled** (as
+   described above; its rockets are out of reach of every weapon, the ring
+   on the snow is drawn as wide as the 9-px burst; never two at once:
+   5 a level, 1:12, 1:40, 2:01, 2:23, 2:40). Ground Wolves sit on the
+   snow, scroll with it and cast a soft blue shadow; they leave once
+   you're past them, never fire at a ship behind them, ram 2. First
+   showings: Needle Wing 0:15, Skiff 0:24, Bomber 0:33, Roller 0:41,
+   Hunter 0:46, Flak Star 1:05, Rocket Sled 1:12. 231 Wolves in all
+   (72 Darts, 81 Hounds, 20 Skiffs, 20 Hunters, 10 Rollers, 9 Bombers,
+   8 Needle Wings, 6 Flak Stars, 5 Rocket Sleds). **Harder than
+   Frostring, measured** (a mortal autopilot that never dodges, 8 runs
+   each): the enemies cost it about 11 blocks a minute against
+   Frostring's 7 (leaving out its crashes into ice, which a person
+   steers round), with 67 bullets and 16 bombs, charges and rockets a
+   minute against 61 and 7; for that, tougher Wolves than the preview
+   (Twin Dart 3 hits, Needle Wing 4, Crest Bomber 6, Flak Star 6, Skiff
+   5), a Dart's first shot 0.2 s sooner and 4 in 5 Hounds spitting.
+   Next: the level's own music, then its boss.
 5. **The Ember Mines** — underground tunnels lit by soft amber crystals;
    ceiling and floor squeeze the space. Boss: **The Drill Worm**, a mechanical
    worm bursting from walls above and below.
@@ -842,7 +865,7 @@ game is shared by its link and the home-screen install.
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
-| 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C done (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2); 3D: choices done (3D-0), step 1 built (v0.30.0: the White Front's world and six sky Wolves; owner testing). **Next: 3D step 2 (ground Wolves, Rocket Sled), its music, its boss; then 3E Ember Mines** |
+| 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C done (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2); 3D: choices done (3D-0), step 1 built (v0.30.0: the White Front's world and six sky Wolves), step 2 built (v0.31.0: the ground Wolves, the Rocket Sled, the full 231-enemy level; owner testing). **Next: 3D its music, its boss; then 3E Ember Mines** |
 | G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | Done (v0.24.0) — step 1 (v0.20.0), step 2 (v0.21.0: level 1 enemies, cargo pod, asteroids, Rockjaw; review fixes v0.21.1–v0.21.2), step 3 (v0.22.0: Rust Moon set, spires, floor, Siege Crawler; review fixes v0.22.1, smoother stage 2 v0.22.2), step 4 (v0.23.0: Frostring's enemies and ice; v0.23.1: the Glacier Warden; review fixes v0.23.2), step 5 wrap-up review (v0.24.0; owner testing) |
 | A | **Store apps** | After levels 4 and 5 (owner, after v0.29.0): the game wrapped as a real app with **Capacitor** (all files, music included, packed inside: works offline, native feel, vibration on iPhone too). **Android (Google Play) first**, then iPhone (App Store) if the owner wants it. Claude makes the app build, privacy policy page, screenshots and store text; the owner makes the accounts and pays (Play $25 once; Apple $99 a year, iPhone builds done by a cloud service since there's no Mac). Google needs 12 testers for 14 days before a new account's first game goes public: the owner gathers them meanwhile. Check the stores' current rules before starting. Age rating about 17+/18+ (blood, swearing). | Planned, after 3E |
 | 4 | **Levels 6–9** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. Shipped as free app updates after the store launch. | |
@@ -914,9 +937,11 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - `js/wolves.js` — the Iron Wolves (level 4): their pictures (from
   `js/wolfart.js`, made by `tools/white-front/bake-wolves.mjs`; the normal
   size made from the sharp grid), the six sky types plus the Crest
-  Bomber's bomb (`WOLF_TYPES`, spread into `ENEMY_TYPES`), and their
-  bullets (`tracer`, `rail`, `slag`, `flak`, `shard`; `slug` and `ice`
-  ready for step 2), painted once in 16 headings or a few frames
+  Bomber's bomb, the ground types (Shelf Skiff, Snow Roller and its
+  charge) and the Rocket Sled with its rockets (`wolfRocket`: out of reach
+  via `under`, draws its own column and ring; `WOLF_TYPES`, spread into
+  `ENEMY_TYPES`), and their bullets (`tracer`, `rail`, `slag`, `flak`,
+  `shard`, `slug`, `ice`), painted once in 16 headings or a few frames
   (`drawWolfShot`, which Game.draw calls for those kinds).
 - `js/terrain.js` — solid things in the way: floor strip, rock spires
   (Rust Moon), drifting breakable ice slabs (Frostring: `addSlab`,
@@ -1005,9 +1030,10 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   Frostring starts (before it arrives), and every all-capitals string in
   the code uses letters the font has.
 - `tools/level-test.mjs` — invincible autopilot plays levels 1, 2 and 3
-  (with all three bosses) and 4 (v0.30.0: the six sky Wolves appear, the
-  cargo pods, the loot gamble, the level clears; and each Wolf, left alone
-  with a ship that doesn't shoot, attacks with its own bullet) at high
+  (with all three bosses) and 4 (v0.30.0–v0.31.0: all nine Wolves
+  appear, about 230 of them, the cargo pods, the loot gamble, the level
+  clears; and each Wolf, left alone with a ship that doesn't shoot,
+  attacks its own way with its own bullet) at high
   speed; checks pickups, specials, bosses,
   talking, stage bonuses, new enemies and level clears (same command
   style). It also draws every 8th step at double detail and fails if any
@@ -1036,7 +1062,10 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   on the same computer); v0.28.0: calls 303 / 358 / 298 / 348 / 590 (+4:
   the pause button), garbage 3.8 / 2.9 / 2.6 / 3.7 / 4.4 MB; v0.30.0:
   the White Front 342 calls, 3.0 MB (frames about 107, like the Siege
-  Crawler's on the same computer).
+  Crawler's on the same computer); v0.31.0 (the full level, rockets in
+  the scene): 420 calls, 6.3 MB (frames 83–87 against the Siege
+  Crawler's 97 on that computer; the extra garbage is the busier scene's
+  explosions and number-crunching, nothing kept).
   Rule: nothing big is repainted every frame if it never changes (paint it
   once into a picture), and no full-screen gradients per frame.
 - The smoke test leaves full screen before turning the phone upright

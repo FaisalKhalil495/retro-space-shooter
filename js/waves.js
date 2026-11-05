@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.30.0';
-import { MAX_SPIRE, SHORT_SPIRE } from './terrain.js?v=0.30.0';
-import { clamp } from './util.js?v=0.30.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.31.0';
+import { MAX_SPIRE, SHORT_SPIRE } from './terrain.js?v=0.31.0';
+import { clamp } from './util.js?v=0.31.0';
 
 // Enemy formations. Levels are built by placing these on a timeline
 // (see levels.js). Every pattern takes the game, a random-number function
@@ -355,11 +355,11 @@ export const PATTERNS = {
     for (let i = 0; i < n; i++) game.later(i * gap, () => game.spawnEnemy('crestBomber', VIEW_W + 4, TOP - 6 + rand() * 22));
   },
 
-  // A pack of Wolf Hounds weaving in a line; about two in three spit once.
+  // A pack of Wolf Hounds weaving in a line; about four in five spit once.
   hounds(game, rand, { n = 4, y } = {}) {
     const baseY = y ?? TOP + 14 + rand() * (bottom(game) - TOP - 34);
     for (let i = 0; i < n; i++) {
-      const spitAt = rand() < 0.66 ? 0.9 + rand() * 2 : undefined;
+      const spitAt = rand() < 0.8 ? 0.9 + rand() * 2 : undefined;
       game.spawnEnemy('wolfHound', VIEW_W + 4 + i * 14, baseY, { ph: i * 0.7, spitAt });
     }
   },
@@ -368,6 +368,26 @@ export const PATTERNS = {
   flak(game, rand, { n = 1 } = {}) {
     const ys = n === 1 ? [TOP + 30 + rand() * 30] : [TOP + 6, bottom(game) - 18];
     ys.forEach((y, i) => game.later(i * 0.8, () => game.spawnEnemy('flakStar', VIEW_W + 6, y)));
+  },
+
+  // Shelf Skiffs racing in along the snow, one after another.
+  skiffs(game, rand, { n = 1, gap = 1.3 } = {}) {
+    for (let i = 0; i < n; i++) game.later(i * gap, () => game.spawnEnemy('shelfSkiff', VIEW_W + 4, 0));
+  },
+
+  // Snow Rollers, one after another.
+  rollers(game, rand, { n = 1, gap = 2.2 } = {}) {
+    for (let i = 0; i < n; i++) game.later(i * gap, () => game.spawnEnemy('snowRoller', VIEW_W + 4, 0));
+  },
+
+  // A Rocket Sled: never two at once (it waits, up to 8 s, for the last one
+  // to go).
+  sled(game, rand, { waited = 0 } = {}) {
+    if (game.enemies.some((e) => e.type === 'rocketSled' && !e.dead) && waited < 8) {
+      game.later(1, () => PATTERNS.sled(game, rand, { waited: waited + 1 }));
+      return;
+    }
+    game.spawnEnemy('rocketSled', VIEW_W + 4, 0);
   },
 
   // A cliff turret on a low rock mound on the canyon floor. (The mound
