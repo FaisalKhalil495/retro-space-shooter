@@ -1,4 +1,5 @@
-import { PATTERNS } from './waves.js?v=0.29.0';
+import { PATTERNS } from './waves.js?v=0.30.0';
+import { SNOW_FLOOR } from './whitefront.js?v=0.30.0';
 
 // Level scripts. Each event is [seconds from the start, pattern, options].
 // The final 'boss' event waits for the screen to clear, flashes a warning
@@ -343,6 +344,96 @@ export const LEVELS = [
       [174, 'wall', { shooter: true }],
       [176, 'seekers', { n: 3 }],
       [184, 'boss'],
+    ],
+  },
+  {
+    // The White Front (the ice planet below Frostring's ring): bright cold
+    // daylight over a flat snowfield, where the invaders are fighting their
+    // way across the surface. The battle goes on around you as scenery only
+    // (landing ships, the defenders' bunkers firing tracers and flak; see
+    // whitefront.js): nothing in it can hurt you. The invaders here are the
+    // "Iron Wolves" (wolves.js). Enemy shots 30% faster. Step 1 of the level
+    // (owner's plan, after v0.29.0): the world and the six sky Wolves; the
+    // ground Wolves, the Rocket Sled and the boss come next.
+    number: 4,
+    name: 'THE WHITE FRONT',
+    music: 'frost', // (its own music comes later)
+    shotSpeed: 1.3,
+    floor: SNOW_FLOOR, // the snowfield: solid like Rust Moon's floor, and harmless
+    background: { whiteFront: true },
+    events: [
+      // Part 1 (0:00-1:00): Twin Darts and Wolf Hounds; each new enemy shown
+      // alone first (Needle Wing 0:15, Crest Bomber 0:30, Wake Hunter 0:45).
+      [2, 'darts'],
+      [5, 'hounds', { n: 4 }],
+      [9, 'darts'],
+      [12, 'hounds', { n: 5 }],
+      [15, 'needle'], // first Needle Wing
+      [20, 'carrier', { drop: 'rockets' }],
+      [22, 'darts', { n: 2 }],
+      [25, 'hounds', { n: 4 }],
+      [30, 'bomber'], // first Crest Bomber
+      [34, 'darts'],
+      [36, 'carrier', { drop: 'shield' }],
+      [37, 'hounds', { n: 5 }],
+      [41, 'needle'],
+      [45, 'hunter'], // first Wake Hunter
+      [48, 'darts', { n: 2 }],
+      [49, 'carrier', { drop: 'bomb' }],
+      [51, 'hounds', { n: 4 }],
+      [54, 'hunter', { n: 2 }],
+      [57, 'darts'],
+      [58, 'bomber'],
+      // Part 2 (1:00-2:00): the Flak Star alone first (1:05), then mixed waves.
+      [63, 'carrier', { drop: 'spread' }],
+      [65, 'flak'], // first Flak Star
+      [71, 'darts', { n: 2 }],
+      [73, 'hounds', { n: 5 }],
+      [77, 'carrier', { drop: 'life' }],
+      [78, 'needle'],
+      [80, 'hunter', { n: 2 }],
+      [83, 'bomber'],
+      [85, 'hounds', { n: 4 }],
+      [88, 'darts', { n: 2 }],
+      [90, 'carrier', { drop: 'repair' }],
+      [92, 'flak'],
+      [95, 'hunter', { n: 2 }],
+      [97, 'hounds', { n: 5 }],
+      [100, 'needle'],
+      [102, 'darts', { n: 2 }],
+      [105, 'bomber', { n: 2 }],
+      [108, 'hounds', { n: 4 }],
+      [110, 'carrier', { drop: 'rapid' }],
+      [112, 'hunter', { n: 3 }],
+      [115, 'darts', { n: 2 }],
+      [117, 'flak'],
+      // Part 3 (2:00-3:00): everything.
+      [121, 'darts', { n: 3 }],
+      [123, 'hounds', { n: 5 }],
+      [126, 'carrier', { drop: 'laser' }],
+      [127, 'needle', { n: 2 }],
+      [130, 'bomber'],
+      [132, 'hunter', { n: 2 }],
+      [134, 'hounds', { n: 5 }],
+      [137, 'flak', { n: 2 }],
+      [140, 'carrier', { drop: 'repair' }],
+      [141, 'darts', { n: 2 }],
+      [144, 'hunter', { n: 3 }],
+      [146, 'hounds', { n: 5 }],
+      [149, 'bomber', { n: 2 }],
+      [152, 'needle'],
+      [154, 'carrier', { drop: 'wingman' }],
+      [155, 'darts', { n: 3 }],
+      [158, 'hounds', { n: 5 }],
+      [161, 'flak'],
+      [163, 'hunter', { n: 3 }],
+      [166, 'darts', { n: 2 }],
+      [168, 'bomber'],
+      [170, 'hounds', { n: 5 }],
+      [173, 'needle', { n: 2 }],
+      [175, 'darts', { n: 2 }],
+      [177, 'hunter', { n: 2 }],
+      [184, 'end'], // (no boss yet: cleared once the last Wolves have gone)
     ],
   },
 ];

@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.29.0';
-import { MAX_SPIRE, SHORT_SPIRE } from './terrain.js?v=0.29.0';
-import { clamp } from './util.js?v=0.29.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.30.0';
+import { MAX_SPIRE, SHORT_SPIRE } from './terrain.js?v=0.30.0';
+import { clamp } from './util.js?v=0.30.0';
 
 // Enemy formations. Levels are built by placing these on a timeline
 // (see levels.js). Every pattern takes the game, a random-number function
@@ -177,10 +177,10 @@ export const PATTERNS = {
     }
   },
 
-  // A cargo pod carrying a pickup. On levels with ground it flies high,
-  // above the tallest rock spire, so spires never get in the way.
+  // A cargo pod carrying a pickup. On levels with rock spires it flies high,
+  // above the tallest one, so spires never get in the way.
   carrier(game, rand, { drop, y } = {}) {
-    const [high, low] = game.terrain.floor > 0 ? [TOP, skyLane(game)] : [TOP + 10, bottom(game) - 10];
+    const [high, low] = game.terrain.floor > 0 && !game.terrain.snow ? [TOP, skyLane(game)] : [TOP + 10, bottom(game) - 10];
     game.spawnEnemy('carrier', VIEW_W + 8, y ?? high + rand() * (low - high), { drop });
   },
 
@@ -320,6 +320,54 @@ export const PATTERNS = {
   // Prisms (Frostring): ice crystals drifting in, one after another.
   prism(game, rand, { n = 1, gap = 0.9 } = {}) {
     for (let i = 0; i < n; i++) game.later(i * gap, () => game.spawnEnemy('prism', VIEW_W + 8, TOP + rand() * (bottom(game) - TOP - 10)));
+  },
+
+  // ---- The White Front: the Iron Wolves (see wolves.js) ----
+
+  // Twin Darts: n pairs, one after another, each pair one dart and a second
+  // a little behind and 26 px below it.
+  darts(game, rand, { n = 1, gap = 1.6 } = {}) {
+    for (let i = 0; i < n; i++) {
+      game.later(i * gap, () => {
+        const y = TOP + rand() * (bottom(game) - TOP - 36);
+        game.spawnEnemy('wolfDart', VIEW_W + 4, y, { lane: 0 });
+        game.spawnEnemy('wolfDart', VIEW_W + 15, y + 26, { lane: 1 });
+      });
+    }
+  },
+
+  // Needle Wings: one at a random height, or two (high and low).
+  needle(game, rand, { n = 1 } = {}) {
+    const span = bottom(game) - TOP - 10;
+    for (let i = 0; i < n; i++) {
+      const y = n === 1 ? TOP + rand() * span : TOP + 4 + ((span - 8) * i) / (n - 1);
+      game.later(i * 0.6, () => game.spawnEnemy('needleWing', VIEW_W + 4, y));
+    }
+  },
+
+  // Wake Hunters, one after another.
+  hunter(game, rand, { n = 1, gap = 0.9 } = {}) {
+    for (let i = 0; i < n; i++) game.later(i * gap, () => game.spawnEnemy('wakeHunter', VIEW_W + 4, TOP + rand() * (bottom(game) - TOP - 10)));
+  },
+
+  // Crest Bombers fly high (their bombs fall on you from above).
+  bomber(game, rand, { n = 1, gap = 2.2 } = {}) {
+    for (let i = 0; i < n; i++) game.later(i * gap, () => game.spawnEnemy('crestBomber', VIEW_W + 4, TOP - 6 + rand() * 22));
+  },
+
+  // A pack of Wolf Hounds weaving in a line; about two in three spit once.
+  hounds(game, rand, { n = 4, y } = {}) {
+    const baseY = y ?? TOP + 14 + rand() * (bottom(game) - TOP - 34);
+    for (let i = 0; i < n; i++) {
+      const spitAt = rand() < 0.66 ? 0.9 + rand() * 2 : undefined;
+      game.spawnEnemy('wolfHound', VIEW_W + 4 + i * 14, baseY, { ph: i * 0.7, spitAt });
+    }
+  },
+
+  // Flak Stars: one in the middle, or two (high and low).
+  flak(game, rand, { n = 1 } = {}) {
+    const ys = n === 1 ? [TOP + 30 + rand() * 30] : [TOP + 6, bottom(game) - 18];
+    ys.forEach((y, i) => game.later(i * 0.8, () => game.spawnEnemy('flakStar', VIEW_W + 6, y)));
   },
 
   // A cliff turret on a low rock mound on the canyon floor. (The mound

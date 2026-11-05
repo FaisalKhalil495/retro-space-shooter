@@ -305,6 +305,11 @@ Last updated: v0.28.0, after the owner's questions about the music and real apps
 | LESSONS.md fell several releases behind | Update the lessons in the same release as the change, every time. |
 | v0.29.0: "Music sucks. It's not a baby toy" — and three style samples (rock / synthwave / space opera, one shared tune) were rejected too | One tune in three costumes still sounds like one piece. Write each piece fresh in a genre that fits its world, let them sound different from each other, and send recordings to judge by ear (measured for loudness and phone-speaker balance first, since I can't hear them). |
 | v0.29.0: the heavy instruments that made the music good took 4–12 minutes to record one minute of music on a server: a phone could never play them live | Write music as code but ship recordings made from that code (a rule change the owner approved): quality without a cost while playing. Keep the loop seamless by folding the reverb tail onto the loop start, and line up the loop from the file's own opening hit, not from what the decoder reports. |
+| v0.30.0: the White Front preview's far view took almost a second to paint on a processor slowed 4x (thousands of single-pixel fillRects) | Paint big pictures made pixel by pixel into a pixel buffer first and put it on the canvas in one go: 934 ms → about 200 ms for the whole world, painted once as the level starts. |
+| v0.30.0: in the real game, the distant landing ships (scenery) were as big and dark as real enemies | Anything in the background that moves like an enemy must be hazed with the sky's colour (more the further away), so the player never dodges scenery. Same rule as the pale wrecks. |
+| v0.30.0: the autopilot shot every Needle Wing and Crest Bomber before it fired, so "every enemy fires its own bullet" couldn't be checked in a normal run | Check each enemy's attack on its own, left alone with a ship that doesn't shoot back, as well as in the full level. |
+| v0.30.0: the smoke test crashed on this session's newer test browser (it won't resize a window that's full screen, which a tap on the game asks for), for the old version too | When a test fails, run the last released version through it the same way before blaming the change. Fixed in the test (leave full screen before turning the phone). |
+| v0.30.0: the White Front's battle (smoke puffs, snowflakes) cost 600 drawing calls a frame, the most of any scene | Pre-paint round puffs once per size and draw each with one call; put every same-coloured speck in one path. 602 → 342 calls. |
 
 ## 5. Our working process (what works)
 
@@ -467,6 +472,18 @@ fewer rounds are needed.
   only reachable through a gap facing you, the ice is its ammunition, and
   every gap refreezes. Tuned on autopilot to the core being open 35–40% of
   the time and the fight still about 1.2x the Siege Crawler's.
+- 3D-0 (after v0.29.0): the White Front's choices took many rounds of
+  pictures: ChatGPT art was tried and dropped for an all-code look (one
+  consistent game), the owner's own enemy paintings were traced shape by
+  shape and drawn sharp, the artillery was redesigned four times by feel
+  ("not following the laws of gravity", "too slow", "it only blasts where
+  its aim appears"), and every enemy got its own bullet. A playable
+  preview page (not a still picture) is what let the owner judge feel.
+  Lesson: check the real play screenshots, not only the sheets (an old
+  bullet look survived in the preview because of a copy-paste slip).
+- 3D-1 step 1, v0.30.0: the world and the six sky Wolves in the real game
+  (the behaviour ported from the preview the owner played; the pictures
+  baked into text grids by a tool, so the game loads no tracing code).
 **So far:** the owner's feedback has been about the world making sense
 (rocks on a planet, tanks on towers, enemies through towers) and about
 fairness (hidden or unreachable enemies) rather than raw difficulty.
