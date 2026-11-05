@@ -309,6 +309,7 @@ Last updated: v0.28.0, after the owner's questions about the music and real apps
 | v0.30.0: in the real game, the distant landing ships (scenery) were as big and dark as real enemies | Anything in the background that moves like an enemy must be hazed with the sky's colour (more the further away), so the player never dodges scenery. Same rule as the pale wrecks. |
 | v0.30.0: the autopilot shot every Needle Wing and Crest Bomber before it fired, so "every enemy fires its own bullet" couldn't be checked in a normal run | Check each enemy's attack on its own, left alone with a ship that doesn't shoot back, as well as in the full level. |
 | v0.30.0: the smoke test crashed on this session's newer test browser (it won't resize a window that's full screen, which a tap on the game asks for), for the old version too | When a test fails, run the last released version through it the same way before blaming the change. Fixed in the test (leave full screen before turning the phone). |
+| v0.31.0: the plan promised "harder than Frostring"; a non-dodging autopilot first said the White Front was easier (34 bullets a minute against 59: most Wolves died before firing), then gave numbers that swung 20% between identical runs | Measure difficulty with enough runs (8 seeds) and nothing random in the autopilot, and split the damage by cause: a third of Frostring's came from crashing into ice, which a person steers round. Then tune toughness and timing (not the approved behaviours) until the enemy-caused damage is clearly higher. |
 | v0.30.0: the White Front's battle (smoke puffs, snowflakes) cost 600 drawing calls a frame, the most of any scene | Pre-paint round puffs once per size and draw each with one call; put every same-coloured speck in one path. 602 → 342 calls. |
 
 ## 5. Our working process (what works)
@@ -484,6 +485,9 @@ fewer rounds are needed.
 - 3D-1 step 1, v0.30.0: the world and the six sky Wolves in the real game
   (the behaviour ported from the preview the owner played; the pictures
   baked into text grids by a tool, so the game loads no tracing code).
+- 3D-2 step 2, v0.31.0: the ground Wolves, the Rocket Sled and the full
+  231-enemy level. Porting from an approved preview was quick; the work
+  was in measuring that the level is really harder than the last one.
 **So far:** the owner's feedback has been about the world making sense
 (rocks on a planet, tanks on towers, enemies through towers) and about
 fairness (hidden or unreachable enemies) rather than raw difficulty.

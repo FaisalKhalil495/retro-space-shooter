@@ -2512,7 +2512,7 @@ for (const phone of PHONES) {
       'turretShut', 'turretOpen', 'skimmer', 'crawler', 'raider', 'mine', 'drone'].filter((n) => !HI_NAMES.includes(n));
     out.level3Missing = ['drifter_frost', 'weaver_frost', 'gunner_frost', 'seeker_frost', 'sniper_frost', 'spinner_frost',
       'rimeIced', 'rimeGuard', 'cryoLayer', 'frostMine', 'prism', 'prismShard'].filter((n) => !HI_NAMES.includes(n));
-    out.level4Missing = ['wolfDart', 'needleWing', 'wakeHunter', 'crestBomber', 'wolfBomb', 'wolfHound', 'flakStar']
+    out.level4Missing = ['wolfDart', 'needleWing', 'wakeHunter', 'crestBomber', 'wolfBomb', 'wolfHound', 'flakStar', 'shelfSkiff', 'snowRoller', 'wolfCharge', 'rocketSled']
       .flatMap((n) => [n, n + 'Open']).filter((n) => !HI_NAMES.includes(n));
     // Round shapes (explosions, the sun, orbs) drawn at a screen scale that
     // isn't a whole number leave no faint seams between their rows.

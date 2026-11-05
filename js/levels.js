@@ -1,5 +1,5 @@
-import { PATTERNS } from './waves.js?v=0.30.0';
-import { SNOW_FLOOR } from './whitefront.js?v=0.30.0';
+import { PATTERNS } from './waves.js?v=0.31.0';
+import { SNOW_FLOOR } from './whitefront.js?v=0.31.0';
 
 // Level scripts. Each event is [seconds from the start, pattern, options].
 // The final 'boss' event waits for the screen to clear, flashes a warning
@@ -352,9 +352,9 @@ export const LEVELS = [
     // way across the surface. The battle goes on around you as scenery only
     // (landing ships, the defenders' bunkers firing tracers and flak; see
     // whitefront.js): nothing in it can hurt you. The invaders here are the
-    // "Iron Wolves" (wolves.js). Enemy shots 30% faster. Step 1 of the level
-    // (owner's plan, after v0.29.0): the world and the six sky Wolves; the
-    // ground Wolves, the Rocket Sled and the boss come next.
+    // "Iron Wolves" (wolves.js): the six sky Wolves, the two on the ground
+    // (Shelf Skiff, Snow Roller) and the artillery (Rocket Sled). Enemy
+    // shots 30% faster. The boss and its own music come next.
     number: 4,
     name: 'THE WHITE FRONT',
     music: 'frost', // (its own music comes later)
@@ -363,76 +363,112 @@ export const LEVELS = [
     background: { whiteFront: true },
     events: [
       // Part 1 (0:00-1:00): Twin Darts and Wolf Hounds; each new enemy shown
-      // alone first (Needle Wing 0:15, Crest Bomber 0:30, Wake Hunter 0:45).
+      // alone first (Needle Wing 0:15, Shelf Skiff 0:24, Crest Bomber 0:33,
+      // Snow Roller 0:41, Wake Hunter 0:46).
       [2, 'darts'],
       [5, 'hounds', { n: 4 }],
       [9, 'darts'],
       [12, 'hounds', { n: 5 }],
       [15, 'needle'], // first Needle Wing
+      [17, 'darts'],
       [20, 'carrier', { drop: 'rockets' }],
-      [22, 'darts', { n: 2 }],
-      [25, 'hounds', { n: 4 }],
-      [30, 'bomber'], // first Crest Bomber
-      [34, 'darts'],
+      [24, 'skiffs'], // first Shelf Skiff
+      [28, 'darts', { n: 2 }],
+      [30, 'hounds', { n: 5 }],
+      [33, 'bomber'], // first Crest Bomber
       [36, 'carrier', { drop: 'shield' }],
       [37, 'hounds', { n: 5 }],
-      [41, 'needle'],
-      [45, 'hunter'], // first Wake Hunter
-      [48, 'darts', { n: 2 }],
+      [39, 'darts'],
+      [41, 'rollers'], // first Snow Roller
+      [44, 'darts'],
+      [46, 'hunter'], // first Wake Hunter
       [49, 'carrier', { drop: 'bomb' }],
-      [51, 'hounds', { n: 4 }],
+      [50, 'skiffs'],
+      [51, 'hounds', { n: 5 }],
       [54, 'hunter', { n: 2 }],
-      [57, 'darts'],
+      [56, 'darts', { n: 2 }],
       [58, 'bomber'],
-      // Part 2 (1:00-2:00): the Flak Star alone first (1:05), then mixed waves.
+      [59, 'rollers'],
+      // Part 2 (1:00-2:00): the Flak Star alone first (1:05), then the
+      // Rocket Sled (1:12), then mixed waves.
+      [62, 'darts'],
       [63, 'carrier', { drop: 'spread' }],
       [65, 'flak'], // first Flak Star
-      [71, 'darts', { n: 2 }],
-      [73, 'hounds', { n: 5 }],
+      [72, 'sled'], // first Rocket Sled
+      [75, 'darts', { n: 2 }],
       [77, 'carrier', { drop: 'life' }],
-      [78, 'needle'],
-      [80, 'hunter', { n: 2 }],
-      [83, 'bomber'],
-      [85, 'hounds', { n: 4 }],
-      [88, 'darts', { n: 2 }],
+      [79, 'darts', { n: 2 }],
+      [80, 'skiffs'],
+      [82, 'hounds', { n: 5 }],
+      [84, 'needle'],
+      [86, 'hunter', { n: 2 }],
+      [88, 'rollers'],
       [90, 'carrier', { drop: 'repair' }],
-      [92, 'flak'],
-      [95, 'hunter', { n: 2 }],
-      [97, 'hounds', { n: 5 }],
-      [100, 'needle'],
-      [102, 'darts', { n: 2 }],
-      [105, 'bomber', { n: 2 }],
-      [108, 'hounds', { n: 4 }],
+      [91, 'bomber'],
+      [92, 'hounds', { n: 5 }],
+      [94, 'skiffs', { n: 2 }],
+      [95, 'darts', { n: 2 }],
+      [97, 'skiffs'],
+      [98, 'flak'],
+      [99, 'hounds', { n: 4 }],
+      [100, 'sled'],
+      [102, 'hunter', { n: 2 }],
+      [104, 'hounds', { n: 5 }],
+      [106, 'needle'],
+      [107, 'rollers'],
+      [109, 'darts', { n: 2 }],
       [110, 'carrier', { drop: 'rapid' }],
-      [112, 'hunter', { n: 3 }],
-      [115, 'darts', { n: 2 }],
-      [117, 'flak'],
+      [112, 'bomber', { n: 2 }],
+      [114, 'skiffs', { n: 2 }],
+      [115, 'hounds', { n: 5 }],
+      [117, 'hunter', { n: 3 }],
+      [118, 'skiffs'],
+      [119, 'darts', { n: 2 }],
       // Part 3 (2:00-3:00): everything.
-      [121, 'darts', { n: 3 }],
-      [123, 'hounds', { n: 5 }],
+      [121, 'sled'],
+      [122, 'flak'],
+      [124, 'hounds', { n: 5 }],
+      [125, 'skiffs'],
       [126, 'carrier', { drop: 'laser' }],
-      [127, 'needle', { n: 2 }],
-      [130, 'bomber'],
-      [132, 'hunter', { n: 2 }],
-      [134, 'hounds', { n: 5 }],
-      [137, 'flak', { n: 2 }],
+      [127, 'darts', { n: 3 }],
+      [128, 'rollers', { n: 2 }],
+      [130, 'needle', { n: 2 }],
+      [132, 'skiffs', { n: 2 }],
+      [133, 'bomber'],
+      [135, 'hunter', { n: 2 }],
+      [136, 'darts', { n: 2 }],
+      [137, 'hounds', { n: 5 }],
+      [139, 'flak', { n: 2 }],
       [140, 'carrier', { drop: 'repair' }],
       [141, 'darts', { n: 2 }],
-      [144, 'hunter', { n: 3 }],
-      [146, 'hounds', { n: 5 }],
-      [149, 'bomber', { n: 2 }],
+      [143, 'sled'],
+      [144, 'rollers'],
+      [145, 'hunter', { n: 3 }],
+      [147, 'hounds', { n: 5 }],
+      [149, 'skiffs', { n: 2 }],
+      [150, 'bomber', { n: 2 }],
       [152, 'needle'],
+      [153, 'skiffs', { n: 2 }],
       [154, 'carrier', { drop: 'wingman' }],
       [155, 'darts', { n: 3 }],
+      [157, 'rollers'],
       [158, 'hounds', { n: 5 }],
+      [160, 'sled'],
       [161, 'flak'],
+      [162, 'hounds', { n: 4 }],
       [163, 'hunter', { n: 3 }],
+      [164, 'skiffs', { n: 2 }],
       [166, 'darts', { n: 2 }],
+      [167, 'rollers', { n: 2 }],
       [168, 'bomber'],
+      [169, 'darts', { n: 2 }],
       [170, 'hounds', { n: 5 }],
-      [173, 'needle', { n: 2 }],
+      [172, 'needle', { n: 2 }],
+      [173, 'skiffs'],
       [175, 'darts', { n: 2 }],
+      [176, 'skiffs'],
       [177, 'hunter', { n: 2 }],
+      [178, 'hounds', { n: 4 }],
       [184, 'end'], // (no boss yet: cleared once the last Wolves have gone)
     ],
   },

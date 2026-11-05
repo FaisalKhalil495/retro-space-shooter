@@ -90,7 +90,8 @@ const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
     g.fireShot = (...a) => { if (!log.shotKinds.includes(a[4])) log.shotKinds.push(a[4]); return fire(...a); };
     const spawn = g.spawnEnemy.bind(g);
     log.spawned = 0;
-    g.spawnEnemy = (...a) => { log.spawned++; return spawn(...a); };
+    // (enemies only: not cargo pods, nor bombs, charges and rockets)
+    g.spawnEnemy = (...a) => { if (!['carrier', 'wolfBomb', 'wolfCharge', 'wolfRocket'].includes(a[0])) log.spawned++; return spawn(...a); };
     g.__wrapped = true;
   }
   const step = 1 / 120;
@@ -264,7 +265,7 @@ const attacks = await page.evaluate(() => {
   g.reset();
   g.runner.update = () => {}; // (no waves: one Wolf at a time)
   const out = {};
-  for (const type of ['wolfDart', 'needleWing', 'wakeHunter', 'crestBomber', 'wolfHound', 'flakStar']) {
+  for (const type of ['wolfDart', 'needleWing', 'wakeHunter', 'crestBomber', 'wolfHound', 'flakStar', 'shelfSkiff', 'snowRoller', 'rocketSled']) {
     g.enemies = [];
     g.enemyShots = [];
     const kinds = [];
@@ -280,7 +281,8 @@ const attacks = await page.evaluate(() => {
       for (const e of g.enemies) seen.add(e.type + ':' + e.mode);
     }
     g.fireShot = fire;
-    out[type] = { kinds, dashed: seen.has('wakeHunter:dash'), bomb: [...seen].some((k) => k.startsWith('wolfBomb')) };
+    out[type] = { kinds, dashed: seen.has('wakeHunter:dash'), bomb: [...seen].some((k) => k.startsWith('wolfBomb')),
+      charge: [...seen].some((k) => k.startsWith('wolfCharge')), rockets: [...seen].some((k) => k.startsWith('wolfRocket')) };
   }
   g.reset();
   return out;
@@ -335,12 +337,15 @@ const checks = {
   'Glacier Warden never attacks while talking': !r3.talkAttacks,
   'Frostring cleared': r3.state === 'clear',
   'level 4 (The White Front) follows level 3': level4.level === 4 && level4.state === 'playing',
-  'all six sky Wolves appeared': ['wolfDart', 'needleWing', 'wakeHunter', 'crestBomber', 'wolfHound', 'flakStar']
+  'all nine Wolves appeared': ['wolfDart', 'needleWing', 'wakeHunter', 'crestBomber', 'wolfHound', 'flakStar', 'shelfSkiff', 'snowRoller', 'rocketSled']
     .every((t) => r4.types.includes(t)),
   'each Wolf attacks its own way, with its own bullet': attacks.wolfDart.kinds.join() === 'tracer' && attacks.needleWing.kinds.join() === 'rail' &&
     attacks.wolfHound.kinds.join() === 'slag' && attacks.flakStar.kinds.join() === 'flak' && attacks.crestBomber.bomb &&
-    attacks.crestBomber.kinds.join() === 'shard' && attacks.wakeHunter.dashed,
-  'no plain enemy bullets on the White Front': !r4.shotKinds.some((k) => !['tracer', 'rail', 'slag', 'flak', 'shard', undefined].includes(k)),
+    attacks.crestBomber.kinds.join() === 'shard' && attacks.wakeHunter.dashed &&
+    attacks.shelfSkiff.kinds.join() === 'slug' && attacks.snowRoller.charge && attacks.snowRoller.kinds.join() === 'ice' &&
+    attacks.rocketSled.rockets && attacks.rocketSled.kinds.length === 0,
+  'no plain enemy bullets on the White Front': !r4.shotKinds.some((k) => !['tracer', 'rail', 'slag', 'flak', 'shard', 'slug', 'ice', undefined].includes(k)),
+  'about 230 Wolves in the level': r4.spawned >= 215 && r4.spawned <= 290,
   'White Front cargo pods all collected': pickups2.every((k) => r4.collected.includes(k)),
   'White Front loot gamble (about 10 items)': r4.dropped >= 5 && r4.dropped <= 25,
   'White Front cleared (no boss yet)': r4.state === 'clear',
