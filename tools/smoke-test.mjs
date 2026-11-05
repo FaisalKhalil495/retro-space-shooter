@@ -456,7 +456,10 @@ for (const phone of PHONES) {
   console.log(`  ${talkOk ? 'PASS' : 'FAIL'}  boss holds attacks while talking; bubble stays out of the way ${JSON.stringify(talk)}`);
   if (!talkOk) failures++;
 
-  // Portrait: should ask to rotate.
+  // Portrait: should ask to rotate. (Newer test browsers won't resize a
+  // window that's full screen, which a tap on the game asks for: leave it.)
+  await page.evaluate(() => document.fullscreenElement && document.exitFullscreen()).catch(() => {});
+  await page.waitForTimeout(100);
   await page.setViewportSize({ width: phone.height, height: phone.width });
   await page.waitForTimeout(400);
   const rotateShown = await page.evaluate(() => !document.getElementById('rotate').hidden);
@@ -549,7 +552,7 @@ for (const phone of PHONES) {
   r.next = await st();
   r.reached = (await saved()).reached;
   // The last level: "to be continued", the name, then the table.
-  await page.evaluate(() => { const g = window.__ember.game; g.levelIndex = 2; g.reset({ score: 99999, lives: 2 }); g.levelClear(); });
+  await page.evaluate(() => { const g = window.__ember.game; g.levelIndex = 3; g.reset({ score: 99999, lives: 2 }); g.levelClear(); }); // (level 4, the White Front)
   await page.waitForTimeout(3600);
   await tap(104, 72);
   r.end = (await st()).screen;
@@ -2442,7 +2445,7 @@ for (const phone of PHONES) {
   const errs = [];
   page.on('pageerror', (e) => errs.push(String(e)));
   const r = {};
-  for (const level of [1, 2, 3]) {
+  for (const level of [1, 2, 3, 4]) {
     await page.goto(base + `?level=${level}&start=${level === 3 ? 'boss' : 40}`);
     await page.waitForTimeout(300);
     await page.evaluate(() => window.__ember.play());
@@ -2493,6 +2496,9 @@ for (const phone of PHONES) {
     const painted = [...ROCKS.big, ...ROCKS.small, ...ROCKS.bigFlash, ...ROCKS.smallFlash, ...FAR_ROCKS,
       ...ROCKJAW.frames.flat(), ...ROCKJAW.flash, ...CRAWLER.bodies, spireImage(14, 40, 3), floorTile(14), slabImage(18, 13, 4),
       ...W.bodies, ...W.ring, W.hub, bladeFrame(0)];
+    const { whiteFrontArt } = await import('/js/whitefront.js' + v);
+    const WF = whiteFrontArt();
+    painted.push(WF.sky, WF.clouds, WF.far, WF.ground.canvas, WF.beam, ...WF.ships.map((sh) => sh.canvas));
     out.painted = painted.length;
     out.paintedWrong = painted.filter((p) => !p.hi || p.hi.width !== p.width * DETAIL || p.hi.height !== p.height * DETAIL).length;
     out.blankHi = painted.filter((p) => {
@@ -2506,6 +2512,8 @@ for (const phone of PHONES) {
       'turretShut', 'turretOpen', 'skimmer', 'crawler', 'raider', 'mine', 'drone'].filter((n) => !HI_NAMES.includes(n));
     out.level3Missing = ['drifter_frost', 'weaver_frost', 'gunner_frost', 'seeker_frost', 'sniper_frost', 'spinner_frost',
       'rimeIced', 'rimeGuard', 'cryoLayer', 'frostMine', 'prism', 'prismShard'].filter((n) => !HI_NAMES.includes(n));
+    out.level4Missing = ['wolfDart', 'needleWing', 'wakeHunter', 'crestBomber', 'wolfBomb', 'wolfHound', 'flakStar']
+      .flatMap((n) => [n, n + 'Open']).filter((n) => !HI_NAMES.includes(n));
     // Round shapes (explosions, the sun, orbs) drawn at a screen scale that
     // isn't a whole number leave no faint seams between their rows.
     const { fillDisc } = await import('/js/util.js' + v);
@@ -2623,8 +2631,8 @@ for (const phone of PHONES) {
   r.missingLetters = [...missing].join('');
   delete r.glyphs;
   const ok = r.hi >= 34 && r.wrongSize.length === 0 && r.wrongOutline.length === 0 && r.shimDiff === 0 && r.screenSharp &&
-    r.painted === 51 && r.paintedWrong === 0 && r.blankHi === 0 && r.level1Missing.length === 0 &&
-    r.level2Missing.length === 0 && r.level3Missing.length === 0 && r.seams === 0 && r.stripes === 0 && r.bossPaintedEarly &&
+    r.painted === 59 && r.paintedWrong === 0 && r.blankHi === 0 && r.level1Missing.length === 0 &&
+    r.level2Missing.length === 0 && r.level3Missing.length === 0 && r.level4Missing.length === 0 && r.seams === 0 && r.stripes === 0 && r.bossPaintedEarly &&
     r.shipSize[0] === 18 && r.shipSize[1] === 11 && r.missingLetters === '' && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  double detail ${JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;

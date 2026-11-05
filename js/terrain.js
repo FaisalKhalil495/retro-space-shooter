@@ -1,6 +1,6 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.29.0';
-import { seeded } from './util.js?v=0.29.0';
-import { DETAIL, FINE, detailCanvas, pixels, grit } from './detail.js?v=0.29.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.30.0';
+import { seeded } from './util.js?v=0.30.0';
+import { DETAIL, FINE, detailCanvas, pixels, grit } from './detail.js?v=0.30.0';
 
 // Solid things in the way, for levels that have them:
 //   - Rust Moon (and later the Ember Mines' tunnels): a floor strip along the
@@ -30,6 +30,8 @@ export const ROCK_CLEARANCE = 10;
 const SLAB_GAP = 30;
 const SLAB_WINDOW = 44;
 const SLAB_DROP = 32; // how fast a slab drifting in from above or below moves into place
+// What a shot stopping on the White Front's snow throws up.
+export const SNOW_DUST = ['#a8c7e2', '#dde8f1', '#ffffff'];
 export const ICE_COLORS = ['#2a3a58', '#4d6890', '#7f9cc0', '#b8cde3', '#e6eef7'];
 
 const FLOOR_COLORS = ['#3a2224', '#57302a', '#7a4632', '#9a6a4a'];
@@ -238,8 +240,12 @@ function slabCrackImage(s, shown) {
 
 export class Terrain {
   // floor: height of the floor strip in game pixels (0 = no ground).
-  constructor(floor = 0) {
+  // snow: the White Front's snowfield, which the background draws itself
+  // (only its solid line is here), and shots stopping on it throw up snow.
+  constructor(floor = 0, { snow = false } = {}) {
     this.floor = floor;
+    this.snow = snow;
+    this.dust = snow ? SNOW_DUST : null;
     this.spires = [];
     this.slabs = [];
     this.scroll = 0;
@@ -484,6 +490,7 @@ export class Terrain {
     }
     if (!this.floor) return;
     for (const s of this.spires) ctx.drawImage(s.img, snap(s.x), snap(s.top));
+    if (this.snow) return;
     // The floor: a strip of layered ground with pebbles, scrolling along
     // (a tile painted once, repeated).
     const y0 = this.floorY;

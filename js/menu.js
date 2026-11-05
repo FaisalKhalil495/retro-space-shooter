@@ -1,13 +1,14 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.29.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.29.0';
-import { FINE, detailCanvas, pixels, grit } from './detail.js?v=0.29.0';
-import { fillDisc } from './util.js?v=0.29.0';
-import { SPRITES } from './sprites.js?v=0.29.0';
-import { drawOrb } from './powerups.js?v=0.29.0';
-import { drawCapsule } from './weapons.js?v=0.29.0';
-import { LEVELS } from './levels.js?v=0.29.0';
-import { titleBadge, menuBadge } from './titleart.js?v=0.29.0';
-import { save, TOP, bestScore } from './save.js?v=0.29.0';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.30.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.30.0';
+import { FINE, detailCanvas } from './detail.js?v=0.30.0';
+import { fillDisc } from './util.js?v=0.30.0';
+import { SPRITES } from './sprites.js?v=0.30.0';
+import { drawOrb } from './powerups.js?v=0.30.0';
+import { drawCapsule } from './weapons.js?v=0.30.0';
+import { LEVELS } from './levels.js?v=0.30.0';
+import { titleBadge, menuBadge } from './titleart.js?v=0.30.0';
+import { save, TOP, bestScore } from './save.js?v=0.30.0';
+import { whiteFrontArt } from './whitefront.js?v=0.30.0';
 
 // The menus: title screen, level select, high scores, options, how to play,
 // pause, game over, entering your initials and the "to be continued"
@@ -17,7 +18,7 @@ import { save, TOP, bestScore } from './save.js?v=0.29.0';
 // it, so a finger that slides off cancels.
 
 // Levels still to come, shown as "coming soon" on the level select.
-export const COMING_SOON = 2;
+export const COMING_SOON = 1;
 const BOSS_NAMES = { rockjaw: 'ROCKJAW', siegeCrawler: 'SIEGE CRAWLER', glacierWarden: 'GLACIER WARDEN' };
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 export const NAME_MAX = 8; // letters in a name on the high-score table
@@ -252,7 +253,7 @@ export class Menu {
       }
       if (lv) {
         drawText(ctx, `${lv.number}  ${lv.name}`, x + 35, y + 3, open ? PAL.cream : PAL.textDim);
-        drawText(ctx, 'BOSS  ' + BOSS_NAMES[lv.boss], x + 35, y + 10, open ? PAL.bluePale : '#4d5570');
+        drawText(ctx, lv.boss ? 'BOSS  ' + BOSS_NAMES[lv.boss] : 'BOSS  COMING SOON', x + 35, y + 10, open ? PAL.bluePale : '#4d5570');
         if (open) chevron(ctx, x + 172, y + 5.5, PAL.amber);
       } else if (save.finished) {
         // (Only someone who has finished the last level learns it's the
@@ -373,30 +374,35 @@ export class Menu {
   }
 
   drawEnd(ctx) {
-    ctx.drawImage(planetImage(), 0, PLANET_TOP);
-    // The Warden's burning wreck, falling away towards the planet.
-    const k = Math.min(1, this.t / 6);
-    const wx = 170 - k * 46;
-    const wy = 40 + k * 56;
-    if (k < 1) {
-      for (let i = 1; i < 9; i++) {
-        ctx.globalAlpha = 0.5 * (1 - i / 9);
-        ctx.fillStyle = PAL.grey;
-        ctx.fillRect(Math.round((wx + i * 2.3) * 2) / 2, Math.round((wy - i * 2.5) * 2) / 2, 1, 1);
+    // The White Front at dusk, its snowfield quiet, the invaders' landing
+    // ships climbing away.
+    const art = whiteFrontArt();
+    ctx.drawImage(art.sky, 0, 0);
+    ctx.drawImage(art.far, 0, 0);
+    ctx.drawImage(art.ground.canvas, 0, art.ground.top);
+    ctx.fillStyle = 'rgba(11, 15, 28, 0.55)';
+    ctx.fillRect(0, 0, VIEW_W, VIEW_H);
+    ctx.fillRect(0, 59, VIEW_W, 26); // (darker still behind the small lettering)
+    const k = Math.min(1, this.t / 10);
+    [[150, 58, 0], [112, 70, 1], [178, 76, 2]].forEach(([x0, y0, i]) => {
+      const im = art.ships[i];
+      const x = Math.round((x0 + k * (40 + i * 10)) * 2) / 2;
+      const y = Math.round((y0 - k * (70 + i * 6)) * 2) / 2;
+      ctx.drawImage(im.canvas, x, y);
+      if (Math.floor(this.t * 12) % 2) {
+        ctx.fillStyle = PAL.amberLight;
+        for (const tx of im.thrusters) ctx.fillRect(x + Math.round(tx * 2) / 2, y + Math.round(im.thrustY * 2) / 2, FINE, 1);
       }
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = Math.floor(this.t * 12) % 2 ? PAL.amberLight : PAL.amber;
-      ctx.fillRect(Math.round(wx * 2) / 2, Math.round(wy * 2) / 2, 1.5, 1.5);
-    }
-    heading(ctx, 'FROSTRING IS FREE', 8);
-    drawTextCentered(ctx, 'THE INVADERS FALL BACK', 104, 24, PAL.cream);
-    drawTextCentered(ctx, 'TO THE ICE PLANET BELOW', 104, 32, PAL.cream);
+    });
+    heading(ctx, 'THE FRONT HOLDS', 8);
+    drawTextCentered(ctx, 'THE INVADERS RETREAT', 104, 24, PAL.cream);
+    drawTextCentered(ctx, 'TO THE EMBER MINES', 104, 32, PAL.cream);
     if (this.t > 1) {
       drawTextCentered(ctx, 'TO BE CONTINUED', 105, 47, PAL.redDark, 2);
       drawTextCentered(ctx, 'TO BE CONTINUED', 104, 46, PAL.amberLight, 2);
     }
     if (this.t > 1.6) {
-      drawTextCentered(ctx, 'LEVEL 4  COMING SOON', 104, 64, PAL.bluePale);
+      drawTextCentered(ctx, 'LEVEL 5  COMING SOON', 104, 64, PAL.bluePale);
       drawTextCentered(ctx, 'FINAL SCORE  ' + pad6(this.info.score || 0), 104, 76, PAL.cream);
     }
   }
@@ -544,6 +550,34 @@ function thumb(n) {
     ctx.fillRect(4, 7, 6, 4);
     ctx.fillStyle = '#e6eef7';
     ctx.fillRect(4, 7, 6, FINE);
+  } else if (n === 4) {
+    // The White Front: daylight sky, the sun's halo, white peaks, snow.
+    ['#6f8db6', '#8aa6c8', '#a9c3de', '#c7d9ea'].forEach((c, i) => {
+      ctx.fillStyle = c;
+      ctx.fillRect(0, i * 2, 28, 2);
+    });
+    ctx.fillStyle = '#c7d9ea';
+    ctx.fillRect(0, 8, 28, 1);
+    ctx.fillStyle = 'rgba(250,246,236,0.5)';
+    fillDisc(ctx, 21, 3, 2.5);
+    ctx.fillStyle = '#fbf8ef';
+    fillDisc(ctx, 21, 3, 1);
+    ctx.fillStyle = '#93aac4';
+    for (const [x, h] of [[0, 2], [3, 4], [7, 2.5], [11, 5], [16, 3], [20, 4.5], [25, 2.5]]) {
+      ctx.beginPath();
+      ctx.moveTo(x - 3, 9);
+      ctx.lineTo(x, 9 - h);
+      ctx.lineTo(x + 3, 9);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#eef3f8';
+    ctx.fillRect(0, 9, 28, 4);
+    ctx.fillStyle = '#a8c7e2';
+    ctx.fillRect(0, 12, 28, 1);
+    ctx.fillStyle = '#4e5461'; // a landing ship coming down
+    ctx.fillRect(6, 3, 5, 1.5);
+    ctx.fillStyle = '#cf8f3c';
+    ctx.fillRect(8, 3, FINE, 1.5);
   } else {
     ctx.fillStyle = PAL.ink;
     ctx.fillRect(0, 0, 28, 13);
@@ -552,49 +586,6 @@ function thumb(n) {
     drawTextCentered(ctx, '?', 14, 4, PAL.textDim);
   }
   thumbs[n] = canvas;
-  return canvas;
-}
-
-// The ice planet's curve filling the foot of the "to be continued" screen
-// (painted once): snowfields lit from the upper left, faint cloud bands and
-// a thin blue haze along the edge.
-const PLANET_TOP = 92;
-let planet = null;
-function planetImage() {
-  if (planet) return planet;
-  const H = VIEW_H - PLANET_TOP;
-  const { canvas } = detailCanvas(VIEW_W, H);
-  const px = pixels(canvas);
-  const cx = 104;
-  const R = 150;
-  const cy = PLANET_TOP + R;
-  const shades = ['#e6eef7', '#c8d4ec', '#9fb0d0', '#7f9cc0', '#4d6890', '#34406a'];
-  for (let fy = 0; fy < H * 2; fy++) {
-    for (let fx = 0; fx < VIEW_W * 2; fx++) {
-      const x = (fx + 0.5) / 2;
-      const y = (fy + 0.5) / 2 + PLANET_TOP;
-      const dist = Math.hypot(x - cx, y - cy);
-      const d = R - dist; // how far in from the rim
-      if (d < -1) continue;
-      if (d < 0) {
-        px.set(fx, fy, shades[5]); // a thin haze of air round the rim
-        continue;
-      }
-      // Lit from the upper left, as a ball is: brightest facing the sun.
-      const nx = (x - cx) / R;
-      const ny = (y - cy) / R;
-      const lit = -nx * 0.55 - ny * 0.85;
-      let i = lit > 0.85 ? 0 : lit > 0.7 ? 1 : lit > 0.5 ? 2 : 3;
-      // Soft bands of cloud and snowfield following the curve.
-      const band = (d + Math.sin(x * 0.06) * 1.2) % 14;
-      if (band > 10 && band < 10.8) i = Math.min(3, i + 1);
-      if (d < 1) i = 4; // darker right at the rim
-      if (i < 3 && grit(fx, fy, 3) > 0.985) i = 0; // glints of ice
-      px.set(fx, fy, shades[i]);
-    }
-  }
-  px.done();
-  planet = canvas;
   return canvas;
 }
 

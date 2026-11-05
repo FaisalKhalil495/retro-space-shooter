@@ -1,4 +1,4 @@
-// Plays levels 1, 2 and 3 (with all three bosses) automatically at high speed (an
+// Plays levels 1, 2, 3 (with all three bosses) and 4 automatically at high speed (an
 // invincible autopilot that lines up with enemies and holds Fire) to check
 // the level scripts, pickups, special weapons and the boss all work and each
 // level can be finished.
@@ -85,6 +85,12 @@ const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
     const chip = g.chipSlab.bind(g);
     log.shattered = 0;
     g.chipSlab = (s, ...rest) => { chip(s, ...rest); if (s.dead && !s.counted) { s.counted = true; log.shattered++; } };
+    const fire = g.fireShot.bind(g);
+    log.shotKinds = [];
+    g.fireShot = (...a) => { if (!log.shotKinds.includes(a[4])) log.shotKinds.push(a[4]); return fire(...a); };
+    const spawn = g.spawnEnemy.bind(g);
+    log.spawned = 0;
+    g.spawnEnemy = (...a) => { log.spawned++; return spawn(...a); };
     g.__wrapped = true;
   }
   const step = 1 / 120;
@@ -225,12 +231,69 @@ results.frost = await run(560, { invincible: true, useSpecials: true });
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/lvl3-clear.png` });
 
+// On to level 4 (The White Front): no boss yet, it clears itself.
+const level4 = await page.evaluate(() => {
+  const g = window.__ember.game;
+  g.stateTimer = 4;
+  g.update(1 / 120, { dx: 0, dy: 0, fire: false, special: false, tap: true });
+  const log = window.__log;
+  log.collected = [];
+  log.types = [];
+  log.maxEnemies = 0;
+  log.bossSeen = false;
+  log.shotKinds = [];
+  log.spawned = 0;
+  // (loot from enemies only, not the cargo pods)
+  const drop = g.maybeDrop.bind(g);
+  log.dropped = 0;
+  g.maybeDrop = (e) => { const n = g.pickups.length; drop(e); log.dropped += g.pickups.length - n; };
+  return { level: g.level.number, state: g.state };
+});
+results.white = await run(60, { invincible: true });
+await page.screenshot({ path: `${out}/lvl4-early.png` });
+const w1 = { types: [...results.white.types] };
+results.white = await run(150, { invincible: true });
+await page.waitForTimeout(400);
+await page.screenshot({ path: `${out}/lvl4-clear.png` });
+results.white.types = [...new Set([...w1.types, ...results.white.types])];
+
+// Each Wolf left alone (you don't shoot back): every one attacks with its
+// own bullet (the autopilot usually shoots them first).
+const attacks = await page.evaluate(() => {
+  const g = window.__ember.game;
+  g.reset();
+  g.runner.update = () => {}; // (no waves: one Wolf at a time)
+  const out = {};
+  for (const type of ['wolfDart', 'needleWing', 'wakeHunter', 'crestBomber', 'wolfHound', 'flakStar']) {
+    g.enemies = [];
+    g.enemyShots = [];
+    const kinds = [];
+    const fire = g.fireShot;
+    g.fireShot = (...a) => { if (!kinds.includes(a[4])) kinds.push(a[4]); return fire(...a); };
+    g.spawnEnemy(type, 212, 50, { spitAt: 0.6 });
+    const seen = new Set();
+    for (let i = 0; i < 10 * 120; i++) {
+      g.player.invuln = 1;
+      g.player.x = 30;
+      g.player.y = 60;
+      g.update(1 / 120, { dx: 0, dy: 0, fire: false, special: false, tap: false });
+      for (const e of g.enemies) seen.add(e.type + ':' + e.mode);
+    }
+    g.fireShot = fire;
+    out[type] = { kinds, dashed: seen.has('wakeHunter:dash'), bomb: [...seen].some((k) => k.startsWith('wolfBomb')) };
+  }
+  g.reset();
+  return out;
+});
+results.attacks = attacks;
+
 console.log(JSON.stringify(results, null, 1));
 const blurry = await page.evaluate(() => window.__blurry);
 if (Object.keys(blurry).length) console.log('pictures drawn without their sharp version:', blurry);
 const r = results.boss;
 const r2 = results.rust;
 const r3 = results.frost;
+const r4 = results.white;
 const pickups2 = ['rockets', 'shield', 'bomb', 'spread', 'life', 'rapid', 'laser', 'wingman'];
 const checks = {
   'enemies appeared': results.early.maxEnemies > 3,
@@ -271,6 +334,16 @@ const checks = {
   'a Glacier Warden stage bonus for each broken stage': r3.bonuses === 2,
   'Glacier Warden never attacks while talking': !r3.talkAttacks,
   'Frostring cleared': r3.state === 'clear',
+  'level 4 (The White Front) follows level 3': level4.level === 4 && level4.state === 'playing',
+  'all six sky Wolves appeared': ['wolfDart', 'needleWing', 'wakeHunter', 'crestBomber', 'wolfHound', 'flakStar']
+    .every((t) => r4.types.includes(t)),
+  'each Wolf attacks its own way, with its own bullet': attacks.wolfDart.kinds.join() === 'tracer' && attacks.needleWing.kinds.join() === 'rail' &&
+    attacks.wolfHound.kinds.join() === 'slag' && attacks.flakStar.kinds.join() === 'flak' && attacks.crestBomber.bomb &&
+    attacks.crestBomber.kinds.join() === 'shard' && attacks.wakeHunter.dashed,
+  'no plain enemy bullets on the White Front': !r4.shotKinds.some((k) => !['tracer', 'rail', 'slag', 'flak', 'shard', undefined].includes(k)),
+  'White Front cargo pods all collected': pickups2.every((k) => r4.collected.includes(k)),
+  'White Front loot gamble (about 10 items)': r4.dropped >= 5 && r4.dropped <= 25,
+  'White Front cleared (no boss yet)': r4.state === 'clear',
   'every picture drawn sharp (double detail)': Object.keys(blurry).length === 0,
   'no script errors': errors.length === 0,
 };

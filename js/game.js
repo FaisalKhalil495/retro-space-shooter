@@ -1,20 +1,21 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.29.0';
-import { SPRITES } from './sprites.js?v=0.29.0';
-import { ENEMY_TYPES } from './enemies.js?v=0.29.0';
-import { LEVELS, LevelRunner } from './levels.js?v=0.29.0';
-import { Background } from './background.js?v=0.29.0';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.29.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.29.0';
-import { buzz, HAPTIC } from './feedback.js?v=0.29.0';
-import { sfx } from './audio.js?v=0.29.0';
-import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.29.0';
-import { FINE, snapFine, fillCrisp, crispOf, detailCanvas } from './detail.js?v=0.29.0';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.29.0';
-import { Blasts } from './blasts.js?v=0.29.0';
-import { Speech } from './speech.js?v=0.29.0';
-import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.29.0';
-import { startMusic, stopMusic, preloadMusic } from './music.js?v=0.29.0';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.29.0';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.30.0';
+import { SPRITES } from './sprites.js?v=0.30.0';
+import { ENEMY_TYPES } from './enemies.js?v=0.30.0';
+import { LEVELS, LevelRunner } from './levels.js?v=0.30.0';
+import { Background } from './background.js?v=0.30.0';
+import { WOLF_SHOT_KINDS, drawWolfShot } from './wolves.js?v=0.30.0';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.30.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.30.0';
+import { buzz, HAPTIC } from './feedback.js?v=0.30.0';
+import { sfx } from './audio.js?v=0.30.0';
+import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.30.0';
+import { FINE, snapFine, fillCrisp, crispOf, detailCanvas } from './detail.js?v=0.30.0';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.30.0';
+import { Blasts } from './blasts.js?v=0.30.0';
+import { Speech } from './speech.js?v=0.30.0';
+import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.30.0';
+import { startMusic, stopMusic, preloadMusic } from './music.js?v=0.30.0';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.30.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -144,7 +145,7 @@ export class Game {
     startMusic(this.level.music); // the level's theme (a restart keeps it playing)
     // The scenery stands on the same ground line as the solid terrain.
     this.bg = new Background(this.rand, { ...this.level.background, floor: this.level.floor || 0 });
-    this.terrain = new Terrain(this.level.floor || 0);
+    this.terrain = new Terrain(this.level.floor || 0, { snow: !!(this.level.background && this.level.background.whiteFront) });
     if (this.level.background && this.level.background.frost) this.terrain.warmUp(); // (a level of ice)
     this.weapons.reset();
     this.powerups.reset();
@@ -684,7 +685,7 @@ export class Game {
         this.chipSlab(slab, 1, b.x + 6, b.y + 1);
       } else if (this.terrain.solid(b.x, b.y, 7, 2)) {
         b.dead = true;
-        this.burst(b.x + 6, b.y + 1, 3, 30, DUST_COLORS);
+        this.burst(b.x + 6, b.y + 1, 3, 30, this.terrain.dust || DUST_COLORS);
       }
     }
     this.bullets = this.bullets.filter((b) => b.x < VIEW_W + 8 && b.y > -4 && b.y < VIEW_H + 4 && !b.dead);
@@ -708,7 +709,7 @@ export class Game {
       s.y += s.vy * dt;
       if (this.terrain.solid(s.x - 1, s.y - 1, 2, 2)) {
         s.dead = true;
-        this.burst(s.x, s.y, 2, 25, this.terrain.slabAt(s.x - 1, s.y - 1, 2, 2) ? ICE_COLORS.slice(2) : DUST_COLORS);
+        this.burst(s.x, s.y, 2, 25, this.terrain.slabAt(s.x - 1, s.y - 1, 2, 2) ? ICE_COLORS.slice(2) : this.terrain.dust || DUST_COLORS);
       }
     }
     this.enemyShots = this.enemyShots.filter(
@@ -1085,6 +1086,11 @@ export class Game {
       const x = snap(s.x);
       const y = snap(s.y);
       // Shots are drawn in half-pixel steps (double detail).
+      if (WOLF_SHOT_KINDS.has(s.kind)) {
+        // The Iron Wolves' bullets: a different shape and colour each.
+        drawWolfShot(ctx, s, snap);
+        continue;
+      }
       if (s.kind === 'gravel') {
         // A chip of rock.
         ctx.drawImage(SHOT_ART.gravel, x - 2, y - 2);

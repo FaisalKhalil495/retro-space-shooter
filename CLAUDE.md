@@ -208,8 +208,8 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
   built) → 3C-2 the boss (v0.19.0, built);
   the owner tests each. The boss event is at 3:04 (v0.19.0). After Rust
   Moon's boss, "TAP TO CONTINUE" goes on into Frostring; after the Glacier
-  Warden comes the "to be continued" screen (v0.25.0) until the ice planet
-  exists.
+  Warden it goes on into the White Front (v0.30.0; before that, the "to be
+  continued" screen).
   - **Its look: the "Ice Harvesters"** (owner, chosen from eight sets): the
     invaders' mining crews strip-mining the ring, in yellow-and-black
     hazard paint with drills and saw blades: pod → drill pod, weaver →
@@ -536,7 +536,9 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    cream; the owner's exception for enemy shapes), **traced shape by shape
    and drawn sharp by code** (`tools/white-front/wolves3/`: `vehicles.js`
    traced over each painting, `vec.js` turns shapes into double-detail
-   pixels, `designs.js` the two drawn without a painting). About 20–25%
+   pixels, `designs.js` the two drawn without a painting;
+   `tools/white-front/bake-wolves.mjs` bakes them into the game as
+   `js/wolfart.js`, shut and open). About 20–25%
    bigger than the old coast sprites. Like levels 2 and 3, level 4 has
    level 1's six kinds in this look plus its own (owner agreed, after
    counting: levels 1–3 have 9–11 types and 200–400 enemies; the preview
@@ -584,6 +586,22 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    The real level needs about 220–250 enemies (harder than Frostring).
    (The ChatGPT experiments stay in `art/white-front/` and
    `tools/white-front/` for reference only.)
+   **Step 1 built (v0.30.0)**: the world (`js/whitefront.js`: sky with the
+   sun's halo and Frostring's ring, clouds, landing ships hazed with the
+   sky's colour so they never look like enemies, searchlights, the glacier
+   with the defenders' bunkers firing tracers and flak, the frozen lake,
+   the flat snowfield at game y 131 (solid, harmless, `SNOW_FLOOR`), pale
+   wrecks, tank traps, sandbags, a dish, craters, waving flags, smoke,
+   falling and blowing snow) and the six sky Wolves with their bullets
+   (`js/wolves.js`). About 3 min, about 165 enemies in three parts (Darts
+   and Hounds; Needle Wing alone at 0:15, Bomber 0:30, Hunter 0:45, Flak
+   Star 1:05; then everything), the same cargo-pod schedule as levels 1–3
+   (pods fly at any height: no towers here), enemy shots 30% faster,
+   Frostring's music for now, and it ends with an `'end'` event (no boss
+   yet), then "to be continued". Twin Darts carry the loot gamble (20%,
+   35% when hurt, "A" ammo in it; about 10–15 items a level), the others
+   drop rarely, Wolf Hounds never. Next: step 2 (the Shelf Skiff, Snow
+   Roller and Rocket Sled; 220–250 enemies).
 5. **The Ember Mines** — underground tunnels lit by soft amber crystals;
    ceiling and floor squeeze the space. Boss: **The Drill Worm**, a mechanical
    worm bursting from walls above and below.
@@ -614,8 +632,9 @@ and 5 shown as coming soon. Menus approved from a picture sheet.)
   level, or **New Game** from Level 1 (a brand-new player sees just
   **Play**). Starting mid-game starts the score at zero.
 - **Practice mode** = the **Levels** screen: replay any level already
-  reached; locked levels show a padlock, levels 4 and 5 show "COMING
-  SOON" with no name. Practice scores never go on the high-score table;
+  reached; locked levels show a padlock, level 5 shows "COMING SOON"
+  with no name (`COMING_SOON` in menu.js; level 4 says "BOSS  COMING SOON"
+  until it has a boss). Practice scores never go on the high-score table;
   clearing a practice level goes back to the level list.
 - **Opening screen** (v0.27.0, owner's pick "Squadron badge" from six
   designs): the **title badge** fills the screen over the drifting
@@ -639,11 +658,11 @@ and 5 shown as coming soon. Menus approved from a picture sheet.)
   on it never reach Fire/Special); Resume, Restart Level (as the level
   started: with the score, lives and special you brought), Options, How to
   Play, Quit to Title. Switching apps or turning the phone upright opens it.
-- **After the last level** (Frostring): the level-clear screen, then
-  "FROSTRING IS FREE / THE INVADERS FALL BACK TO THE ICE PLANET BELOW / TO
-  BE CONTINUED / LEVEL 4 COMING SOON" with the final score over the ice
-  planet's curve (the Warden's wreck falling towards it); then the name
-  for a high score, the table, and the title.
+- **After the last level** (the White Front since v0.30.0; Frostring
+  before): the level-clear screen, then "THE FRONT HOLDS / THE INVADERS
+  RETREAT TO THE EMBER MINES / TO BE CONTINUED / LEVEL 5 COMING SOON" with
+  the final score over the White Front at dusk (its landing ships climbing
+  away); then the name for a high score, the table, and the title.
 
 ### Content rating: adults (18+)
 - **Explosions, not blood** (owner request, v0.7.0 — blood everywhere was
@@ -823,7 +842,7 @@ game is shared by its link and the home-screen install.
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
-| 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C done (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2). **Next: 3D the ice planet, then 3E Ember Mines** (paused until the owner's weekly budget allows) |
+| 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C done (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2); 3D: choices done (3D-0), step 1 built (v0.30.0: the White Front's world and six sky Wolves; owner testing). **Next: 3D step 2 (ground Wolves, Rocket Sled), its music, its boss; then 3E Ember Mines** |
 | G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | Done (v0.24.0) — step 1 (v0.20.0), step 2 (v0.21.0: level 1 enemies, cargo pod, asteroids, Rockjaw; review fixes v0.21.1–v0.21.2), step 3 (v0.22.0: Rust Moon set, spires, floor, Siege Crawler; review fixes v0.22.1, smoother stage 2 v0.22.2), step 4 (v0.23.0: Frostring's enemies and ice; v0.23.1: the Glacier Warden; review fixes v0.23.2), step 5 wrap-up review (v0.24.0; owner testing) |
 | A | **Store apps** | After levels 4 and 5 (owner, after v0.29.0): the game wrapped as a real app with **Capacitor** (all files, music included, packed inside: works offline, native feel, vibration on iPhone too). **Android (Google Play) first**, then iPhone (App Store) if the owner wants it. Claude makes the app build, privacy policy page, screenshots and store text; the owner makes the accounts and pays (Play $25 once; Apple $99 a year, iPhone builds done by a cloud service since there's no Mac). Google needs 12 testers for 14 days before a new account's first game goes public: the owner gathers them meanwhile. Check the stores' current rules before starting. Age rating about 17+/18+ (blood, swearing). | Planned, after 3E |
 | 4 | **Levels 6–9** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. Shipped as free app updates after the store launch. | |
@@ -884,7 +903,21 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   once every enemy, including ones still due to arrive, has gone; 8 s max).
 - `js/background.js` — starfield, sun, dust band, distant rocks, Rust Moon
   canyon (sky bands, mesas, walls, dust devils), Frostring (ringed planet,
-  drifting snow) (per-level theme).
+  drifting snow) (per-level theme); the White Front hands over to
+  `js/whitefront.js`: its world, painted once (`whiteFrontArt()`: sky,
+  clouds, far view, snowfield strip, landing ships, searchlight beam; the
+  far view painted into a pixel buffer for speed) and the live battle
+  (`WhiteFront`, with its own dice: ships, tracers, flak, smoke, flags,
+  snow; round puffs are pictures painted once per size). Terrain's
+  `snow` option: the floor is solid there but drawn by the background,
+  and shots stopping on it throw up snow.
+- `js/wolves.js` — the Iron Wolves (level 4): their pictures (from
+  `js/wolfart.js`, made by `tools/white-front/bake-wolves.mjs`; the normal
+  size made from the sharp grid), the six sky types plus the Crest
+  Bomber's bomb (`WOLF_TYPES`, spread into `ENEMY_TYPES`), and their
+  bullets (`tracer`, `rail`, `slag`, `flak`, `shard`; `slug` and `ice`
+  ready for step 2), painted once in 16 headings or a few frames
+  (`drawWolfShot`, which Game.draw calls for those kinds).
 - `js/terrain.js` — solid things in the way: floor strip, rock spires
   (Rust Moon), drifting breakable ice slabs (Frostring: `addSlab`,
   `canPlace`, `freeBand`, `slabAt`, `freeY`/`clearOfIce`); `solid()` for
@@ -972,7 +1005,10 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   Frostring starts (before it arrives), and every all-capitals string in
   the code uses letters the font has.
 - `tools/level-test.mjs` — invincible autopilot plays levels 1, 2 and 3
-  (with all three bosses) at high speed; checks pickups, specials, bosses,
+  (with all three bosses) and 4 (v0.30.0: the six sky Wolves appear, the
+  cargo pods, the loot gamble, the level clears; and each Wolf, left alone
+  with a ship that doesn't shoot, attacks with its own bullet) at high
+  speed; checks pickups, specials, bosses,
   talking, stage bonuses, new enemies and level clears (same command
   style). It also draws every 8th step at double detail and fails if any
   picture is drawn without its sharp version, naming the line of code that
@@ -984,8 +1020,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   replays a run exactly (v0.22.1; before that, rare failures couldn't be
   replayed). Its autopilot shoots open cargo pods ahead of it before
   chasing loose items.
-- `tools/speed-test.mjs` — how fast the game draws on a slow phone (five
-  busy scenes, processor slowed 4x, frames in 3 s), and two steady numbers
+- `tools/speed-test.mjs` — how fast the game draws on a slow phone (six
+  busy scenes, the White Front's added in v0.30.0, processor slowed 4x, frames in 3 s), and two steady numbers
   per scene (v0.23.0): drawing calls a frame and garbage (short-lived
   memory) a second. Every random number in the page is seeded and the game
   is frozen before the start tap, so the calls and garbage come out the
@@ -998,9 +1034,13 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   4.0 / 2.9 / 2.5 / 3.6 / 4.3 MB (frames 35–47 on that session's slower
   computer, the same as v0.23.2 run alongside: frame counts only compare
   on the same computer); v0.28.0: calls 303 / 358 / 298 / 348 / 590 (+4:
-  the pause button), garbage 3.8 / 2.9 / 2.6 / 3.7 / 4.4 MB.
+  the pause button), garbage 3.8 / 2.9 / 2.6 / 3.7 / 4.4 MB; v0.30.0:
+  the White Front 342 calls, 3.0 MB (frames about 107, like the Siege
+  Crawler's on the same computer).
   Rule: nothing big is repainted every frame if it never changes (paint it
   once into a picture), and no full-screen gradients per frame.
+- The smoke test leaves full screen before turning the phone upright
+  (v0.30.0: newer test browsers won't resize a full-screen window).
 - `tools/serve.mjs` — the tests' tiny web server (this computer only; refuses
   paths outside the repository).
 - Testing aids: add `?fps` to the URL to show, in the left margin, frames
@@ -1009,7 +1049,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   the phone); add `?safe=62` to the URL to fake an iPhone camera cutout;
   `?start=boss` jumps straight to the boss with a laser loaded;
   `?start=60` starts 60 seconds into the level; `?level=2` starts on level 2
-  (combine them: `?level=2&start=boss`); `?level=3` is Frostring. With
+  (combine them: `?level=2&start=boss`); `?level=3` is Frostring,
+  `?level=4` the White Front. With
   `?level` or `?start` the title screen is skipped: a "TEST START" screen
   starts that level with one tap (and doesn't change what's saved beyond
   the level reached). Tests start a game with `window.__ember.play()`.

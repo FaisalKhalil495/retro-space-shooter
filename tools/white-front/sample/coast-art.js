@@ -2,7 +2,7 @@
 // designs: drawn straight onto their final double-detail grids (one grid
 // pixel = half a game pixel), never painted big and shrunk. Each returns
 // { w, h, a } with a[y][x] = colour or null. Every enemy faces left.
-import { G, P, E, R, and, not, part, px, hline, vline, line, outline, K } from './design2.js';
+import { G, P, E, R, and, not, part, px, hline, vline, line, outline, K } from '../design2.js';
 
 // Materials: [highlight, light, mid, dark, deepest]
 const M = {
