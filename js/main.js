@@ -1,15 +1,15 @@
-import { VERSION, VIEW_W, VIEW_H, PAL } from './config.js?v=0.31.0';
-import { readSafeArea, computeLayout } from './layout.js?v=0.31.0';
-import { Controls } from './controls.js?v=0.31.0';
-import { Game } from './game.js?v=0.31.0';
-import { unlockAudio, suspendAudio, setVolumes, sfx } from './audio.js?v=0.31.0';
-import { startMusic, stopMusic, musicPlaying, musicState } from './music.js?v=0.31.0';
-import { useDetail } from './detail.js?v=0.31.0';
-import { Menu } from './menu.js?v=0.31.0';
-import { save, store, reachLevel, isHighScore, addScore } from './save.js?v=0.31.0';
-import { buzz, canVibrate, setVibrate, HAPTIC } from './feedback.js?v=0.31.0';
-import { Background } from './background.js?v=0.31.0';
-import { LEVELS } from './levels.js?v=0.31.0';
+import { VERSION, VIEW_W, VIEW_H, PAL } from './config.js?v=0.31.1';
+import { readSafeArea, computeLayout } from './layout.js?v=0.31.1';
+import { Controls } from './controls.js?v=0.31.1';
+import { Game } from './game.js?v=0.31.1';
+import { unlockAudio, suspendAudio, setVolumes, sfx } from './audio.js?v=0.31.1';
+import { startMusic, stopMusic, musicPlaying, musicState } from './music.js?v=0.31.1';
+import { useDetail } from './detail.js?v=0.31.1';
+import { Menu } from './menu.js?v=0.31.1';
+import { save, store, reachLevel, catchUp, isHighScore, addScore } from './save.js?v=0.31.1';
+import { buzz, canVibrate, setVibrate, HAPTIC } from './feedback.js?v=0.31.1';
+import { Background } from './background.js?v=0.31.1';
+import { LEVELS } from './levels.js?v=0.31.1';
 
 const canvas = document.getElementById('screen');
 const ctx = useDetail(canvas.getContext('2d', { alpha: false }));
@@ -24,6 +24,9 @@ const params = new URLSearchParams(location.search);
 const startParam = params.get('start');
 const startAt = startParam === 'boss' ? 'boss' : Number(startParam) || 0;
 const urlLevel = Math.min(LEVELS.length, Math.max(1, Math.round(Number(params.get('level')) || 1)));
+// Levels added since this phone last cleared the last one are unlocked
+// (before any menu reads what's saved).
+catchUp(LEVELS.length);
 const testStart = params.has('level') || params.has('start');
 const game = new Game({ startAt, level: urlLevel });
 
@@ -124,6 +127,7 @@ game.onLevelDone = () => {
     game.nextLevel();
   } else {
     save.finished = true; // (the level list now says what's coming)
+    save.cleared = Math.max(save.cleared, game.level.number); // (the next level, once it's added, is unlocked)
     store();
     stopMusic(0.5);
     fade = 1;

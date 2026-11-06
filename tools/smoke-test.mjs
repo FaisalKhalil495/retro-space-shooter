@@ -574,7 +574,7 @@ for (const phone of PHONES) {
   r.tableAfterPractice = (await saved()).scores.length;
   // Everything is still there after closing and reopening the game.
   await page.reload();
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(900); // (the opening screen takes taps after 0.4 s of its own, and loading can be slow)
   r.reloadSplash = await page.evaluate(() => window.__ember.menu.screen);
   await tap(104, 72, 400);
   r.reloaded = await page.evaluate(() => ({ buttons: window.__ember.menu.buttons().map((b) => b.id).join(), blood: !document.hidden && JSON.parse(localStorage.getItem('emberDrift.save.v1')).settings.blood }));
@@ -591,6 +591,31 @@ for (const phone of PHONES) {
   console.log(`${ok ? 'PASS' : 'FAIL'}  menus: options saved, pause button, game over -> save score -> continue, boss checkpoint, level reached remembered, practice, "to be continued", kept after reopening ${ok ? '' : JSON.stringify(r)} ${errs.join(' ')}`);
   if (!ok) failures++;
   await context.close();
+}
+
+// Saved progress when a new level comes out (v0.31.1): a phone that had
+// cleared the last level before the next one existed has the new level
+// unlocked; one that hadn't stays where it was.
+{
+  const r = {};
+  for (const [name, old] of [
+    ['beatFrostring', { reached: 3, finished: true, scores: [], settings: {} }],
+    ['midFrostring', { reached: 3, scores: [], settings: {} }],
+    ['beatWhiteFront', { reached: 4, finished: true, cleared: 4, scores: [], settings: {} }],
+  ]) {
+    const context = await browser.newContext({ viewport: { width: 915, height: 412 } });
+    await context.addInitScript((o) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem('emberDrift.save.v1', JSON.stringify(o)); sessionStorage.setItem('seeded', '1'); } }, old);
+    const page = await context.newPage();
+    await page.goto(base);
+    await page.waitForTimeout(300);
+    const got = await page.evaluate(() => JSON.parse(localStorage.getItem('emberDrift.save.v1')));
+    r[name] = { reached: got.reached, finished: !!got.finished };
+    await context.close();
+  }
+  const ok = r.beatFrostring.reached === 4 && !r.beatFrostring.finished && r.midFrostring.reached === 3 && !r.midFrostring.finished &&
+    r.beatWhiteFront.reached === 4 && r.beatWhiteFront.finished;
+  console.log(`${ok ? 'PASS' : 'FAIL'}  saved progress unlocks a level added since ${JSON.stringify(r)}`);
+  if (!ok) failures++;
 }
 
 // Home screen and link preview (v0.26.0): the page names its app manifest,

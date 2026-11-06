@@ -1,8 +1,8 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.31.0';
-import { FAR_ROCKS } from './rockart.js?v=0.31.0';
-import { fillDisc, seeded } from './util.js?v=0.31.0';
-import { DETAIL, FINE, detailCanvas, pixels } from './detail.js?v=0.31.0';
-import { WhiteFront } from './whitefront.js?v=0.31.0';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.31.1';
+import { FAR_ROCKS } from './rockart.js?v=0.31.1';
+import { fillDisc, seeded } from './util.js?v=0.31.1';
+import { DETAIL, FINE, detailCanvas, pixels } from './detail.js?v=0.31.1';
+import { WhiteFront } from './whitefront.js?v=0.31.1';
 
 // Deep-space backdrop: a slow distant amber sun, a band of dust, distant
 // asteroids and four layers of stars moving at different speeds, which
