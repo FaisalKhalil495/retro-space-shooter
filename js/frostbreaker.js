@@ -1,12 +1,12 @@
-import { VIEW_W, HUD_H, PAL } from './config.js?v=0.33.0';
-import { sfx } from './audio.js?v=0.33.0';
-import { clamp, fillDisc } from './util.js?v=0.33.0';
-import { FINE, snapFine, detailCanvas } from './detail.js?v=0.33.0';
-import { METAL, MOLTEN } from './gore.js?v=0.33.0';
-import { BOMB_DAMAGE } from './weapons.js?v=0.33.0';
-import { GROUND_SPEED } from './terrain.js?v=0.33.0';
-import { burstRing } from './wolves.js?v=0.33.0';
-import { LANDSHIP_PAL, LANDSHIP_POINTS, LANDSHIP_HULL, LANDSHIP_BLADES } from './landshipart.js?v=0.33.0';
+import { VIEW_W, HUD_H, PAL } from './config.js?v=0.34.0';
+import { sfx } from './audio.js?v=0.34.0';
+import { clamp, fillDisc } from './util.js?v=0.34.0';
+import { FINE, snapFine, detailCanvas } from './detail.js?v=0.34.0';
+import { METAL, MOLTEN } from './gore.js?v=0.34.0';
+import { BOMB_DAMAGE } from './weapons.js?v=0.34.0';
+import { GROUND_SPEED } from './terrain.js?v=0.34.0';
+import { burstRing } from './wolves.js?v=0.34.0';
+import { LANDSHIP_PAL, LANDSHIP_POINTS, LANDSHIP_HULL, LANDSHIP_BLADES } from './landshipart.js?v=0.34.0';
 
 // FROSTBREAKER · FLAGSHIP OF THE WHITE FRONT — boss of level 4.
 //
