@@ -11,4 +11,5 @@ export const TRACKS = {
   march: { file: 'music/march.mp3?h=c28c2ee4ad', start: 0.05, hit: 0.05646, loopStart: 8.32586, loopEnd: 66.2569 },
   glacier: { file: 'music/glacier.mp3?h=1fc00bb910', start: 0.05, hit: 0.05723, loopStart: 5.65, loopEnd: 44.85 },
   front: { file: 'music/front.mp3?h=a4e7bb9037', start: 0.05, hit: 0.0576, loopStart: 4.33571, loopEnd: 64.33571 },
+  flagship: { file: 'music/flagship.mp3?h=2594933023', start: 0.05, hit: 0.05694, loopStart: 4.05, loopEnd: 56.05 },
 };
