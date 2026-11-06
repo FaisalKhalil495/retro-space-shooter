@@ -625,6 +625,17 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    (Twin Dart 3 hits, Needle Wing 4, Crest Bomber 6, Flak Star 6, Skiff
    5), a Dart's first shot 0.2 s sooner and 4 in 5 Hounds spitting.
    Next: its boss (v0.32.0 added the level's own music).
+   **Its boss's look (owner, after v0.32.0)**: no flying or hovering boss
+   (four flying designs and four ground ones were shown, all in
+   `tools/white-front/boss/`); the owner brought their own painting of a
+   land battleship on four ski runners (`art/white-front/boss/
+   owner-landship.png`: a drill cannon in an armoured plough nose, cream
+   armour band, olive hull, a bridge with lit windows, masts, side engines,
+   vents, smoking exhaust stacks), traced shape by shape like the Wolves
+   (`tools/white-front/boss/landship.js`), in **its own colours, olive and
+   cream** (owner's pick over the Wolves' gunmetal): the commander's own
+   ship. About 125 x 38 game pixels; it slides on the snow, never flies or
+   walks. Attacks, stages and weak point: to be agreed next.
 5. **The Ember Mines** — underground tunnels lit by soft amber crystals;
    ceiling and floor squeeze the space. Boss: **The Drill Worm**, a mechanical
    worm bursting from walls above and below.
