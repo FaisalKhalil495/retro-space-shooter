@@ -1,5 +1,5 @@
-import { PATTERNS } from './waves.js?v=0.31.1';
-import { SNOW_FLOOR } from './whitefront.js?v=0.31.1';
+import { PATTERNS } from './waves.js?v=0.32.0';
+import { SNOW_FLOOR } from './whitefront.js?v=0.32.0';
 
 // Level scripts. Each event is [seconds from the start, pattern, options].
 // The final 'boss' event waits for the screen to clear, flashes a warning
@@ -357,7 +357,7 @@ export const LEVELS = [
     // shots 30% faster. The boss and its own music come next.
     number: 4,
     name: 'THE WHITE FRONT',
-    music: 'frost', // (its own music comes later)
+    music: 'front', // (a winter battle charge in 12/8; owner approved by ear)
     shotSpeed: 1.3,
     floor: SNOW_FLOOR, // the snowfield: solid like Rust Moon's floor, and harmless
     background: { whiteFront: true },

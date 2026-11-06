@@ -539,6 +539,119 @@ function warden(K) {
   });
 }
 
+// ------------------------------------------------------------------
+// LEVEL 4, THE WHITE FRONT: a winter battle charge in a rolling 12/8 (every
+// beat split in three, like a gallop across the snow). G minor, dotted
+// quarter = 112 (written as 84 bpm with 12 eighths a bar): marching snare
+// drums, staccato strings, a heroic horn theme, heavy guitars for the
+// charge, choir, and high ice bells.
+const FRONT_CH = [
+  'Gm', 'Gm',
+  'Gm', 'Gm', 'Eb', 'Eb', 'Cm', 'Cm', 'D', 'D',
+  'Gm', 'F', 'Eb', 'D', 'Gm', 'F', 'Eb', 'D',
+  'Eb', 'Bb', 'F', 'Gm', 'Eb', 'Bb', 'D', 'D',
+  'Cm', 'Cm', 'D', 'D',
+];
+// (12 eighths a bar; '.' holds, '-' rests)
+const FRONT_CALL = mel([
+  'G4 . . . . . D5 . . . . .', 'G5 . . . . . . . . - - -',
+]);
+const FRONT_B = mel([
+  'G4 . . . . . D5 . . . . .', 'C5 . . Bb4 . . A4 . . . . .',
+  'Bb4 . . . . . G4 . . Bb4 . .', 'A4 . . . . . . . . F#4 . .',
+  'G4 . . . . . D5 . . . G5 .', 'F5 . . Eb5 . . D5 . . C5 . .',
+  'Bb4 . . . . . C5 . . D5 . .', 'D5 . . . . . . . . - - -',
+]);
+const FRONT_C = mel([
+  'G5 . . . . . Bb5 . . . . .', 'F5 . . . . . D5 . . F5 . .',
+  'C6 . . . . . A5 . . . F5 .', 'G5 . . . . . . . . . . .',
+  'G5 . . . . . Bb5 . . Eb6 . .', 'D6 . . . . . C6 . . Bb5 . .',
+  'A5 . . . . . F#5 . . A5 . .', 'D6 . . . . . . . . - - -',
+]);
+// The strings' ostinato under each chord (semitones above its root), one
+// note an eighth: up the chord and back, rolling like the rhythm.
+const FRONT_OST = [0, 7, 12, 7, 0, 7, 0, 7, 12, 15, 12, 7];
+
+function front(K) {
+  const BAR = K.S * 12;
+  for (let bar = 0; bar < 30; bar++) {
+    const sec = bar < 2 ? 'intro' : bar < 10 ? 'A' : bar < 18 ? 'B' : bar < 26 ? 'C' : 'D';
+    const c = chord(FRONT_CH[bar], 2);
+    const root = low(c[0] + 12, 46); // (bass and guitars: G2 up to F#2)
+    const minor = c[1] - c[0] === 3;
+    if (bar === 0) {
+      I.impact(K.t(0, 0), { v: 0.9 });
+      I.steam(K.t(0, 0), BAR * 2, { v: 0.6 }); // the wind
+      I.crackle(K.t(0, 0), BAR * 1.5, { v: 0.6, pan: 0.3 });
+      I.strings(K.t(0, 0), [nn('G2'), nn('D3'), nn('G3')], BAR * 2, { v: 0.8, att: 1 });
+      I.riser(K.t(1, 0), BAR, { v: 0.7 });
+    }
+    if ([2, 10, 18].includes(bar)) {
+      I.crash(K.t(bar, 0), { v: 1 });
+      I.impact(K.t(bar, 0), { v: 0.6 });
+    }
+    if (bar === 26) I.braam(K.t(26, 0), root + 12, BAR * 2, { v: 1 });
+    if (bar === 28) I.braam(K.t(28, 0), root + 12, BAR * 2, { v: 1.1 });
+    if (bar === 29) I.riser(K.t(29, 0), BAR, { v: 0.8 });
+    // Choir and pads by section.
+    if (sec === 'B') I.choir(K.t(bar, 0), [c[0] + 12, c[1] + 12, c[2] + 12], BAR, { v: 0.7, vowel: 'o', att: 0.3 });
+    if (sec === 'C') I.choir(K.t(bar, 0), [c[0] + 12, c[1] + 12, c[2] + 12, c[0] + 24], BAR, { v: 0.95, att: 0.12 });
+    if (sec === 'D') I.choir(K.t(bar, 0), [c[0] + 12, c[2] + 12, c[0] + 24], BAR, { v: 0.9, vowel: 'u', att: 0.4 });
+    if (sec === 'A' && bar % 2 === 0) I.strings(K.t(bar, 0), [c[0] + 24, c[1] + 24, c[2] + 24], BAR * 2, { v: 0.5, att: 0.4 });
+    for (let s = 0; s < 12; s++) {
+      const t = K.t(bar, s);
+      const beat = s % 3 === 0; // the four dotted beats: 0, 3, 6, 9
+      // The strings' rolling ostinato (from the second bar on).
+      if (bar >= 1) {
+        const o = FRONT_OST[s] === 15 && !minor ? 16 : FRONT_OST[s];
+        I.stacc(t, root + 12 + o, { v: beat ? 1 : 0.7, len: 0.12, pan: s % 2 ? 0.35 : -0.35 });
+      }
+      if (sec === 'intro') {
+        // A marching snare roll swelling into the charge.
+        if (bar === 1) I.snare(t, { v: 0.25 + s * 0.06, r: 0.1, tone: 210 });
+        if (bar === 1 && s % 3 === 0) I.taiko(t, { v: 0.5 + s * 0.04 });
+        continue;
+      }
+      if (sec === 'D') {
+        // Half-time: war drums and a held breath, then the roll back in.
+        if (s === 0 || s === 6) I.taiko(t, { v: s === 0 ? 1 : 0.8, f: s === 0 ? 55 : 62 });
+        if (s === 0) I.kick(t);
+        if (s === 6) I.snare(t, { v: 1, r: 0.5 });
+        if (s === 0) I.guitar(t, power(root), BAR * 0.9, { v: 0.9 });
+        if (s === 0) I.bassGtr(t, root, BAR * 0.9);
+        if (bar === 29) I.snare(t, { v: 0.3 + s * 0.06, r: 0.1, tone: 210 });
+        continue;
+      }
+      // Drums: kick on 1 and 3, snare on 2 and 4, the march's triplet
+      // ghost notes between, hats on every eighth.
+      if (s === 0 || s === 6 || (sec === 'C' && (s === 8 || s === 11))) I.kick(t, { v: s % 6 === 0 ? 1 : 0.7 });
+      if (s === 3 || s === 9) I.snare(t, { v: 1.1, r: 0.35 });
+      else if (s % 3 === 2 || (sec !== 'A' && s % 3 === 1)) I.snare(t, { v: 0.28, r: 0.06, tone: 220, pan: 0.2 });
+      I.hat(t, { v: beat ? 0.7 : 0.35, open: sec === 'C' && (s === 3 || s === 9) });
+      if (sec === 'C' && beat) I.ride(t, { v: 0.55 });
+      if (s === 0 && bar % 4 === 2) I.crash(t, { v: 0.7, pan: bar % 8 === 2 ? -0.5 : 0.5 });
+      if ((bar === 9 || bar === 17 || bar === 25) && s >= 6) I.tom(t, 52 - (s - 6) * 2, { v: 0.8, pan: 0.5 - (s - 6) * 0.2 });
+      // Bass and guitars: the gallop (all three eighths of a beat, the
+      // first one ringing); guitars come in for the theme and the charge.
+      I.bassGtr(t, root, K.S * (beat ? 1.6 : 0.9), { mute: !beat, v: beat ? 1 : 0.8 });
+      if (sec !== 'A') I.guitar(t, power(root), K.S * (beat ? 1.6 : 0.9), { mute: !beat, v: beat ? 1 : 0.8 });
+      // Ice bells, high and sparse.
+      if ((sec === 'A' || sec === 'B') && s === 0 && bar % 2 === 1) I.pluck(t, c[2] + 36, { v: 0.5, pan: 0.5, len: 1.4 });
+      if ((sec === 'A' || sec === 'B') && s === 6 && bar % 2 === 1) I.pluck(t, c[1] + 36, { v: 0.4, pan: -0.5, len: 1.4 });
+    }
+  }
+  playMel(K, FRONT_CALL, 0, 12, (t, n, d) => I.brass(t, [n, n - 12], d, { v: 0.9, bright: 0.6 }));
+  playMel(K, FRONT_B, 10, 12, (t, n, d) => {
+    I.brass(t, [n, n - 12], d, { v: 1.25, bright: 0.9 });
+    I.strings(t, [n + 12], d, { v: 0.6, att: 0.06 });
+  });
+  playMel(K, FRONT_C, 18, 12, (t, n, d) => {
+    I.leadGtr(t, n, d, { v: 0.95 });
+    I.brass(t, [n - 12, n - 24], d, { v: 1.2, bright: 1.1 });
+    I.strings(t, [n], d, { v: 0.7, att: 0.05 });
+  });
+}
+
 export const SONGS = {
   belt: { bpm: 126, spb: 16, bars: 32, loop: 4, play: belt },
   rust: { bpm: 150, spb: 16, bars: 32, loop: 4, play: rust },
@@ -546,6 +659,7 @@ export const SONGS = {
   rockjaw: { bpm: 176, spb: 16, bars: 32, loop: 2, play: rockjaw },
   march: { bpm: 116, spb: 16, bars: 32, loop: 4, play: march },
   glacier: { bpm: 150, spb: 14, bars: 32, loop: 4, play: warden },
+  front: { bpm: 84, spb: 12, bars: 30, loop: 2, play: front },
 };
 
 // Schedule a whole song from time t0 into the instruments' context.

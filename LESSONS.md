@@ -489,6 +489,12 @@ fewer rounds are needed.
 - 3D-2 step 2, v0.31.0: the ground Wolves, the Rocket Sled and the full
   231-enemy level. Porting from an approved preview was quick; the work
   was in measuring that the level is really harder than the last one.
+- 3D music, v0.32.0: the White Front's theme, approved by ear on the first
+  recording. Choosing a rhythm no other song used (12/8) kept it distinct
+  even though it shares instruments with the other songs; measuring
+  loudness and the bass/middle/treble balance against the approved songs
+  before sending caught nothing this time, but it's cheap insurance when I
+  can't listen myself.
 **So far:** the owner's feedback has been about the world making sense
 (rocks on a planet, tanks on towers, enemies through towers) and about
 fairness (hidden or unreachable enemies) rather than raw difficulty.

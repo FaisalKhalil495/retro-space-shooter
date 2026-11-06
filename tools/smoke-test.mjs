@@ -705,9 +705,16 @@ for (const phone of PHONES) {
     while (window.__ember.music.track !== 'march' && performance.now() - t < 3000) await new Promise((r) => setTimeout(r, 10));
     return { track: window.__ember.music.track, ms: Math.round(performance.now() - t) };
   });
-  const ok = Object.keys(files).length === 6 && Object.values(files).every((f) => f.ok) && title && theme && loop &&
-    boss.track === 'march' && boss.ms < 150 && errs.length === 0;
-  console.log(`${ok ? 'PASS' : 'FAIL'}  music: six songs, menus, level theme looping, boss song ready ${JSON.stringify({ files, title, theme, loop, boss, errs })}`);
+  // The White Front plays its own theme (v0.32.0).
+  const front = await page.evaluate(async () => {
+    window.__ember.play(4);
+    const t = performance.now();
+    while (window.__ember.music.track !== 'front' && performance.now() - t < 5000) await new Promise((r) => setTimeout(r, 20));
+    return window.__ember.music.track;
+  });
+  const ok = Object.keys(files).length === 7 && Object.values(files).every((f) => f.ok) && title && theme && loop &&
+    boss.track === 'march' && boss.ms < 150 && front === 'front' && errs.length === 0;
+  console.log(`${ok ? 'PASS' : 'FAIL'}  music: seven songs, menus, level theme looping, boss song ready, the White Front's own theme ${JSON.stringify({ files, title, theme, loop, boss, front, errs })}`);
   if (!ok) failures++;
   await sound.close();
 }
