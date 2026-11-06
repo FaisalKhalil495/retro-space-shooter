@@ -671,7 +671,8 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    detail (`tools/white-front/boss/bake-landship.mjs` -> `js/
    landshipart.js`: three hull looks, its guard blades as separate
    pictures, the places the game needs), 116 x 36 game pixels (owner,
-   after v0.35.0: "a little bit" smaller; it was 126 x 39), its runners
+   after v0.35.0: "a little bit" smaller; it was 126 x 39; approved from
+   a side-by-side picture of both sizes after v0.35.1), its runners
    on the snow. The **guard: two cream plough blades in a V in
    front of the drill cannon's muzzle** (the top blade guards the core's
    upper rows, the lower one its lower rows; its own lower plough covers
