@@ -224,11 +224,12 @@ export class Menu {
       // Over the painted cover: the title lettering on the left, your best
       // score under it.
       ctx.globalAlpha = cover.alpha;
-      ctx.drawImage(titleLogoStacked(), 3, 38);
+      const top = MENU_LOOK === 'c' ? 5 : 38; // (look C: top left, clear of the ship)
+      ctx.drawImage(titleLogoStacked(), 3, top);
       const best = bestScore();
       if (best) {
-        drawTextCentered(ctx, 'BEST  ' + pad6(best), 53.5, 92.5, PAL.ink);
-        drawTextCentered(ctx, 'BEST  ' + pad6(best), 53, 92, PAL.amberLight);
+        drawTextCentered(ctx, 'BEST  ' + pad6(best), 53.5, top + 54.5, PAL.ink);
+        drawTextCentered(ctx, 'BEST  ' + pad6(best), 53, top + 54, PAL.amberLight);
       }
       ctx.globalAlpha = 1;
       return;

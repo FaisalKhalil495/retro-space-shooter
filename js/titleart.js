@@ -260,7 +260,7 @@ export function menuBadge() {
 // the opening screen shows the squadron badge instead.
 export const cover = { canvas: null, menu: null, alpha: 0 };
 // (mock-up switch: which main-menu look; ?menulook=b)
-export const MENU_LOOK = new URLSearchParams(location.search).get('menulook') === 'b' ? 'b' : 'a';
+export const MENU_LOOK = { b: 'b', c: 'c' }[new URLSearchParams(location.search).get('menulook')] || 'a';
 {
   const img = new Image();
   img.src = 'img/title-cover.jpg?v=0.34.0';
@@ -295,8 +295,26 @@ export const MENU_LOOK = new URLSearchParams(location.search).get('menulook') ==
       y.fillStyle = 'rgba(8,12,24,0.15)';
       y.fillRect(0, 0, m.width, m.height);
     }
-    cover.menu = m;
+    if (MENU_LOOK !== 'c') cover.menu = m;
   }, () => {}); // (no cover: the badge stays)
+  if (MENU_LOOK === 'c') {
+    // Look C: its own painting (your ship waiting in a hangar bay).
+    const im = new Image();
+    im.src = 'img/menu-cover.jpg?v=0.34.0';
+    im.decode().then(() => {
+      const m = document.createElement('canvas');
+      m.width = im.naturalWidth;
+      m.height = im.naturalHeight;
+      const y = m.getContext('2d');
+      y.drawImage(im, 0, 0);
+      const shade = y.createLinearGradient(0, 0, 0, m.height * 0.4);
+      shade.addColorStop(0, 'rgba(8,12,24,0.45)');
+      shade.addColorStop(1, 'rgba(8,12,24,0)');
+      y.fillStyle = shade;
+      y.fillRect(0, 0, m.width * 0.55, m.height * 0.4);
+      cover.menu = m;
+    }, () => {});
+  }
 }
 
 // Draws the cover over the whole screen (device pixels), cropped to fit
