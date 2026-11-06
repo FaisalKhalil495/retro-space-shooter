@@ -1,14 +1,14 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.34.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.34.0';
-import { FINE, detailCanvas } from './detail.js?v=0.34.0';
-import { fillDisc } from './util.js?v=0.34.0';
-import { SPRITES } from './sprites.js?v=0.34.0';
-import { drawOrb } from './powerups.js?v=0.34.0';
-import { drawCapsule } from './weapons.js?v=0.34.0';
-import { LEVELS } from './levels.js?v=0.34.0';
-import { titleBadge, menuBadge, titleLogo, cover } from './titleart.js?v=0.34.0';
-import { save, TOP, bestScore } from './save.js?v=0.34.0';
-import { whiteFrontArt } from './whitefront.js?v=0.34.0';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.35.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.35.0';
+import { FINE, detailCanvas } from './detail.js?v=0.35.0';
+import { fillDisc } from './util.js?v=0.35.0';
+import { SPRITES } from './sprites.js?v=0.35.0';
+import { drawOrb } from './powerups.js?v=0.35.0';
+import { drawCapsule } from './weapons.js?v=0.35.0';
+import { LEVELS } from './levels.js?v=0.35.0';
+import { titleBadge, menuBadge, titleLogo, titleLogoStacked, cover } from './titleart.js?v=0.35.0';
+import { save, TOP, bestScore } from './save.js?v=0.35.0';
+import { whiteFrontArt } from './whitefront.js?v=0.35.0';
 
 // The menus: title screen, level select, high scores, options, how to play,
 // pause, game over, entering your initials and the "to be continued"
@@ -215,10 +215,25 @@ export class Menu {
       drawTextCentered(ctx, `TEST START  LEVEL ${this.info.level}`, 104, 70, PAL.bluePale);
       if (Math.floor(this.t * 2.5) % 2 === 0) drawTextCentered(ctx, 'TAP TO START', 104, 86, PAL.amberLight);
     }
-    for (const b of this.buttons()) drawButton(ctx, b, b.id === this.pressed);
+    const glass = s === 'title' && !!cover.menu; // (see-through buttons over the painting)
+    for (const b of this.buttons()) drawButton(ctx, b, b.id === this.pressed, glass);
   }
 
   drawTitle(ctx) {
+    if (cover.menu) {
+      // Over its painting: the title lettering top left (clear of your
+      // ship), your best score under it.
+      ctx.globalAlpha = cover.alpha;
+      const top = 5;
+      ctx.drawImage(titleLogoStacked(), 3, top);
+      const best = bestScore();
+      if (best) {
+        drawTextCentered(ctx, 'BEST  ' + pad6(best), 53.5, top + 54.5, PAL.ink);
+        drawTextCentered(ctx, 'BEST  ' + pad6(best), 53, top + 54, PAL.amberLight);
+      }
+      ctx.globalAlpha = 1;
+      return;
+    }
     // The badge on the left, embers drifting up off it, your best score
     // under it.
     ctx.drawImage(menuBadge(), 3, 42);
@@ -451,7 +466,7 @@ const STYLES = {
   off: { fill: '#141a2e', lit: '#1d2540', shade: PAL.ink, text: '#4d5570', down: '#141a2e' },
 };
 
-function drawButton(ctx, b, pressed) {
+function drawButton(ctx, b, pressed, glass = false) {
   if (b.kind === 'none') return;
   if (b.kind === 'row' || b.kind === 'rowOff') {
     // A level row: a quiet panel (its picture and words are drawn by the
@@ -471,10 +486,26 @@ function drawButton(ctx, b, pressed) {
   const y = b.y + (pressed ? FINE : 0);
   // Ink edge with clipped corners, the face, a lit top and a shaded foot.
   ctx.fillStyle = PAL.ink;
-  ctx.fillRect(b.x + FINE, y - FINE, b.w - 1, b.h + 1);
-  ctx.fillRect(b.x - FINE, y + FINE, b.w + 1, b.h - 1);
-  ctx.fillStyle = pressed ? st.down : st.fill;
-  ctx.fillRect(b.x, y, b.w, b.h);
+  if (glass && b.kind === 'normal') {
+    // Dark glass over the painting: just the ink frame round it, a
+    // see-through face, and a thin amber edge each side.
+    ctx.fillRect(b.x + FINE, y - FINE, b.w - 1, FINE);
+    ctx.fillRect(b.x + FINE, y + b.h, b.w - 1, FINE);
+    ctx.fillRect(b.x - FINE, y + FINE, FINE, b.h - 1);
+    ctx.fillRect(b.x + b.w, y + FINE, FINE, b.h - 1);
+    ctx.fillStyle = pressed ? st.down : st.fill;
+    ctx.globalAlpha = 0.72;
+    ctx.fillRect(b.x, y, b.w, b.h);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = PAL.amberDark;
+    ctx.fillRect(b.x, y + FINE, FINE, b.h - 1);
+    ctx.fillRect(b.x + b.w - FINE, y + FINE, FINE, b.h - 1);
+  } else {
+    ctx.fillRect(b.x + FINE, y - FINE, b.w - 1, b.h + 1);
+    ctx.fillRect(b.x - FINE, y + FINE, b.w + 1, b.h - 1);
+    ctx.fillStyle = pressed ? st.down : st.fill;
+    ctx.fillRect(b.x, y, b.w, b.h);
+  }
   ctx.fillStyle = st.lit;
   ctx.fillRect(b.x + FINE, y, b.w - 1, FINE);
   ctx.fillStyle = st.shade;

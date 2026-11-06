@@ -757,10 +757,22 @@ and 5 shown as coming soon. Menus approved from a picture sheet.)
   small badge). Until the picture has loaded, the opening screen shows the
   badge as before. The owner's exception to "all artwork our own", like
   the Wolves' shapes.
+  **Main menu painting (v0.35.0, owner: "improve this screen as well")**:
+  its own ChatGPT painting from the same chat (`img/menu-cover.jpg`: your
+  ship waiting on a launch platform in a hangar bay, looking out at the
+  invaded worlds; right third dark for the buttons), the owner's pick "C"
+  over the cover dimmed behind the buttons ("A") or beside a dark panel
+  ("B"). The lettering stacked on two lines top left (`titleLogoStacked()`)
+  with your best score under it in amber; the buttons in the same places
+  as before, now dark see-through glass with thin amber edges (Continue/
+  Play stays solid amber). On narrow screens (tablets) the painting is
+  cropped from the right so the ship stays in view. The other menu
+  screens keep the plain background for now.
 - **Main menu** (owner: "vertically aligned"): one column of buttons on
   the right — Continue (the level's name under it) or Play, New Game,
-  Levels, High Scores, Options, How to Play — and a smaller badge on the
-  left with your best score under it. **Options**: music and sound volume
+  Levels, High Scores, Options, How to Play — and on the left the title
+  with your best score under it (over its own painting since v0.35.0; the
+  small badge before, and still while the painting loads). **Options**: music and sound volume
   (0–5, 4 is normal), vibration on/off (Android; "not supported" on
   iPhone), blood on/off. **Help**: the controls, cargo pods, power-ups,
   ammo, and the boss rule.
@@ -864,7 +876,8 @@ and 5 shown as coming soon. Menus approved from a picture sheet.)
 - **No neon colours and no neon glow effects.**
 - All names, ship, enemies, bosses, artwork and sounds are our own originals
   (owner's exceptions: the Wolves' and Frostbreaker's shapes traced from
-  their paintings, and the opening screen's painted cover, v0.34.0).
+  their paintings, the opening screen's painted cover, v0.34.0, and the
+  main menu's painting, v0.35.0).
 
 ### Sound
 - **Music: a serious action game, not a toy** (owner, after v0.28.0: the
@@ -987,7 +1000,9 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   the game opens, cropped to fill any screen, keeping the ship in view;
   main.js draws it behind everything, without the bezel) and `titleLogo()`
   (the lettering alone, 6 sharp pixels a game pixel).
-  `img/title-cover.jpg` — the cover (JPEG, about 200 KB).
+  `img/title-cover.jpg` — the cover (JPEG, about 200 KB);
+  `img/menu-cover.jpg` — the main menu's painting (v0.35.0, about 170 KB;
+  `cover.menu`, `titleLogoStacked()`).
   `js/shipmodel.js` — your ship as a small 3D model, lit and drawn as
   pixel art from any angle (`renderShip`).
 - `js/menu.js` — every menu screen (opening screen 'splash', main menu 'title', levels, scores, options, help,

@@ -1,6 +1,6 @@
-import { PAL } from './config.js?v=0.34.0';
-import { detailCanvas, rgba } from './detail.js?v=0.34.0';
-import { renderShip } from './shipmodel.js?v=0.34.0';
+import { PAL } from './config.js?v=0.35.0';
+import { detailCanvas, rgba } from './detail.js?v=0.35.0';
+import { renderShip } from './shipmodel.js?v=0.35.0';
 
 // The title: "EMBER DRIFT" in our own angular, forward-slanted lettering
 // (a metal face lit pale above a dark horizon line and amber below, a
@@ -252,35 +252,43 @@ export function menuBadge() {
   return small;
 }
 
-// ---------------------------------------------------------------- the cover
-// The opening screen's painted cover (v0.34.0; the owner's picture, made
-// with ChatGPT: your ship racing past the worlds the invaders hold). It
-// fills the whole phone screen behind the title, darkened a little at the
-// top so the lettering reads. Loaded as the game opens; until it's ready
-// the opening screen shows the squadron badge instead.
-export const cover = { canvas: null, alpha: 0 };
-{
+// ---------------------------------------------------------------- the covers
+// Two paintings (v0.34.0–v0.35.0; the owner's pictures, made with ChatGPT):
+// the opening screen's cover (your ship racing past the worlds the
+// invaders hold) and the main menu's (your ship waiting in a hangar bay,
+// looking out at those worlds; the owner's pick "C" over the cover dimmed
+// behind glass buttons, "A", or beside a dark panel, "B"). Each fills the
+// whole phone screen, darkened a little where the lettering sits. Loaded
+// as the game opens; until one is ready its screen shows the squadron
+// badge instead.
+export const cover = { canvas: null, menu: null, alpha: 0 };
+// Loads a painting into a canvas, shaded towards the top-left corner
+// (w, h: how far across and down the shade reaches, as fractions).
+function loadPainting(src, w, h, dark, done) {
   const img = new Image();
-  img.src = 'img/title-cover.jpg?v=0.34.0';
+  img.src = src;
   img.decode().then(() => {
     const c = document.createElement('canvas');
     c.width = img.naturalWidth;
     c.height = img.naturalHeight;
     const x = c.getContext('2d');
     x.drawImage(img, 0, 0);
-    const shade = x.createLinearGradient(0, 0, 0, c.height * 0.36);
-    shade.addColorStop(0, 'rgba(8,12,24,0.6)');
+    const shade = x.createLinearGradient(0, 0, 0, c.height * h);
+    shade.addColorStop(0, `rgba(8,12,24,${dark})`);
     shade.addColorStop(1, 'rgba(8,12,24,0)');
     x.fillStyle = shade;
-    x.fillRect(0, 0, c.width, c.height * 0.36);
-    cover.canvas = c;
-  }, () => {}); // (no cover: the badge stays)
+    x.fillRect(0, 0, c.width * w, c.height * h);
+    done(c);
+  }, () => {}); // (no painting: the badge stays)
 }
+loadPainting('img/title-cover.jpg?v=0.35.0', 1, 0.36, 0.6, (c) => (cover.canvas = c));
+loadPainting('img/menu-cover.jpg?v=0.35.0', 0.55, 0.4, 0.45, (c) => (cover.menu = c));
 
-// Draws the cover over the whole screen (device pixels), cropped to fit
-// it, keeping your ship and the worlds in view; fades in once loaded.
-export function drawCover(ctx, w, h, dt) {
-  const c = cover.canvas;
+// Draws a painting over the whole screen (device pixels), cropped to fit
+// it, keeping your ship in view (on the cover it's on the right, in the
+// hangar on the left); fades in once loaded.
+export function drawCover(ctx, w, h, dt, menu = false) {
+  const c = menu ? cover.menu : cover.canvas;
   if (!c) return false;
   cover.alpha = Math.min(1, cover.alpha + dt * 3);
   const s = Math.max(w / c.width, h / c.height);
@@ -290,7 +298,7 @@ export function drawCover(ctx, w, h, dt) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.imageSmoothingEnabled = true; // (a painting, not pixel art)
   ctx.globalAlpha = cover.alpha;
-  ctx.drawImage(c, (w - dw) * 0.62, (h - dh) * 0.4, dw, dh);
+  ctx.drawImage(c, (w - dw) * (menu ? 0.15 : 0.62), (h - dh) * 0.4, dw, dh);
   ctx.restore();
   return true;
 }
@@ -300,6 +308,34 @@ export function drawCover(ctx, w, h, dt) {
 // a game pixel) since it sits on a painting. 184 x 26 game pixels.
 const LOGO_RES = 6;
 let logo = null;
+let stacked = null;
+// ...and stacked on two lines, for the main menu (100 x 46 game pixels).
+export function titleLogoStacked() {
+  if (!stacked) {
+    const w = 100;
+    const h = 46;
+    const S = surface(w * LOGO_RES, h * LOGO_RES);
+    const sc = 1.62 * LOGO_RES;
+    const word = (wrd, x0, y0, glint) => logoWord(S, wrd, (u, v) => [x0 + (u - v * 0.25) * sc, y0 + v * sc], { depth: Math.round(sc * 1.3), glint });
+    const we = wordWidth('EMBER') * sc;
+    const wd = wordWidth('DRIFT') * sc;
+    word('EMBER', (S.W - we) / 2 + sc * 1.2, sc * 0.4, 0.45);
+    word('DRIFT', (S.W - wd) / 2 + sc * 2.4, sc * 14.2, 0.6);
+    stacked = loPicture(S, w, h);
+  }
+  return stacked;
+}
+function loPicture(S, w, h) {
+  const lo = document.createElement('canvas');
+  lo.width = w;
+  lo.height = h;
+  const hi = document.createElement('canvas');
+  hi.width = S.W;
+  hi.height = S.H;
+  hi.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(S.buf.buffer), S.W, S.H), 0, 0);
+  lo.hi = hi;
+  return lo;
+}
 export function titleLogo() {
   if (!logo) {
     const w = 184;
