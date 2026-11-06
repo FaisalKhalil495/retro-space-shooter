@@ -1,14 +1,14 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.34.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.34.0';
-import { FINE, detailCanvas } from './detail.js?v=0.34.0';
-import { fillDisc } from './util.js?v=0.34.0';
-import { SPRITES } from './sprites.js?v=0.34.0';
-import { drawOrb } from './powerups.js?v=0.34.0';
-import { drawCapsule } from './weapons.js?v=0.34.0';
-import { LEVELS } from './levels.js?v=0.34.0';
-import { titleBadge, menuBadge, titleLogo, titleLogoStacked, cover, MENU_LOOK } from './titleart.js?v=0.34.0';
-import { save, TOP, bestScore } from './save.js?v=0.34.0';
-import { whiteFrontArt } from './whitefront.js?v=0.34.0';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.35.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.35.0';
+import { FINE, detailCanvas } from './detail.js?v=0.35.0';
+import { fillDisc } from './util.js?v=0.35.0';
+import { SPRITES } from './sprites.js?v=0.35.0';
+import { drawOrb } from './powerups.js?v=0.35.0';
+import { drawCapsule } from './weapons.js?v=0.35.0';
+import { LEVELS } from './levels.js?v=0.35.0';
+import { titleBadge, menuBadge, titleLogo, titleLogoStacked, cover } from './titleart.js?v=0.35.0';
+import { save, TOP, bestScore } from './save.js?v=0.35.0';
+import { whiteFrontArt } from './whitefront.js?v=0.35.0';
 
 // The menus: title screen, level select, high scores, options, how to play,
 // pause, game over, entering your initials and the "to be continued"
@@ -221,10 +221,10 @@ export class Menu {
 
   drawTitle(ctx) {
     if (cover.menu) {
-      // Over the painted cover: the title lettering on the left, your best
-      // score under it.
+      // Over its painting: the title lettering top left (clear of your
+      // ship), your best score under it.
       ctx.globalAlpha = cover.alpha;
-      const top = MENU_LOOK === 'c' ? 5 : 38; // (look C: top left, clear of the ship)
+      const top = 5;
       ctx.drawImage(titleLogoStacked(), 3, top);
       const best = bestScore();
       if (best) {
@@ -494,7 +494,7 @@ function drawButton(ctx, b, pressed, glass = false) {
     ctx.fillRect(b.x - FINE, y + FINE, FINE, b.h - 1);
     ctx.fillRect(b.x + b.w, y + FINE, FINE, b.h - 1);
     ctx.fillStyle = pressed ? st.down : st.fill;
-    ctx.globalAlpha = MENU_LOOK === 'a' ? 0.72 : 0.9;
+    ctx.globalAlpha = 0.72;
     ctx.fillRect(b.x, y, b.w, b.h);
     ctx.globalAlpha = 1;
     ctx.fillStyle = PAL.amberDark;

@@ -1,6 +1,6 @@
-import { PAL } from './config.js?v=0.34.0';
-import { detailCanvas, rgba } from './detail.js?v=0.34.0';
-import { renderShip } from './shipmodel.js?v=0.34.0';
+import { PAL } from './config.js?v=0.35.0';
+import { detailCanvas, rgba } from './detail.js?v=0.35.0';
+import { renderShip } from './shipmodel.js?v=0.35.0';
 
 // The title: "EMBER DRIFT" in our own angular, forward-slanted lettering
 // (a metal face lit pale above a dark horizon line and amber below, a
@@ -252,73 +252,41 @@ export function menuBadge() {
   return small;
 }
 
-// ---------------------------------------------------------------- the cover
-// The opening screen's painted cover (v0.34.0; the owner's picture, made
-// with ChatGPT: your ship racing past the worlds the invaders hold). It
-// fills the whole phone screen behind the title, darkened a little at the
-// top so the lettering reads. Loaded as the game opens; until it's ready
-// the opening screen shows the squadron badge instead.
+// ---------------------------------------------------------------- the covers
+// Two paintings (v0.34.0–v0.35.0; the owner's pictures, made with ChatGPT):
+// the opening screen's cover (your ship racing past the worlds the
+// invaders hold) and the main menu's (your ship waiting in a hangar bay,
+// looking out at those worlds; the owner's pick "C" over the cover dimmed
+// behind glass buttons, "A", or beside a dark panel, "B"). Each fills the
+// whole phone screen, darkened a little where the lettering sits. Loaded
+// as the game opens; until one is ready its screen shows the squadron
+// badge instead.
 export const cover = { canvas: null, menu: null, alpha: 0 };
-// (mock-up switch: which main-menu look; ?menulook=b)
-export const MENU_LOOK = { b: 'b', c: 'c' }[new URLSearchParams(location.search).get('menulook')] || 'a';
-{
+// Loads a painting into a canvas, shaded towards the top-left corner
+// (w, h: how far across and down the shade reaches, as fractions).
+function loadPainting(src, w, h, dark, done) {
   const img = new Image();
-  img.src = 'img/title-cover.jpg?v=0.34.0';
+  img.src = src;
   img.decode().then(() => {
     const c = document.createElement('canvas');
     c.width = img.naturalWidth;
     c.height = img.naturalHeight;
     const x = c.getContext('2d');
     x.drawImage(img, 0, 0);
-    const shade = x.createLinearGradient(0, 0, 0, c.height * 0.36);
-    shade.addColorStop(0, 'rgba(8,12,24,0.6)');
+    const shade = x.createLinearGradient(0, 0, 0, c.height * h);
+    shade.addColorStop(0, `rgba(8,12,24,${dark})`);
     shade.addColorStop(1, 'rgba(8,12,24,0)');
     x.fillStyle = shade;
-    x.fillRect(0, 0, c.width, c.height * 0.36);
-    cover.canvas = c;
-    // The main menu's copy: dimmed so its buttons read (look A: darker
-    // towards the right, where the buttons are).
-    const m = document.createElement('canvas');
-    m.width = c.width;
-    m.height = c.height;
-    const y = m.getContext('2d');
-    y.drawImage(img, 0, 0);
-    if (MENU_LOOK === 'a') {
-      y.fillStyle = 'rgba(8,12,24,0.3)';
-      y.fillRect(0, 0, m.width, m.height);
-      const side = y.createLinearGradient(m.width * 0.35, 0, m.width * 0.75, 0);
-      side.addColorStop(0, 'rgba(8,12,24,0)');
-      side.addColorStop(1, 'rgba(8,12,24,0.55)');
-      y.fillStyle = side;
-      y.fillRect(0, 0, m.width, m.height);
-    } else {
-      y.fillStyle = 'rgba(8,12,24,0.15)';
-      y.fillRect(0, 0, m.width, m.height);
-    }
-    if (MENU_LOOK !== 'c') cover.menu = m;
-  }, () => {}); // (no cover: the badge stays)
-  if (MENU_LOOK === 'c') {
-    // Look C: its own painting (your ship waiting in a hangar bay).
-    const im = new Image();
-    im.src = 'img/menu-cover.jpg?v=0.34.0';
-    im.decode().then(() => {
-      const m = document.createElement('canvas');
-      m.width = im.naturalWidth;
-      m.height = im.naturalHeight;
-      const y = m.getContext('2d');
-      y.drawImage(im, 0, 0);
-      const shade = y.createLinearGradient(0, 0, 0, m.height * 0.4);
-      shade.addColorStop(0, 'rgba(8,12,24,0.45)');
-      shade.addColorStop(1, 'rgba(8,12,24,0)');
-      y.fillStyle = shade;
-      y.fillRect(0, 0, m.width * 0.55, m.height * 0.4);
-      cover.menu = m;
-    }, () => {});
-  }
+    x.fillRect(0, 0, c.width * w, c.height * h);
+    done(c);
+  }, () => {}); // (no painting: the badge stays)
 }
+loadPainting('img/title-cover.jpg?v=0.35.0', 1, 0.36, 0.6, (c) => (cover.canvas = c));
+loadPainting('img/menu-cover.jpg?v=0.35.0', 0.55, 0.4, 0.45, (c) => (cover.menu = c));
 
-// Draws the cover over the whole screen (device pixels), cropped to fit
-// it, keeping your ship and the worlds in view; fades in once loaded.
+// Draws a painting over the whole screen (device pixels), cropped to fit
+// it, keeping your ship in view (on the cover it's on the right, in the
+// hangar on the left); fades in once loaded.
 export function drawCover(ctx, w, h, dt, menu = false) {
   const c = menu ? cover.menu : cover.canvas;
   if (!c) return false;
@@ -330,7 +298,7 @@ export function drawCover(ctx, w, h, dt, menu = false) {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.imageSmoothingEnabled = true; // (a painting, not pixel art)
   ctx.globalAlpha = cover.alpha;
-  ctx.drawImage(c, (w - dw) * 0.62, (h - dh) * 0.4, dw, dh);
+  ctx.drawImage(c, (w - dw) * (menu ? 0.15 : 0.62), (h - dh) * 0.4, dw, dh);
   ctx.restore();
   return true;
 }

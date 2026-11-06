@@ -1,16 +1,16 @@
-import { VERSION, VIEW_W, VIEW_H, PAL } from './config.js?v=0.34.0';
-import { readSafeArea, computeLayout } from './layout.js?v=0.34.0';
-import { Controls } from './controls.js?v=0.34.0';
-import { Game } from './game.js?v=0.34.0';
-import { unlockAudio, suspendAudio, setVolumes, sfx } from './audio.js?v=0.34.0';
-import { startMusic, stopMusic, musicPlaying, musicState } from './music.js?v=0.34.0';
-import { useDetail } from './detail.js?v=0.34.0';
-import { Menu } from './menu.js?v=0.34.0';
-import { save, store, reachLevel, catchUp, isHighScore, addScore } from './save.js?v=0.34.0';
-import { buzz, canVibrate, setVibrate, HAPTIC } from './feedback.js?v=0.34.0';
-import { Background } from './background.js?v=0.34.0';
-import { LEVELS } from './levels.js?v=0.34.0';
-import { drawCover, MENU_LOOK } from './titleart.js?v=0.34.0';
+import { VERSION, VIEW_W, VIEW_H, PAL } from './config.js?v=0.35.0';
+import { readSafeArea, computeLayout } from './layout.js?v=0.35.0';
+import { Controls } from './controls.js?v=0.35.0';
+import { Game } from './game.js?v=0.35.0';
+import { unlockAudio, suspendAudio, setVolumes, sfx } from './audio.js?v=0.35.0';
+import { startMusic, stopMusic, musicPlaying, musicState } from './music.js?v=0.35.0';
+import { useDetail } from './detail.js?v=0.35.0';
+import { Menu } from './menu.js?v=0.35.0';
+import { save, store, reachLevel, catchUp, isHighScore, addScore } from './save.js?v=0.35.0';
+import { buzz, canVibrate, setVibrate, HAPTIC } from './feedback.js?v=0.35.0';
+import { Background } from './background.js?v=0.35.0';
+import { LEVELS } from './levels.js?v=0.35.0';
+import { drawCover } from './titleart.js?v=0.35.0';
 
 const canvas = document.getElementById('screen');
 const ctx = useDetail(canvas.getContext('2d', { alpha: false }));
@@ -321,18 +321,10 @@ function render(dt) {
   ctx.fillStyle = PAL.void;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // The opening screen: its painted cover fills the whole screen (no bezel).
-  // (and, dimmed, behind the main menu)
+  // The opening screen and the main menu: each one's painting fills the
+  // whole screen (no bezel).
   const coverScreen = mode === 'menu' && (menu.screen === 'splash' || menu.screen === 'title');
   const covered = coverScreen && drawCover(ctx, canvas.width, canvas.height, dt, menu.screen === 'title');
-  if (covered && menu.screen === 'title' && MENU_LOOK === 'b') {
-    // Look B: a dark panel down the right of the screen behind the buttons.
-    const px = Math.round((L.game.x + 102 * L.scale) * dpr);
-    ctx.fillStyle = 'rgba(11,15,28,0.88)';
-    ctx.fillRect(px, 0, canvas.width - px, canvas.height);
-    ctx.fillStyle = PAL.amberSoft;
-    ctx.fillRect(px, 0, Math.max(1, Math.round(L.scale * dpr * 0.5)), canvas.height);
-  }
 
   // Screen bezel, like a handheld console.
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
