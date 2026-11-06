@@ -1,4 +1,4 @@
-// How fast the game draws on a slow phone: plays six busy scenes with the
+// How fast the game draws on a slow phone: plays seven busy scenes with the
 // processor slowed 4x and counts the frames drawn in 3 seconds (higher is
 // better). Then, for each scene, two numbers that don't depend on the
 // computer (so they're steady from run to run, unlike frame counts): how
@@ -20,6 +20,7 @@ const SCENES = [
   ['Glacier Warden', '?level=3&start=boss', 40],
   ['Siege Crawler', '?level=2&start=boss', 30],
   ['White Front, busy', '?level=4&start=155', 6],
+  ['Frostbreaker', '?level=4&start=boss', 40],
 ];
 for (const [name, query, secs] of SCENES) {
   const context = await browser.newContext({ viewport: { width: 915, height: 412 }, deviceScaleFactor: 2.625, isMobile: true, hasTouch: true });

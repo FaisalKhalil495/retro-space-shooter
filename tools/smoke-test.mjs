@@ -712,9 +712,17 @@ for (const phone of PHONES) {
     while (window.__ember.music.track !== 'front' && performance.now() - t < 5000) await new Promise((r) => setTimeout(r, 20));
     return window.__ember.music.track;
   });
-  const ok = Object.keys(files).length === 7 && Object.values(files).every((f) => f.ok) && title && theme && loop &&
-    boss.track === 'march' && boss.ms < 150 && front === 'front' && errs.length === 0;
-  console.log(`${ok ? 'PASS' : 'FAIL'}  music: seven songs, menus, level theme looping, boss song ready, the White Front's own theme ${JSON.stringify({ files, title, theme, loop, boss, front, errs })}`);
+  // ...and at its boss warning, Frostbreaker's song (v0.33.0).
+  await page.waitForTimeout(1500);
+  const flagship = await page.evaluate(async () => {
+    window.__ember.game.startWarning();
+    const t = performance.now();
+    while (window.__ember.music.track !== 'flagship' && performance.now() - t < 3000) await new Promise((r) => setTimeout(r, 10));
+    return { track: window.__ember.music.track, ms: Math.round(performance.now() - t) };
+  });
+  const ok = Object.keys(files).length === 8 && Object.values(files).every((f) => f.ok) && title && theme && loop &&
+    boss.track === 'march' && boss.ms < 150 && front === 'front' && flagship.track === 'flagship' && flagship.ms < 150 && errs.length === 0;
+  console.log(`${ok ? 'PASS' : 'FAIL'}  music: eight songs, menus, level theme looping, boss song ready, the White Front's own theme and boss song ${JSON.stringify({ files, title, theme, loop, boss, front, flagship, errs })}`);
   if (!ok) failures++;
   await sound.close();
 }
@@ -2467,6 +2475,262 @@ for (const phone of PHONES) {
   await context.close();
 }
 
+// Frostbreaker (v0.33.0): its weak point is earned twice (shoot a blade
+// off, then hit the core while the drill cannon fires), its drones weld
+// blades back unless shot, specials obey the same rules, every attack warns
+// first, flying over its ram charge is safe, and there's no safe spot.
+{
+  const context = await browser.newContext({ viewport: { width: 915, height: 412 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  const errs = [];
+  page.on('pageerror', (e) => errs.push(String(e)));
+  await page.goto(base + '?level=4');
+  await page.waitForTimeout(300);
+  await page.evaluate(() => window.__ember.play());
+  await page.waitForTimeout(300);
+  const r = await page.evaluate(() => {
+    window.__ember.frozen = true;
+    const g = window.__ember.game;
+    const idle = { dx: 0, dy: 0, fire: false, special: false, tap: false };
+    const fire = { ...idle, fire: true };
+    // Frostbreaker already in the fight, holding still, nothing else around.
+    const fresh = (phase = 1) => {
+      g.reset();
+      g.runner.next = g.level.events.length;
+      g.banner = null;
+      g.player.entering = 0;
+      g.player.x = 20;
+      g.player.y = 60;
+      const b = g.spawnEnemy('frostbreaker', 0, 0);
+      Object.assign(b, { mode: 'fight', entered: true, taunted: true, drift: null, x: 70, phase, idle: 99, round: null });
+      b.dest = b.x;
+      return b;
+    };
+    const hold = (b, x = 70) => {
+      b.dest = x;
+      b.x = x;
+      b.vx = 0;
+      b.idle = 99;
+    };
+    const step = (sec, b, input = idle, safe = true) => {
+      for (let i = 0; i < sec * 120; i++) {
+        if (safe) g.player.invuln = 1;
+        if (b) hold(b);
+        g.update(1 / 120, input);
+      }
+    };
+    // Its drill cannon firing (the core open), held open.
+    const cannon = (b) => {
+      b.round = [{ name: 'drill', t: 0, wait: 0, done: false }];
+    };
+    // Your guns lined up with a gap: the top blade's (row 18) or the lower one's (row 22).
+    const lineUp = (b, row) => {
+      g.player.y = b.y + row + 0.5 - 6;
+    };
+    const blades = (b) => b.blades.map((B) => B.hp).join(',');
+    const res = {};
+
+    // Armoured: shots at the top gap's height dent the top blade, and the
+    // core takes nothing; once it's off, shots reach the core only while
+    // the cannon fires.
+    let b = fresh();
+    const full = b.blades[0].hp;
+    let firstBlade = null;
+    for (let i = 0; i < 3 * 120; i++) {
+      g.player.invuln = 1;
+      hold(b);
+      lineUp(b, 18);
+      g.update(1 / 120, fire);
+      if (firstBlade === null && b.blades[0].hp < full) firstBlade = { untouched: b.hp === b.maxHp, open: b.T.isVulnerable(b) };
+    }
+    const shutHp = b.hp;
+    res.armour = { firstBlade, blades: blades(b), shut: b.maxHp - shutHp };
+    b.blades[0].wait = 1e9; // (no drone for now)
+    for (let i = 0; i < 2 * 120; i++) {
+      g.player.invuln = 1;
+      hold(b);
+      lineUp(b, 18);
+      if (!b.round) cannon(b);
+      g.update(1 / 120, fire);
+    }
+    res.armour.coreHurt = shutHp - b.hp;
+    // Through the lower gap too (its own blade off).
+    b = fresh();
+    b.blades[1].hp = 0;
+    b.blades[1].wait = 1e9;
+    for (let i = 0; i < 2 * 120; i++) {
+      g.player.invuln = 1;
+      hold(b);
+      lineUp(b, 22);
+      if (!b.round) cannon(b);
+      g.update(1 / 120, fire);
+    }
+    res.armour.lowGap = b.maxHp - b.hp;
+
+    // A bomb blows both blades off at once.
+    b = fresh();
+    g.weapons.kind = 'bomb';
+    g.weapons.ammo = 1;
+    g.weapons.fire();
+    step(0.5, b);
+    res.bomb = blades(b);
+    // The laser cuts through a blade to the core (while the cannon fires).
+    b = fresh();
+    lineUp(b, 18);
+    cannon(b);
+    g.weapons.kind = 'laser';
+    g.weapons.ammo = 1;
+    g.weapons.fire();
+    for (let i = 0; i < 0.8 * 120; i++) {
+      g.player.invuln = 1;
+      hold(b);
+      lineUp(b, 18);
+      if (!b.round) cannon(b);
+      g.update(1 / 120, idle);
+    }
+    res.laser = { blades: blades(b), coreHurt: b.maxHp - b.hp };
+    // Rockets never chase its cinders; with a gap open and the cannon
+    // firing they go straight for its core.
+    b = fresh();
+    g.spawnEnemy('cinder', 40, 60, { sx: 40, sy: 60, tx: 40 });
+    res.rocketsArmoured = (g.nearestEnemy(20, 60) || {}).type || null;
+    b.blades[0].hp = 0;
+    res.rocketsGapOnly = (g.nearestEnemy(20, 60) || {}).type || null;
+    b.coreOpen = true;
+    res.rocketsOpen = (g.nearestEnemy(20, 60) || {}).type || null;
+
+    // A drone comes to weld a broken blade back on; shoot it and the gap
+    // stays open (until the next one).
+    b = fresh(1);
+    b.blades[0].hp = 0;
+    b.blades[0].wait = 0.2;
+    g.player.y = 20;
+    step(8, b);
+    res.welded = blades(b);
+    b = fresh(1);
+    b.blades[0].hp = 0;
+    b.blades[0].wait = 0.2;
+    let shotDown = 0;
+    for (let i = 0; i < 5 * 120; i++) {
+      g.player.invuln = 1;
+      hold(b);
+      const d = g.enemies.find((e) => e.type === 'weldDrone' && !e.dead);
+      if (d) {
+        g.player.y = d.y + d.h / 2 - 6;
+        if (d.hp < 2 || d.state === 'weld') shotDown = shotDown || (d.hp < 2 ? 1 : 0);
+      }
+      g.update(1 / 120, d ? fire : idle);
+    }
+    res.droneShot = { blades: blades(b), score: g.score };
+
+    // Every attack warns first: nothing comes at you for at least 0.3 s
+    // after it begins (aim line, light, digging, horn, glowing stacks, hiss,
+    // blinking bridge lights).
+    res.warnings = {};
+    for (const name of ['drill', 'search', 'plough', 'ram', 'cinders', 'steam', 'rockets']) {
+      b = fresh(3);
+      g.player.x = 30;
+      g.player.y = name === 'steam' ? 20 : 100;
+      if (name === 'steam') g.player.x = b.x + 66;
+      b.round = [{ name, t: 0, wait: 0, done: false }];
+      let first = null;
+      const shots0 = g.enemyShots.length;
+      for (let i = 0; i < 3 * 120 && first === null; i++) {
+        g.player.invuln = 0;
+        g.health = 5;
+        const n = g.enemies.length;
+        const h = g.health;
+        g.update(1 / 120, idle);
+        b.idle = 99;
+        const t = (i + 1) / 120;
+        if (g.enemyShots.length > shots0 || g.enemies.length > n || g.health < h || b.charging) first = t;
+      }
+      res.warnings[name] = first === null ? -1 : +first.toFixed(2);
+    }
+
+    // Its ram charge: flying over it is safe; low in front isn't.
+    const ram = (y) => {
+      b = fresh(2);
+      b.round = [{ name: 'ram', t: 0, wait: 0, done: false }];
+      let hits = 0;
+      const hurt = g.hurtPlayer.bind(g);
+      g.hurtPlayer = (n) => {
+        hits += n;
+        g.player.invuln = 1;
+      };
+      for (let i = 0; i < 4 * 120 && b.round; i++) {
+        g.player.x = 30;
+        g.player.y = y;
+        g.player.invuln = 0;
+        g.update(1 / 120, idle);
+      }
+      g.hurtPlayer = hurt;
+      return hits;
+    };
+    res.ram = { over: ram(66), low: ram(112) };
+
+    // No safe spot: wherever you sit (in front, high, low, far left, over
+    // it, behind it), its attacks reach you within 20 s of a stage-3 fight.
+    res.noSafeSpot = {};
+    for (const [name, x, y] of [['front', 30, 60], ['top', 30, 12], ['low', 20, 118], ['farLeft', 1, 80], ['over', 110, 70], ['behind', 196, 118]]) {
+      b = fresh(3);
+      b.idle = 0.5;
+      let hits = 0;
+      const hurt = g.hurtPlayer.bind(g);
+      g.hurtPlayer = (n) => {
+        hits += n;
+        g.player.invuln = 1;
+      };
+      for (let i = 0; i < 20 * 120; i++) {
+        g.player.x = x;
+        g.player.y = y;
+        g.update(1 / 120, idle);
+      }
+      g.hurtPlayer = hurt;
+      res.noSafeSpot[name] = hits;
+    }
+
+    // Bumping into it costs 2 blocks and leaves you clear of it.
+    b = fresh(1);
+    g.player.x = b.x + 60;
+    g.player.y = b.y + 14;
+    g.player.invuln = 0;
+    g.health = 5;
+    g.update(1 / 120, idle);
+    const h = g.playerHitbox();
+    res.bump = { hurt: 5 - g.health, clear: g.contact(b, h.x, h.y, h.w, h.h) === null };
+
+    // Breaking it into stage 2: it roars, a bonus, it can't be hurt while
+    // fresh blades are welded on, and it starts stage 2 with both blades.
+    b = fresh(1);
+    b.blades[0].hp = 0;
+    b.coreOpen = true;
+    b.hp = Math.floor(b.maxHp * 0.66) + 1;
+    b.hitBlade = -1;
+    const score0 = g.score;
+    g.damage(b, 2);
+    res.stage2 = { phase: b.phase, mode: b.mode, bonus: g.score - score0, openInTransition: b.T.isVulnerable(b) };
+    for (let i = 0; i < 6 * 120 && b.mode !== 'fight'; i++) step(1 / 120, b);
+    res.stage2.bladesAfter = b.mode === 'fight' && blades(b) === `${full},${full}`;
+    return res;
+  });
+  const w = r.warnings;
+  const ok = r.armour.firstBlade && r.armour.firstBlade.untouched && !r.armour.firstBlade.open && r.armour.shut === 0 &&
+    r.armour.coreHurt > 0 && r.armour.lowGap > 0 &&
+    r.bomb === '0,0' && r.laser.coreHurt > 0 && r.laser.blades.startsWith('0') &&
+    r.rocketsArmoured !== 'cinder' && r.rocketsGapOnly !== 'cinder' && r.rocketsOpen === 'frostbreaker' &&
+    r.welded === '6,6' && r.droneShot.blades.startsWith('0') && r.droneShot.score >= 30 &&
+    Object.values(w).every((v) => v >= 0.3) &&
+    r.ram.over === 0 && r.ram.low > 0 &&
+    Object.values(r.noSafeSpot).every((n) => n > 0) &&
+    r.bump.hurt === 2 && r.bump.clear &&
+    r.stage2.phase === 2 && r.stage2.mode === 'transition' && r.stage2.bonus >= 1000 && !r.stage2.openInTransition &&
+    r.stage2.bladesAfter && errs.length === 0;
+  console.log(`${ok ? 'PASS' : 'FAIL'}  Frostbreaker rules ${JSON.stringify(r)} ${errs.join(' ')}`);
+  if (!ok) failures++;
+  await context.close();
+}
+
 // Double detail (v0.20.0 on). Sharper pictures are exactly
 // twice the size of the normal ones (so nothing changes size or hit area),
 // the screen draws the sharper ones, and every word the game shows uses
@@ -2531,6 +2795,19 @@ for (const phone of PHONES) {
     const { whiteFrontArt } = await import('/js/whitefront.js' + v);
     const WF = whiteFrontArt();
     painted.push(WF.sky, WF.clouds, WF.far, WF.ground.canvas, WF.beam, ...WF.ships.map((sh) => sh.canvas));
+    // Frostbreaker (v0.33.0): its hull (three looks), wreck, blades, drones
+    // and drill shells. The baked ones keep one shared frame (so the looks
+    // and blades line up), so a sharp outline can start on a half pixel:
+    // their normal box is the sharp one rounded out to whole game pixels
+    // (never smaller; their hit areas are made from the sharp pixels).
+    const { frostbreakerPictures, buildFrostbreakerArt } = await import('/js/frostbreaker.js' + v);
+    painted.push(...frostbreakerPictures());
+    const FB = buildFrostbreakerArt();
+    out.frostOutline = [...FB.hull, FB.wreck, ...FB.blades.map((B) => B.pic)].filter((s) => {
+      const a = box(s).map((k) => k * DETAIL);
+      const b = box(s.hi);
+      return !(a[0] <= b[0] && a[0] >= b[0] - 1 && a[1] <= b[1] && a[1] >= b[1] - 1 && a[2] >= b[2] && a[2] <= b[2] + 1 && a[3] >= b[3] && a[3] <= b[3] + 1);
+    }).length;
     out.painted = painted.length;
     out.paintedWrong = painted.filter((p) => !p.hi || p.hi.width !== p.width * DETAIL || p.hi.height !== p.height * DETAIL).length;
     out.blankHi = painted.filter((p) => {
@@ -2595,6 +2872,16 @@ for (const phone of PHONES) {
     const v = new URL(document.querySelector('script[type=module]').src).search;
     const { WARDEN } = await import('/js/wardenart.js' + v);
     return !window.__ember.game.boss && !!WARDEN.bodies;
+  });
+  // ...and Frostbreaker's as the White Front starts.
+  await page.goto(base + '?level=4');
+  await page.waitForTimeout(300);
+  await page.evaluate(() => window.__ember.play());
+  await page.waitForTimeout(200);
+  r.bossPaintedEarly = r.bossPaintedEarly && await page.evaluate(async () => {
+    const v = new URL(document.querySelector('script[type=module]').src).search;
+    const { frostbreakerArtReady } = await import('/js/frostbreaker.js' + v);
+    return !window.__ember.game.boss && frostbreakerArtReady();
   });
   // Shapes the game builds from half-pixel rows or columns each frame (the
   // Siege Crawler's rock spikes and dust waves) show no faint stripes at a
@@ -2663,7 +2950,7 @@ for (const phone of PHONES) {
   r.missingLetters = [...missing].join('');
   delete r.glyphs;
   const ok = r.hi >= 34 && r.wrongSize.length === 0 && r.wrongOutline.length === 0 && r.shimDiff === 0 && r.screenSharp &&
-    r.painted === 59 && r.paintedWrong === 0 && r.blankHi === 0 && r.level1Missing.length === 0 &&
+    r.painted === 101 && r.frostOutline === 0 && r.paintedWrong === 0 && r.blankHi === 0 && r.level1Missing.length === 0 &&
     r.level2Missing.length === 0 && r.level3Missing.length === 0 && r.level4Missing.length === 0 && r.seams === 0 && r.stripes === 0 && r.bossPaintedEarly &&
     r.shipSize[0] === 18 && r.shipSize[1] === 11 && r.missingLetters === '' && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  double detail ${JSON.stringify(r)} ${errs.join(' ')}`);

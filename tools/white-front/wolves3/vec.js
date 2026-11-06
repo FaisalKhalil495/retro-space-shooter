@@ -46,6 +46,7 @@ function covers(s, x, y) {
   return false;
 }
 function bounds(v) {
+  if (v.box) return v.box; // (a part of a picture keeps the whole one's frame)
   const xs = [], ys = [];
   for (const s of v.shapes) {
     if (s.poly) for (const [x, y] of s.poly) { xs.push(x); ys.push(y); }

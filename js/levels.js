@@ -1,5 +1,5 @@
-import { PATTERNS } from './waves.js?v=0.32.0';
-import { SNOW_FLOOR } from './whitefront.js?v=0.32.0';
+import { PATTERNS } from './waves.js?v=0.33.0';
+import { SNOW_FLOOR } from './whitefront.js?v=0.33.0';
 
 // Level scripts. Each event is [seconds from the start, pattern, options].
 // The final 'boss' event waits for the screen to clear, flashes a warning
@@ -354,9 +354,11 @@ export const LEVELS = [
     // whitefront.js): nothing in it can hurt you. The invaders here are the
     // "Iron Wolves" (wolves.js): the six sky Wolves, the two on the ground
     // (Shelf Skiff, Snow Roller) and the artillery (Rocket Sled). Enemy
-    // shots 30% faster. The boss and its own music come next.
+    // shots 30% faster. Its boss: Frostbreaker, the Wolves' commander's own
+    // land battleship (frostbreaker.js).
     number: 4,
     name: 'THE WHITE FRONT',
+    boss: 'frostbreaker',
     music: 'front', // (a winter battle charge in 12/8; owner approved by ear)
     shotSpeed: 1.3,
     floor: SNOW_FLOOR, // the snowfield: solid like Rust Moon's floor, and harmless
@@ -469,7 +471,7 @@ export const LEVELS = [
       [176, 'skiffs'],
       [177, 'hunter', { n: 2 }],
       [178, 'hounds', { n: 4 }],
-      [184, 'end'], // (no boss yet: cleared once the last Wolves have gone)
+      [184, 'boss'],
     ],
   },
 ];

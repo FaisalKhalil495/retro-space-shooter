@@ -1,5 +1,5 @@
-import { audioOut } from './audio.js?v=0.32.0';
-import { TRACKS } from './tracks.js?v=0.32.0';
+import { audioOut } from './audio.js?v=0.33.0';
+import { TRACKS } from './tracks.js?v=0.33.0';
 
 // All the music: a piece for each level and each boss (the menus play The
 // Outer Belt's). They're written as code (music/source/) but far too heavy

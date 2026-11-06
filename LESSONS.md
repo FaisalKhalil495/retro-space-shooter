@@ -312,6 +312,9 @@ Last updated: v0.28.0, after the owner's questions about the music and real apps
 | v0.31.0: the plan promised "harder than Frostring"; a non-dodging autopilot first said the White Front was easier (34 bullets a minute against 59: most Wolves died before firing), then gave numbers that swung 20% between identical runs | Measure difficulty with enough runs (8 seeds) and nothing random in the autopilot, and split the damage by cause: a third of Frostring's came from crashing into ice, which a person steers round. Then tune toughness and timing (not the approved behaviours) until the enemy-caused damage is clearly higher. |
 | v0.31.1 review: a phone that had beaten Frostring before level 4 existed still had Frostring as its furthest level, so the new level stayed locked behind Frostring and its boss | When content is added to a game people have already finished, check what their saved progress unlocks. Save what was cleared, not just how far they got, so new levels open for players who'd finished. |
 | v0.30.0: the White Front's battle (smoke puffs, snowflakes) cost 600 drawing calls a frame, the most of any scene | Pre-paint round puffs once per size and draw each with one call; put every same-coloured speck in one path. 602 → 342 calls. |
+| v0.33.0: Frostbreaker's core couldn't be hit at all at first: the painting's own lower plough sat in front of the bottom of the muzzle, and the muzzle's dark rim counted as armour | For a weak point inside a traced picture, print a map of what a shot hits at each height (blade, core, armour) before tuning anything; then decide the guard's shape from it (the blades now guard exactly the heights where the core can be seen). |
+| v0.33.0: a first measure said Frostbreaker's fight lasted 116 s and the Warden's 115, but they came from different autopilots | Compare bosses only on the same autopilot, several seeds each (here: 91 s vs 93 s), then tune. |
+| v0.33.0 self-review: a welding drone following its ship off-screen during a ram charge was dropped by the game without dying, and the ship would never send another | A helper that follows its owner must leave (and tell its owner) when the owner goes somewhere it can't follow; don't rely on a death hook for things the game can remove silently. |
 
 ## 5. Our working process (what works)
 
@@ -495,6 +498,12 @@ fewer rounds are needed.
   loudness and the bass/middle/treble balance against the approved songs
   before sending caught nothing this time, but it's cheap insurance when I
   can't listen myself.
+- 3D boss, v0.33.0: Frostbreaker, from the owner's own painting. The
+  owner rejected all eight designed bosses and brought a picture of what
+  they wanted; tracing it shape by shape (as with the Wolves) kept their
+  design exactly while the game's look stayed consistent. The fight plan
+  was approved in words first ("the hard version"), then built to it and
+  measured against the Warden on the same autopilot.
 **So far:** the owner's feedback has been about the world making sense
 (rocks on a planet, tanks on towers, enemies through towers) and about
 fairness (hidden or unreachable enemies) rather than raw difficulty.
