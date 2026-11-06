@@ -48,7 +48,7 @@ const out = await page.evaluate(async () => {
     blades: blades.map((p) => p.a),
     points: {
       muzzle: P(198, 262), muzzleTop: P(212, 210), muzzleBottom: P(212, 314), muzzleBack: P(238, 262),
-      tip: P(134, 242), coreTop: P(212, 206), coreBottom: P(212, 300), stackA: P(1217, 78), stackB: P(1274, 70), stern: P(1320, 112),
+      tip: P(134, 242), coreTop: P(212, 200), coreBottom: P(212, 306), stackA: P(1217, 78), stackB: P(1274, 70), stern: P(1320, 112),
       engineA: P(802, 236), engineB: P(1214, 256), bridge: P(790, 118), lights: P(690, 148),
       mast: P(1057, 15), mastFoot: P(1057, 150), nose: P(60, 410), hullTop: P(800, 160),
       holes: [P(300, 200), P(520, 250), P(640, 196), P(960, 252), P(1110, 196), P(1330, 262), P(800, 186)],

@@ -1,12 +1,12 @@
-import { VIEW_W, HUD_H, PAL } from './config.js?v=0.35.0';
-import { sfx } from './audio.js?v=0.35.0';
-import { clamp, fillDisc } from './util.js?v=0.35.0';
-import { FINE, snapFine, detailCanvas } from './detail.js?v=0.35.0';
-import { METAL, MOLTEN } from './gore.js?v=0.35.0';
-import { BOMB_DAMAGE } from './weapons.js?v=0.35.0';
-import { GROUND_SPEED } from './terrain.js?v=0.35.0';
-import { burstRing } from './wolves.js?v=0.35.0';
-import { LANDSHIP_PAL, LANDSHIP_POINTS, LANDSHIP_HULL, LANDSHIP_BLADES } from './landshipart.js?v=0.35.0';
+import { VIEW_W, HUD_H, PAL } from './config.js?v=0.35.1';
+import { sfx } from './audio.js?v=0.35.1';
+import { clamp, fillDisc } from './util.js?v=0.35.1';
+import { FINE, snapFine, detailCanvas } from './detail.js?v=0.35.1';
+import { METAL, MOLTEN } from './gore.js?v=0.35.1';
+import { BOMB_DAMAGE } from './weapons.js?v=0.35.1';
+import { GROUND_SPEED } from './terrain.js?v=0.35.1';
+import { burstRing } from './wolves.js?v=0.35.1';
+import { LANDSHIP_PAL, LANDSHIP_POINTS, LANDSHIP_HULL, LANDSHIP_BLADES } from './landshipart.js?v=0.35.1';
 
 // FROSTBREAKER · FLAGSHIP OF THE WHITE FRONT — boss of level 4.
 //
@@ -35,10 +35,12 @@ import { LANDSHIP_PAL, LANDSHIP_POINTS, LANDSHIP_HULL, LANDSHIP_BLADES } from '.
 // Every attack has a warning: an aim line, a light, digging ploughs, a
 // horn, glowing stacks, a hiss, blinking bridge lights.
 
-export const SHIP_W = 126;
-export const SHIP_H = 39;
-const SINK = 38; // its runners' undersides, from its top (they rest on the snow)
-const HP = 280;
+// Its size in game pixels (half its sharp picture's; owner, after v0.35.0:
+// "a little bit" smaller, 116 x 36, was 126 x 39).
+export const SHIP_W = LANDSHIP_HULL[0][0].length / 2;
+export const SHIP_H = LANDSHIP_HULL[0].length / 2;
+const SINK = SHIP_H - 1; // its runners' undersides, from its top (they rest on the snow)
+const HP = 230;
 const BLADE_HP = 6;
 const SPEED = [0, 20, 26, 32]; // how fast it slides about
 const IDLE = [0, 0.95, 0.8, 0.65];
@@ -119,7 +121,7 @@ const HOLES = LANDSHIP_POINTS.holes.map(([x, y]) => ({ x: x / 2, y: y / 2 }));
 // Its core: the drill cannon's muzzle (shots reach it only through a gap):
 // at these heights, the first of its pixels a shot meets from in front of
 // its blades (its lower plough covers the muzzle's bottom).
-const CORE = { front: PT.tip.x - 1, x1: PT.muzzleBack.x, y0: PT.coreTop.y, y1: PT.coreBottom.y };
+const CORE = { front: PT.tip.x - 4, x1: PT.muzzleBack.x, y0: PT.coreTop.y, y1: PT.coreBottom.y };
 const SEARCH = { x: PT.bridge.x - 4, y: PT.bridge.y + 1 }; // the searchlight on the bridge roof
 const PLOUGH = { x: PT.tip.x - 1, y: PT.tip.y + 9 }; // where the plough throws its ice
 const JETS = [PT.engineA.x, PT.engineB.x]; // the steam jets, over its side engines
@@ -138,6 +140,21 @@ export function buildFrostbreakerArt() {
   ART = { hull, wreck: picture(LANDSHIP_HULL[2], charred), blades, drone: droneFrames(), drill: drillFrames() };
   return ART;
 }
+// For the tests: the middle of the gap blade k leaves when it's off (a
+// height, from its top, where only that blade guards the core).
+const gapRows = [];
+export function gapRow(k) {
+  if (gapRows[k] !== undefined) return gapRows[k];
+  const A = buildFrostbreakerArt();
+  const rows = [];
+  for (let y = Math.ceil(CORE.y0); y < CORE.y1; y++) {
+    if (A.blades[k].rows.has(y) && !A.blades.some((b, j) => j !== k && b.rows.has(y))) rows.push(y);
+  }
+  gapRows[k] = rows.length ? rows[Math.floor(rows.length / 2)] + 0.5 : null;
+  return gapRows[k];
+}
+// For the tests: where its steam jets rise (from its left edge).
+export const steamJets = () => JETS.slice();
 // For the tests: are its pictures painted yet? And every picture it draws.
 export const frostbreakerArtReady = () => !!ART;
 export function frostbreakerPictures() {
@@ -734,13 +751,15 @@ export const FROSTBREAKER_TYPE = {
     }
     // Snow thrown up by its runners as it slides.
     if (e.mode !== 'dying' && Math.abs(e.vx) > 8 && g.rand() < 0.6) {
-      const sx = e.x + [12, 50, 95][Math.floor(g.rand() * 3)] + g.rand() * 20;
+      const sx = e.x + [0.1, 0.4, 0.75][Math.floor(g.rand() * 3)] * SHIP_W + g.rand() * 20;
       if (sx > 0 && sx < VIEW_W) g.burst(sx, g.terrain.floorY - 1, 1, 30, SNOWY);
     }
   },
 
+  // Its weak point: the middle of the lower blade's gap, in front of the
+  // muzzle (where rockets and bonus items aim).
   aimPoint(e) {
-    return at(e, PT.muzzle);
+    return { x: e.x + PT.muzzle.x, y: e.y + (gapRow(1) ?? PT.muzzle.y) };
   },
 
   // Its speech tail points at its bridge.
@@ -964,8 +983,15 @@ function scan(e, x, y, w, h, shots) {
     for (const r of rows) {
       const yy = Math.floor(r);
       if (yy < 0 || yy >= SHIP_H) continue;
-      const guarded = e.blades.some((B, k) => bladeUp(B) && ART.blades[k].rows.has(yy));
-      if (!guarded && cx >= CORE.front && cx < CORE.x1 && r >= CORE.y0 && r < CORE.y1 && (mask[yy * SHIP_W + cx] || cx >= PT.muzzle.x - 2)) {
+      const guard = e.blades.findIndex((B, k) => bladeUp(B) && ART.blades[k].rows.has(yy));
+      if (guard >= 0 && cx >= CORE.front && cx < CORE.x1 && r >= CORE.y0 && r < CORE.y1 && mask[yy * SHIP_W + cx]) {
+        // (the hull's edge just in front of a blade, at a height it guards,
+        // counts as that blade: a shot lined up with a gap always reaches
+        // the blade covering it)
+        if (shots) e.hitBlade = guard;
+        return 'hit';
+      }
+      if (guard < 0 && cx >= CORE.front && cx < CORE.x1 && r >= CORE.y0 && r < CORE.y1 && (mask[yy * SHIP_W + cx] || cx >= PT.muzzle.x - 2)) {
         if (!shots) return 'hit';
         e.hitBlade = -1;
         return e.mode === 'fight' && e.coreOpen ? 'hit' : 'block';
