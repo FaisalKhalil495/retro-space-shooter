@@ -597,8 +597,8 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    and Hounds; Needle Wing alone at 0:15, Bomber 0:30, Hunter 0:45, Flak
    Star 1:05; then everything), the same cargo-pod schedule as levels 1–3
    (pods fly at any height: no towers here), enemy shots 30% faster,
-   Frostring's music for now, and it ends with an `'end'` event (no boss
-   yet), then "to be continued". Twin Darts carry the loot gamble (20%,
+   its own music since v0.32.0 (Frostring's before), and it ends with an
+   `'end'` event (no boss yet), then "to be continued". Twin Darts carry the loot gamble (20%,
    35% when hurt, "A" ammo in it; about 10–15 items a level), the others
    drop rarely, Wolf Hounds never.
    **Step 2 built (v0.31.0)**: the ground Wolves and the artillery, as in
@@ -624,7 +624,7 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    minute against 61 and 7; for that, tougher Wolves than the preview
    (Twin Dart 3 hits, Needle Wing 4, Crest Bomber 6, Flak Star 6, Skiff
    5), a Dart's first shot 0.2 s sooner and 4 in 5 Hounds spitting.
-   Next: the level's own music, then its boss.
+   Next: its boss (v0.32.0 added the level's own music).
 5. **The Ember Mines** — underground tunnels lit by soft amber crystals;
    ceiling and floor squeeze the space. Boss: **The Drill Worm**, a mechanical
    worm bursting from walls above and below.
@@ -797,7 +797,14 @@ and 5 shown as coming soon. Menus approved from a picture sheet.)
   **Siege Crawler** an industrial war march (F minor, 116 bpm: machine-gun
   guitars, anvils, steam, sirens, a brass war theme); **Glacier Warden**
   epic orchestral in a lurching 7/8 (A minor, 150 bpm: strings, taiko,
-  choir, brass, an icy spin-up). Each is 45–65 s: an intro played once,
+  choir, brass, an icy spin-up); **The White Front** (v0.32.0, owner
+  approved by ear) a winter battle charge in a rolling 12/8 (every beat in
+  three, like a gallop across snow; G minor, dotted quarter 112, written
+  as 84 bpm with 12 eighths a bar: wind and cracking ice, a lone horn
+  call, marching snare drums with triplet ghost notes, a rolling
+  staccato-string ostinato, high ice bells, heavy guitars and a heroic
+  horn theme over choir, a screaming lead guitar for the climax, a
+  half-time war-drum breakdown). Each is 45–65 s: an intro played once,
   then the rest loops seamlessly.
 - The **menus play The Outer Belt's piece** (owner's pick; no separate
   title theme). A level's theme starts with the level and crossfades into
@@ -870,7 +877,7 @@ game is shared by its link and the home-screen install.
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
-| 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C done (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2); 3D: choices done (3D-0), step 1 built (v0.30.0: the White Front's world and six sky Wolves), step 2 built (v0.31.0: the ground Wolves, the Rocket Sled, the full 231-enemy level; owner testing). **Next: 3D its music, its boss; then 3E Ember Mines** |
+| 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C done (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2); 3D: choices done (3D-0), step 1 built (v0.30.0: the White Front's world and six sky Wolves), step 2 built (v0.31.0: the ground Wolves, the Rocket Sled, the full 231-enemy level; review fixes v0.31.1), its music (v0.32.0, owner approved by ear). **Next: 3D its boss; then 3E Ember Mines** |
 | G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | Done (v0.24.0) — step 1 (v0.20.0), step 2 (v0.21.0: level 1 enemies, cargo pod, asteroids, Rockjaw; review fixes v0.21.1–v0.21.2), step 3 (v0.22.0: Rust Moon set, spires, floor, Siege Crawler; review fixes v0.22.1, smoother stage 2 v0.22.2), step 4 (v0.23.0: Frostring's enemies and ice; v0.23.1: the Glacier Warden; review fixes v0.23.2), step 5 wrap-up review (v0.24.0; owner testing) |
 | A | **Store apps** | After levels 4 and 5 (owner, after v0.29.0): the game wrapped as a real app with **Capacitor** (all files, music included, packed inside: works offline, native feel, vibration on iPhone too). **Android (Google Play) first**, then iPhone (App Store) if the owner wants it. Claude makes the app build, privacy policy page, screenshots and store text; the owner makes the accounts and pays (Play $25 once; Apple $99 a year, iPhone builds done by a cloud service since there's no Mac). Google needs 12 testers for 14 days before a new account's first game goes public: the owner gathers them meanwhile. Check the stores' current rules before starting. Age rating about 17+/18+ (blood, swearing). | Planned, after 3E |
 | 4 | **Levels 6–9** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. Shipped as free app updates after the store launch. | |
@@ -983,8 +990,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   from whatever is playing; 'title' plays The Outer Belt's), `stopMusic`,
   `musicPlaying`, `preloadMusic(names)` (Game asks for its level's theme
   and boss song as it starts; only songs in use stay decoded, about 20 MB
-  each), `musicState()` (for tests). Songs: `belt`, `rust`, `frost`
-  (a level names its theme as `music` in levels.js) and `rockjaw`,
+  each), `musicState()` (for tests). Songs: `belt`, `rust`, `frost`,
+  `front` (a level names its theme as `music` in levels.js) and `rockjaw`,
   `march`, `glacier` (a boss type names its song as `music`). It finds each
   file's opening hit to line up the loop, whatever silence a phone's
   decoder adds at the start.
@@ -992,7 +999,7 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   a ?h= that changes only when it's recorded again) and its loop points.
 - `music/source/soundtrack.js` (the instruments: drums, guitars, basses,
   synths, strings, brass, choir, reverb and echo) and
-  `music/source/songs.js` (the six songs, written bar by bar) — the music's
+  `music/source/songs.js` (the seven songs, written bar by bar) — the music's
   code; not loaded by the game. `music/*.mp3` — the recordings.
 - `tools/render-music.mjs [name ...]` — records songs into `music/*.mp3`
   and rewrites `js/tracks.js` (headless browser + ffmpeg; minutes per
@@ -1024,10 +1031,10 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   screen, landscape), every icon and the link preview at their stated
   sizes.
 - The smoke test's "music" check (v0.29.0, in a browser allowed to play
-  sound): all six recordings decode, fill their loop and aren't silent at
+  sound): all seven recordings decode, fill their loop and aren't silent at
   either end of it; the menus play The Outer Belt's; level 2 plays its
   theme looping; the boss warning switches to the Siege Crawler's song at
-  once (it was loaded as the level started).
+  once (it was loaded as the level started); level 4 plays its own theme.
 - The smoke test's "double detail" check: sharp pictures exactly twice
   the size and (except your ship) filling the same outline box, the screen
   draws them, the Siege Crawler's rock spikes and dust waves show no faint
