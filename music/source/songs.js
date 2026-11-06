@@ -652,6 +652,119 @@ function front(K) {
   });
 }
 
+// ------------------------------------------------------------------
+// BOSS 4, FROSTBREAKER: a battleship war anthem in a lurching 5/4 (five
+// beats a bar, grouped 3+3+4 eighths, like a heavy ship ploughing on).
+// C minor, 150 bpm: ship-horn blasts, steam, thrash guitars and double
+// kick, a choir and brass theme, a screaming lead guitar for the climax.
+const FLAG_CH = [
+  'Cm', 'Cm',
+  'Cm', 'Cm', 'Ab', 'G', 'Cm', 'Cm', 'Bb', 'G',
+  'Cm', 'Ab', 'Eb', 'Bb', 'Cm', 'Ab', 'F', 'G',
+  'Ab', 'Bb', 'Cm', 'Cm', 'Ab', 'Bb', 'G', 'G',
+  'Cm', 'Cm',
+];
+// (20 sixteenths a bar; '.' holds, '-' rests)
+const FLAG_B = mel([
+  'C5 . . . . . G4 . . . . . C5 . . . Eb5 . . .', 'D5 . . . . . C5 . . . . . Ab4 . . . . . . .',
+  'G4 . . . . . Bb4 . . . . . Eb5 . . . D5 . . .', 'D5 . . . . . . . . . . . F5 . . . . . . .',
+  'Eb5 . . . . . D5 . . . . . C5 . . . G5 . . .', 'F5 . . . . . Eb5 . . . . . C5 . . . . . . .',
+  'Ab5 . . . . . G5 . . . . . F5 . . . Eb5 . . .', 'D5 . . . . . . . . . . . B4 . . . . . . .',
+]);
+const FLAG_C = mel([
+  'C6 . . . Bb5 . Ab5 . . . G5 . Ab5 . . . C6 . . .', 'D6 . . . . . F6 . . . . . D6 . . . Bb5 . . .',
+  'Eb6 . . . D6 . C6 . . . G5 . . . . . Eb6 . D6 .', 'C6 . . . . . . . . . . . . . . . - - - -',
+  'Ab5 . . . C6 . Eb6 . . . D6 . C6 . . . Ab5 . . .', 'Bb5 . . . D6 . F6 . . . Eb6 . D6 . . . F6 . . .',
+  'G6 . . . . . F6 . . . Eb6 . D6 . . . B5 . . .', 'D6 . . . . . . . . . . . - - - - - - - -',
+]);
+// The riff's chugs (x rings, o muted, . rest) and the drums, in 3+3+4.
+const FLAG_RIFF = 'x.oo..x.oo..x.ooo.o.';
+const FLAG_KICK = 'x..x..x..x..x.x.x.x.';
+const FLAG_SNARE = '....x.....x.....x...';
+
+function flagship(K) {
+  const BAR = K.S * 20;
+  for (let bar = 0; bar < 28; bar++) {
+    const sec = bar < 2 ? 'intro' : bar < 10 ? 'A' : bar < 18 ? 'B' : bar < 26 ? 'C' : 'D';
+    const c = chord(FLAG_CH[bar], 2);
+    const r = low(c[0], 44); // (C2 up to Bb2)
+    if (bar === 0) {
+      // the ship's horn, twice, over steam and the engine room
+      I.brass(K.t(0, 0), [36, 43], K.S * 14, { v: 1.3, bright: 0.4 });
+      I.braam(K.t(0, 0), 48, K.S * 14, { v: 0.9 });
+      I.brass(K.t(1, 0), [36, 43], K.S * 16, { v: 1.3, bright: 0.5 });
+      I.braam(K.t(1, 0), 48, K.S * 16, { v: 1 });
+      I.steam(K.t(0, 10), 1.3, { pan: -0.5 });
+      I.riser(K.t(1, 0), BAR, { v: 0.8 });
+    }
+    if ([2, 10, 18].includes(bar)) {
+      I.impact(K.t(bar, 0), { v: 0.9 });
+      I.crash(K.t(bar, 0), { v: 1 });
+    }
+    if (bar === 10 || bar === 26) I.braam(K.t(bar, 0), r + 12, BAR, { v: 1 });
+    if (bar === 26) I.steam(K.t(26, 6), 1.4, { pan: 0.5 });
+    if (bar === 27) I.riser(K.t(27, 0), BAR, { v: 0.8 });
+    if (sec === 'B') I.choir(K.t(bar, 0), [c[0] + 12, c[1] + 12, c[2] + 12], BAR, { v: 0.85, vowel: 'o', att: 0.2 });
+    if (sec === 'C') {
+      I.choir(K.t(bar, 0), [c[0] + 12, c[1] + 12, c[2] + 12, c[0] + 24], BAR, { v: 0.9, att: 0.1 });
+      I.strings(K.t(bar, 0), [c[0] + 36, c[2] + 24], BAR, { v: 0.4, att: 0.1, trem: 12 });
+    }
+    if (sec === 'D') I.choir(K.t(bar, 0), [c[0] + 12, c[2] + 12, c[0] + 24], BAR, { v: 0.9, vowel: 'u', att: 0.4 });
+    for (let s = 0; s < 20; s++) {
+      const t = K.t(bar, s);
+      if (sec === 'intro') {
+        // the engine room: clanking in 3+3+4
+        if (FLAG_KICK[s] === 'x') I.clank(t, { v: 0.6, f: s % 6 === 0 ? 650 : 950, pan: s % 2 ? 0.4 : -0.4 });
+        if (bar === 1) I.snare(t, { v: 0.15 + s * 0.04, r: 0.1 });
+        if (s === 0 || s === 12) I.taiko(t, { v: 0.8 });
+        continue;
+      }
+      if (sec === 'D') {
+        // Half-time breakdown: war drums and heavy hits on the groups.
+        if (s === 0 || s === 6 || s === 12) {
+          I.guitar(t, power(r), K.S * (s === 12 ? 7 : 5), { v: 1.1 });
+          I.bassGtr(t, r, K.S * 5);
+          I.taiko(t, { v: s === 0 ? 1 : 0.8, f: 58 });
+          I.kick(t);
+        }
+        if (s === 16) I.snare(t, { v: 1.1, r: 0.5 });
+        if (bar === 27 && s >= 10) I.snare(t, { v: 0.4 + (s - 10) * 0.06, r: 0.1 });
+        continue;
+      }
+      // Guitars and bass: the 3+3+4 riff (sustained chords under the theme).
+      const ch = FLAG_RIFF[s];
+      if (sec === 'B') {
+        if (s === 0 || s === 12) {
+          I.guitar(t, power(r), K.S * (s === 0 ? 11.5 : 7.5), { v: 0.9 });
+          I.bassGtr(t, r, K.S * (s === 0 ? 11.5 : 7.5));
+        }
+      } else if (ch !== '.') {
+        I.guitar(t, power(r), K.S * (ch === 'x' ? 1.8 : 0.9), { mute: ch === 'o', v: ch === 'x' ? 1.05 : 0.85 });
+        I.bassGtr(t, r, K.S * (ch === 'x' ? 1.8 : 0.9), { mute: ch === 'o' });
+      }
+      // Drums: kicks on the groups (double kick through the climax), snare
+      // on the off-beats, ride and crashes.
+      if (sec === 'C') I.kick(t, { tight: true, v: s % 2 ? 0.7 : 0.95 });
+      else if (FLAG_KICK[s] === 'x' && (sec === 'A' || s % 6 === 0)) I.kick(t, { tight: true, v: s % 6 === 0 ? 1 : 0.75 });
+      if (FLAG_SNARE[s] === 'x') I.snare(t, { v: 1.1, r: 0.35 });
+      if (s % 2 === 0) I.hat(t, { v: s % 6 === 0 ? 0.7 : 0.4 });
+      if (sec === 'C' && s % 4 === 0) I.ride(t, { v: 0.55 });
+      if (s === 0 && bar % 2 === 0 && sec !== 'B') I.crash(t, { v: 0.7, pan: bar % 4 ? 0.5 : -0.5 });
+      if ((bar === 9 || bar === 17 || bar === 25) && s >= 12) I.tom(t, 52 - (s - 12) * 2, { v: 0.8, pan: 0.5 - (s - 12) * 0.12 });
+      // A ship's horn blast between phrases.
+      if (sec === 'A' && s === 0 && bar % 4 === 3) I.brass(t, [c[0], c[0] + 7], K.S * 10, { v: 1.1, bright: 0.5 });
+    }
+  }
+  playMel(K, FLAG_B, 10, 20, (t, n, d) => {
+    I.brass(t, [n, n - 12], d, { v: 1.3, bright: 0.9 });
+    I.strings(t, [n + 12], d, { v: 0.5, att: 0.06 });
+  });
+  playMel(K, FLAG_C, 18, 20, (t, n, d) => {
+    I.leadGtr(t, n, d, { v: 1 });
+    I.brass(t, [n - 12, n - 24], d, { v: 1.1, bright: 1.1 });
+  });
+}
+
 export const SONGS = {
   belt: { bpm: 126, spb: 16, bars: 32, loop: 4, play: belt },
   rust: { bpm: 150, spb: 16, bars: 32, loop: 4, play: rust },
@@ -660,6 +773,7 @@ export const SONGS = {
   march: { bpm: 116, spb: 16, bars: 32, loop: 4, play: march },
   glacier: { bpm: 150, spb: 14, bars: 32, loop: 4, play: warden },
   front: { bpm: 84, spb: 12, bars: 30, loop: 2, play: front },
+  flagship: { bpm: 150, spb: 20, bars: 28, loop: 2, play: flagship },
 };
 
 // Schedule a whole song from time t0 into the instruments' context.
