@@ -258,7 +258,9 @@ export function menuBadge() {
 // fills the whole phone screen behind the title, darkened a little at the
 // top so the lettering reads. Loaded as the game opens; until it's ready
 // the opening screen shows the squadron badge instead.
-export const cover = { canvas: null, alpha: 0 };
+export const cover = { canvas: null, menu: null, alpha: 0 };
+// (mock-up switch: which main-menu look; ?menulook=b)
+export const MENU_LOOK = new URLSearchParams(location.search).get('menulook') === 'b' ? 'b' : 'a';
 {
   const img = new Image();
   img.src = 'img/title-cover.jpg?v=0.34.0';
@@ -274,13 +276,33 @@ export const cover = { canvas: null, alpha: 0 };
     x.fillStyle = shade;
     x.fillRect(0, 0, c.width, c.height * 0.36);
     cover.canvas = c;
+    // The main menu's copy: dimmed so its buttons read (look A: darker
+    // towards the right, where the buttons are).
+    const m = document.createElement('canvas');
+    m.width = c.width;
+    m.height = c.height;
+    const y = m.getContext('2d');
+    y.drawImage(img, 0, 0);
+    if (MENU_LOOK === 'a') {
+      y.fillStyle = 'rgba(8,12,24,0.3)';
+      y.fillRect(0, 0, m.width, m.height);
+      const side = y.createLinearGradient(m.width * 0.35, 0, m.width * 0.75, 0);
+      side.addColorStop(0, 'rgba(8,12,24,0)');
+      side.addColorStop(1, 'rgba(8,12,24,0.55)');
+      y.fillStyle = side;
+      y.fillRect(0, 0, m.width, m.height);
+    } else {
+      y.fillStyle = 'rgba(8,12,24,0.15)';
+      y.fillRect(0, 0, m.width, m.height);
+    }
+    cover.menu = m;
   }, () => {}); // (no cover: the badge stays)
 }
 
 // Draws the cover over the whole screen (device pixels), cropped to fit
 // it, keeping your ship and the worlds in view; fades in once loaded.
-export function drawCover(ctx, w, h, dt) {
-  const c = cover.canvas;
+export function drawCover(ctx, w, h, dt, menu = false) {
+  const c = menu ? cover.menu : cover.canvas;
   if (!c) return false;
   cover.alpha = Math.min(1, cover.alpha + dt * 3);
   const s = Math.max(w / c.width, h / c.height);
@@ -300,6 +322,34 @@ export function drawCover(ctx, w, h, dt) {
 // a game pixel) since it sits on a painting. 184 x 26 game pixels.
 const LOGO_RES = 6;
 let logo = null;
+let stacked = null;
+// ...and stacked on two lines, for the main menu (100 x 46 game pixels).
+export function titleLogoStacked() {
+  if (!stacked) {
+    const w = 100;
+    const h = 46;
+    const S = surface(w * LOGO_RES, h * LOGO_RES);
+    const sc = 1.62 * LOGO_RES;
+    const word = (wrd, x0, y0, glint) => logoWord(S, wrd, (u, v) => [x0 + (u - v * 0.25) * sc, y0 + v * sc], { depth: Math.round(sc * 1.3), glint });
+    const we = wordWidth('EMBER') * sc;
+    const wd = wordWidth('DRIFT') * sc;
+    word('EMBER', (S.W - we) / 2 + sc * 1.2, sc * 0.4, 0.45);
+    word('DRIFT', (S.W - wd) / 2 + sc * 2.4, sc * 14.2, 0.6);
+    stacked = loPicture(S, w, h);
+  }
+  return stacked;
+}
+function loPicture(S, w, h) {
+  const lo = document.createElement('canvas');
+  lo.width = w;
+  lo.height = h;
+  const hi = document.createElement('canvas');
+  hi.width = S.W;
+  hi.height = S.H;
+  hi.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(S.buf.buffer), S.W, S.H), 0, 0);
+  lo.hi = hi;
+  return lo;
+}
 export function titleLogo() {
   if (!logo) {
     const w = 184;
