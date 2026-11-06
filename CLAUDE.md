@@ -597,8 +597,8 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    and Hounds; Needle Wing alone at 0:15, Bomber 0:30, Hunter 0:45, Flak
    Star 1:05; then everything), the same cargo-pod schedule as levels 1–3
    (pods fly at any height: no towers here), enemy shots 30% faster,
-   its own music since v0.32.0 (Frostring's before), and it ends with an
-   `'end'` event (no boss yet), then "to be continued". Twin Darts carry the loot gamble (20%,
+   its own music since v0.32.0 (Frostring's before), and (since v0.33.0)
+   its boss, Frostbreaker, at 3:04, then "to be continued". Twin Darts carry the loot gamble (20%,
    35% when hurt, "A" ammo in it; about 10–15 items a level), the others
    drop rarely, Wolf Hounds never.
    **Step 2 built (v0.31.0)**: the ground Wolves and the artillery, as in
@@ -624,7 +624,7 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    minute against 61 and 7; for that, tougher Wolves than the preview
    (Twin Dart 3 hits, Needle Wing 4, Crest Bomber 6, Flak Star 6, Skiff
    5), a Dart's first shot 0.2 s sooner and 4 in 5 Hounds spitting.
-   Next: its boss (v0.32.0 added the level's own music).
+   v0.32.0 added the level's own music; v0.33.0 its boss.
    **Its boss's look (owner, after v0.32.0)**: no flying or hovering boss
    (four flying designs and four ground ones were shown, all in
    `tools/white-front/boss/`); the owner brought their own painting of a
@@ -665,7 +665,33 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    pods, stage bonuses, the boss checkpoint as usual. Death: engines blow
    one by one, masts topple, the bridge erupts, it slews sideways, the
    plough digs in, a huge blast, a burning wreck left on the snow. Its
-   own boss song approved by ear before it's built.
+   own boss song (`music: 'flagship'`, a battleship war anthem in 5/4, C
+   minor) approved by ear before it was built.
+   **Built (v0.33.0, `js/frostbreaker.js`)**: the painting baked at double
+   detail (`tools/white-front/boss/bake-landship.mjs` -> `js/
+   landshipart.js`: three hull looks, its guard blades as separate
+   pictures, the places the game needs), 126 x 39 game pixels, its
+   runners on the snow. The **guard: two cream plough blades in a V in
+   front of the drill cannon's muzzle** (the top blade guards the core's
+   upper rows, the lower one its lower rows; its own lower plough covers
+   the muzzle's bottom), 6 hits each, +50 for one; a gap is about 3 px
+   tall (both off: 7). A drone sets out 2.4 / 2.0 / 1.4 s after a blade
+   breaks and welds for 2.6 / 2.2 / 1.7 s (2 hits, 30 pts; a drone shot
+   down means a fresh wait). The core is open only during the drill
+   cannon (its aim line 0.85 / 0.75 / 0.6 s, and 1.5 s after the shell);
+   a bomb blows both blades off, the laser cuts through one. The cannon
+   doesn't tilt: it's part of the hull picture; the aim line (tracking,
+   then locking with a click) shows where the shell goes, anywhere ahead
+   of it. Rounds take turns with and without the drill cannon (it's what
+   opens the core); stage 2 pairs (never the ram with the cannon), stage 3
+   threes (never the ram with steam), staggered 0.8 / 0.65 s. The
+   searchlight's slice is centred on you, even over its deck or behind
+   it; a ship behind it gets crushed against the edge (it backs up). 280
+   HP. Measured (6 seeds, the level test's autopilot with specials): the
+   fight about 100 s against the Warden's 93, a never-dodging mortal
+   autopilot loses 21 blocks a minute against the Warden's 19, the core
+   open 28% of the fight. Its drill shell is its own kind of shot (a shot
+   with a `draw` of its own: Game.draw calls it).
 5. **The Ember Mines** — underground tunnels lit by soft amber crystals;
    ceiling and floor squeeze the space. Boss: **The Drill Worm**, a mechanical
    worm bursting from walls above and below.
@@ -702,8 +728,8 @@ and 5 shown as coming soon. Menus approved from a picture sheet.)
   **Play**). Starting mid-game starts the score at zero.
 - **Practice mode** = the **Levels** screen: replay any level already
   reached; locked levels show a padlock, level 5 shows "COMING SOON"
-  with no name (`COMING_SOON` in menu.js; level 4 says "BOSS  COMING SOON"
-  until it has a boss). Practice scores never go on the high-score table;
+  with no name (`COMING_SOON` in menu.js; a level without a boss would
+  say "BOSS  COMING SOON", as level 4 did until v0.33.0). Practice scores never go on the high-score table;
   clearing a practice level goes back to the level list.
 - **Opening screen** (v0.27.0, owner's pick "Squadron badge" from six
   designs): the **title badge** fills the screen over the drifting
@@ -918,7 +944,7 @@ game is shared by its link and the home-screen install.
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
-| 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C done (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2); 3D: choices done (3D-0), step 1 built (v0.30.0: the White Front's world and six sky Wolves), step 2 built (v0.31.0: the ground Wolves, the Rocket Sled, the full 231-enemy level; review fixes v0.31.1), its music (v0.32.0, owner approved by ear). **Next: 3D its boss; then 3E Ember Mines** |
+| 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C done (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2); 3D: choices done (3D-0), step 1 built (v0.30.0: the White Front's world and six sky Wolves), step 2 built (v0.31.0: the ground Wolves, the Rocket Sled, the full 231-enemy level; review fixes v0.31.1), its music (v0.32.0, owner approved by ear), its boss Frostbreaker built (v0.33.0, owner testing). **Next: 3D review; then 3E Ember Mines** |
 | G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | Done (v0.24.0) — step 1 (v0.20.0), step 2 (v0.21.0: level 1 enemies, cargo pod, asteroids, Rockjaw; review fixes v0.21.1–v0.21.2), step 3 (v0.22.0: Rust Moon set, spires, floor, Siege Crawler; review fixes v0.22.1, smoother stage 2 v0.22.2), step 4 (v0.23.0: Frostring's enemies and ice; v0.23.1: the Glacier Warden; review fixes v0.23.2), step 5 wrap-up review (v0.24.0; owner testing) |
 | A | **Store apps** | After levels 4 and 5 (owner, after v0.29.0): the game wrapped as a real app with **Capacitor** (all files, music included, packed inside: works offline, native feel, vibration on iPhone too). **Android (Google Play) first**, then iPhone (App Store) if the owner wants it. Claude makes the app build, privacy policy page, screenshots and store text; the owner makes the accounts and pays (Play $25 once; Apple $99 a year, iPhone builds done by a cloud service since there's no Mac). Google needs 12 testers for 14 days before a new account's first game goes public: the owner gathers them meanwhile. Check the stores' current rules before starting. Age rating about 17+/18+ (blood, swearing). | Planned, after 3E |
 | 4 | **Levels 6–9** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. Shipped as free app updates after the store launch. | |
@@ -996,6 +1022,14 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   `ENEMY_TYPES`), and their bullets (`tracer`, `rail`, `slag`, `flak`,
   `shard`, `slug`, `ice`), painted once in 16 headings or a few frames
   (`drawWolfShot`, which Game.draw calls for those kinds).
+- `js/frostbreaker.js` — Frostbreaker, the White Front's boss (3 stages,
+  7 attacks in rounds of one, two or three, entrance through a snow
+  drift, guard blades and welding drones, death and a burning wreck), its
+  pictures made from `js/landshipart.js` (baked by
+  `tools/white-front/boss/bake-landship.mjs` from `landship.js`; parts
+  are tagged there: `nose`, `mast`, `blade0/1`, `hole2/3`), its hit map
+  (`scan`: blades first, the core only at heights no blade guards, then
+  armour), and its helpers `weldDrone`, `cinder` and `frostWreck`.
 - `js/terrain.js` — solid things in the way: floor strip, rock spires
   (Rust Moon), drifting breakable ice slabs (Frostring: `addSlab`,
   `canPlace`, `freeBand`, `slabAt`, `freeY`/`clearOfIce`); `solid()` for
@@ -1033,14 +1067,14 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   and boss song as it starts; only songs in use stay decoded, about 20 MB
   each), `musicState()` (for tests). Songs: `belt`, `rust`, `frost`,
   `front` (a level names its theme as `music` in levels.js) and `rockjaw`,
-  `march`, `glacier` (a boss type names its song as `music`). It finds each
+  `march`, `glacier`, `flagship` (a boss type names its song as `music`). It finds each
   file's opening hit to line up the loop, whatever silence a phone's
   decoder adds at the start.
 - `js/tracks.js` — made by `tools/render-music.mjs`: each song's file (with
   a ?h= that changes only when it's recorded again) and its loop points.
 - `music/source/soundtrack.js` (the instruments: drums, guitars, basses,
   synths, strings, brass, choir, reverb and echo) and
-  `music/source/songs.js` (the seven songs, written bar by bar) — the music's
+  `music/source/songs.js` (the eight songs, written bar by bar) — the music's
   code; not loaded by the game. `music/*.mp3` — the recordings.
 - `tools/render-music.mjs [name ...]` — records songs into `music/*.mp3`
   and rewrites `js/tracks.js` (headless browser + ffmpeg; minutes per
@@ -1072,18 +1106,25 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   screen, landscape), every icon and the link preview at their stated
   sizes.
 - The smoke test's "music" check (v0.29.0, in a browser allowed to play
-  sound): all seven recordings decode, fill their loop and aren't silent at
+  sound): all eight recordings decode, fill their loop and aren't silent at
   either end of it; the menus play The Outer Belt's; level 2 plays its
   theme looping; the boss warning switches to the Siege Crawler's song at
-  once (it was loaded as the level started); level 4 plays its own theme.
+  once (it was loaded as the level started); level 4 plays its own theme, and its boss warning switches to Frostbreaker's song at once.
+- The smoke test's "Frostbreaker rules" check (v0.33.0): a blade takes
+  shots first, the core only through a gap and only while the cannon
+  fires (both gaps), a bomb and the laser, rockets, a drone welds a blade
+  back unless shot down, every attack warns at least 0.3 s, flying over
+  the ram charge is safe, no safe spot within 20 s of stage 3 (front,
+  top, low, far left, over it, behind it), bumping costs 2, and stage 2
+  starts with fresh blades.
 - The smoke test's "double detail" check: sharp pictures exactly twice
   the size and (except your ship) filling the same outline box, the screen
   draws them, the Siege Crawler's rock spikes and dust waves show no faint
   stripes at a screen scale like 7.5, the Glacier Warden is painted as
   Frostring starts (before it arrives), and every all-capitals string in
   the code uses letters the font has.
-- `tools/level-test.mjs` — invincible autopilot plays levels 1, 2 and 3
-  (with all three bosses) and 4 (v0.30.0–v0.31.0: all nine Wolves
+- `tools/level-test.mjs` — invincible autopilot plays levels 1, 2, 3 and 4
+  with all four bosses (level 4 v0.30.0–v0.33.0: all nine Wolves
   appear, about 230 of them, the cargo pods, the loot gamble, the level
   clears; and each Wolf, left alone with a ship that doesn't shoot,
   attacks its own way with its own bullet) at high
@@ -1118,7 +1159,9 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   Crawler's on the same computer); v0.31.0 (the full level, rockets in
   the scene): 420 calls, 6.3 MB (frames 83–87 against the Siege
   Crawler's 97 on that computer; the extra garbage is the busier scene's
-  explosions and number-crunching, nothing kept).
+  explosions and number-crunching, nothing kept); v0.33.0: a seventh
+  scene, Frostbreaker: 205 calls, 2.4 MB (frames 63 against the White
+  Front busy scene's 65 on that computer).
   Rule: nothing big is repainted every frame if it never changes (paint it
   once into a picture), and no full-screen gradients per frame.
 - The smoke test leaves full screen before turning the phone upright

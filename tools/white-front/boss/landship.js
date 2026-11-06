@@ -15,8 +15,8 @@ export const LANDSHIP = {
   muzzles: [[180, 262]],
   shapes: [
     // ---- masts and aerials (behind everything)
-    { line: [1057, 15, 1057, 150], m: 'mech', t: 2, over: true },
-    { line: [1052, 40, 1062, 40], m: 'mech', t: 2, over: true }, { line: [1050, 70, 1064, 70], m: 'mech', t: 2, over: true },
+    { line: [1057, 15, 1057, 150], m: 'mech', t: 2, over: true, part: 'mast' },
+    { line: [1052, 40, 1062, 40], m: 'mech', t: 2, over: true, part: 'mast' }, { line: [1050, 70, 1064, 70], m: 'mech', t: 2, over: true, part: 'mast' },
     { line: [1030, 62, 1030, 130], m: 'mech', t: 2, over: true }, { line: [1026, 80, 1034, 80], m: 'mech', t: 2, over: true },
     { line: [1076, 85, 1076, 150], m: 'mech', t: 2, over: true },
     { line: [815, 35, 815, 125], m: 'mech', t: 2, over: true }, { line: [810, 60, 820, 60], m: 'mech', t: 2, over: true },
@@ -86,8 +86,8 @@ export const LANDSHIP = {
     // ---- the nose: the lower plough blade, an upper plough plate, machinery, the drill cannon
     { m: 'light', t: 2, poly: [[18, 414], [102, 300], [236, 262], [252, 296], [146, 396], [60, 420]] },
     { m: 'light', t: 1, flat: true, poly: [[22, 410], [104, 302], [234, 265], [238, 275], [112, 310], [32, 412]] },
-    { m: 'light', t: 1, poly: [[128, 192], [270, 168], [302, 174], [282, 206], [226, 236], [168, 222]] },
-    { m: 'light', t: 0, flat: true, poly: [[134, 192], [270, 171], [296, 176], [266, 182], [150, 198]] },
+    { part: 'nose', m: 'light', t: 1, poly: [[128, 192], [270, 168], [302, 174], [282, 206], [226, 236], [168, 222]] },
+    { part: 'nose', m: 'light', t: 0, flat: true, poly: [[134, 192], [270, 171], [296, 176], [266, 182], [150, 198]] },
     { m: 'mech', t: 2, poly: [[260, 200], [380, 176], [470, 210], [470, 330], [300, 330], [250, 300]] },
     { m: 'mech', t: 3, poly: [[300, 300], [470, 300], [470, 340], [320, 340]] },
     // the drill cannon: a copper breech, a ribbed steel barrel, a big dark muzzle
@@ -98,19 +98,34 @@ export const LANDSHIP = {
     { m: 'mech', t: 2, poly: [[226, 226], [288, 222], [290, 302], [226, 300]] },
     { m: 'mech', t: 1, flat: true, poly: [[228, 232], [288, 230], [288, 242], [228, 244]] },
     ...[238, 254, 270].map((x) => ({ m: 'mech', t: 3, flat: true, poly: R(x, 224, x + 5, 302) })),
-    { m: 'mech', t: 2, ell: [212, 262, 26, 44] },
-    { m: 'mech', t: 1, ell: [204, 262, 22, 38] },
+    { m: 'mech', t: 2, ell: [212, 262, 26, 52] },
+    { m: 'mech', t: 1, ell: [204, 262, 22, 46] },
     { m: 'mech', t: 0, flat: true, poly: [[188, 230], [214, 226], [214, 236], [190, 240]] },
-    { m: 'mech', t: 3, when: 'closed', ell: [198, 262, 13, 24] },
-    { m: 'lamp', t: 2, when: 'open', ell: [198, 262, 13, 24] }, { m: 'lamp', t: 0, when: 'open', ell: [196, 262, 6, 12] },
+    { m: 'mech', t: 3, when: 'closed', ell: [198, 262, 13, 30] },
+    { m: 'lamp', t: 2, when: 'open', ell: [198, 262, 13, 30] }, { m: 'lamp', t: 0, when: 'open', ell: [196, 262, 6, 16] },
     // ---- the plough blades and the armour plates over the nose
-    { m: 'light', t: 1, poly: [[368, 172], [552, 172], [552, 230], [440, 232], [368, 210]] },
+    { part: 'nose', m: 'light', t: 1, poly: [[368, 172], [552, 172], [552, 230], [440, 232], [368, 210]] },
     { m: 'light', t: 1, poly: [[145, 438], [300, 266], [362, 226], [452, 226], [372, 330], [252, 414], [190, 442]] },
     { m: 'light', t: 2, poly: [[300, 410], [420, 266], [500, 234], [548, 234], [540, 300], [452, 384], [360, 412]] },
     { m: 'light', t: 1, poly: [[452, 384], [510, 300], [556, 262], [562, 330], [502, 376]] },
     { line: [190, 440, 362, 228], m: 'light', t: 3 }, { line: [300, 410, 500, 236], m: 'light', t: 3 },
-    { line: [372, 210, 552, 210], m: 'light', t: 3 },
+    { part: 'nose', line: [372, 210, 552, 210], m: 'light', t: 3 },
     { dot: [420, 300], m: 'cu', t: 2 }, { dot: [330, 360], m: 'cu', t: 2 }, { dot: [480, 330], m: 'cu', t: 2 },
+    // ---- the guard: two plough blades in a V in front of the drill cannon's
+    // muzzle (the game breaks them off, and its drones weld them back)
+    { part: 'blade0', m: 'light', t: 1, poly: [[184, 194], [216, 200], [212, 242], [134, 242]] },
+    { part: 'blade0', m: 'light', t: 0, flat: true, poly: [[184, 194], [216, 200], [214, 210], [176, 204]] },
+    { part: 'blade0', line: [150, 236, 200, 204], m: 'light', t: 3 },
+    { part: 'blade0', dot: [196, 224], m: 'cu', t: 2 },
+    { part: 'blade1', m: 'light', t: 2, poly: [[134, 242], [212, 242], [216, 300], [184, 306]] },
+    { part: 'blade1', m: 'light', t: 1, flat: true, poly: [[134, 242], [212, 242], [212, 250], [144, 250]] },
+    { part: 'blade1', line: [150, 248, 200, 296], m: 'light', t: 3 },
+    { part: 'blade1', dot: [196, 276], m: 'cu', t: 2 },
+    // ---- holes blown in its hull (stage 2: round the nose; stage 3: all over), glowing inside
+    ...[[300, 200, 16, 12], [520, 250, 18, 14], [640, 196, 14, 10]].flatMap(([x, y, rx, ry]) => [
+      { part: 'hole2', m: 'mech', t: 3, flat: true, ell: [x, y, rx, ry] }, { part: 'hole2', m: 'lamp', t: 3, flat: true, ell: [x + 2, y + 2, rx * 0.5, ry * 0.5] }]),
+    ...[[960, 252, 20, 14], [1110, 196, 16, 12], [1330, 262, 16, 12], [800, 186, 14, 10]].flatMap(([x, y, rx, ry]) => [
+      { part: 'hole3', m: 'mech', t: 3, flat: true, ell: [x, y, rx, ry] }, { part: 'hole3', m: 'lamp', t: 3, flat: true, ell: [x + 2, y + 2, rx * 0.5, ry * 0.5] }]),
     // ---- the Wolves' paint only: hazard stripes and a red eye lamp
     { only: 'wolves', m: 'haz', t: 1, poly: R(555, 290, 1398, 298) },
     { only: 'wolves', m: 'haz', t: 1, poly: [[1010, 162], [1030, 162], [1030, 230], [1010, 228]] },

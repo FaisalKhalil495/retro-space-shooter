@@ -1,4 +1,4 @@
-// Plays levels 1, 2, 3 (with all three bosses) and 4 automatically at high speed (an
+// Plays levels 1, 2, 3 and 4 (with all four bosses) automatically at high speed (an
 // invincible autopilot that lines up with enemies and holds Fire) to check
 // the level scripts, pickups, special weapons and the boss all work and each
 // level can be finished.
@@ -90,8 +90,12 @@ const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
     g.fireShot = (...a) => { if (!log.shotKinds.includes(a[4])) log.shotKinds.push(a[4]); return fire(...a); };
     const spawn = g.spawnEnemy.bind(g);
     log.spawned = 0;
-    // (enemies only: not cargo pods, nor bombs, charges and rockets)
-    g.spawnEnemy = (...a) => { if (!['carrier', 'wolfBomb', 'wolfCharge', 'wolfRocket'].includes(a[0])) log.spawned++; return spawn(...a); };
+    // (enemies only: not cargo pods, nor bombs, charges and rockets, nor
+    // Frostbreaker and its drones, cinders and wreck)
+    g.spawnEnemy = (...a) => {
+      if (!['carrier', 'wolfBomb', 'wolfCharge', 'wolfRocket', 'frostbreaker', 'weldDrone', 'cinder', 'frostWreck'].includes(a[0])) log.spawned++;
+      return spawn(...a);
+    };
     g.__wrapped = true;
   }
   const step = 1 / 120;
@@ -141,7 +145,7 @@ const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
     if (g.boss) log.bossSeen = true;
     // While a boss talks (taunt, roars) it must be holding back, not
     // fighting. (No kill lines here: the autopilot is invincible.)
-    if (g.boss && g.isSpeaking(g.boss) && (g.boss.mode === 'fight' || g.boss.attack)) {
+    if (g.boss && g.isSpeaking(g.boss) && (g.boss.mode === 'fight' || g.boss.attack || g.boss.round)) {
       log.talkAttacks = (log.talkAttacks || 0) + 1;
     }
     log.maxEnemies = Math.max(log.maxEnemies, g.enemies.length);
@@ -232,7 +236,7 @@ results.frost = await run(560, { invincible: true, useSpecials: true });
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/lvl3-clear.png` });
 
-// On to level 4 (The White Front): no boss yet, it clears itself.
+// On to level 4 (The White Front) and its boss, Frostbreaker.
 const level4 = await page.evaluate(() => {
   const g = window.__ember.game;
   g.stateTimer = 4;
@@ -242,6 +246,9 @@ const level4 = await page.evaluate(() => {
   log.types = [];
   log.maxEnemies = 0;
   log.bossSeen = false;
+  log.said = [];
+  log.bonuses = 0;
+  log.talkAttacks = 0;
   log.shotKinds = [];
   log.spawned = 0;
   // (loot from enemies only, not the cargo pods)
@@ -253,7 +260,7 @@ const level4 = await page.evaluate(() => {
 results.white = await run(60, { invincible: true });
 await page.screenshot({ path: `${out}/lvl4-early.png` });
 const w1 = { types: [...results.white.types] };
-results.white = await run(150, { invincible: true });
+results.white = await run(400, { invincible: true, useSpecials: true });
 await page.waitForTimeout(400);
 await page.screenshot({ path: `${out}/lvl4-clear.png` });
 results.white.types = [...new Set([...w1.types, ...results.white.types])];
@@ -344,11 +351,17 @@ const checks = {
     attacks.crestBomber.kinds.join() === 'shard' && attacks.wakeHunter.dashed &&
     attacks.shelfSkiff.kinds.join() === 'slug' && attacks.snowRoller.charge && attacks.snowRoller.kinds.join() === 'ice' &&
     attacks.rocketSled.rockets && attacks.rocketSled.kinds.length === 0,
-  'no plain enemy bullets on the White Front': !r4.shotKinds.some((k) => !['tracer', 'rail', 'slag', 'flak', 'shard', 'slug', 'ice', undefined].includes(k)),
+  'no plain enemy bullets on the White Front': !r4.shotKinds.some((k) => !['tracer', 'rail', 'slag', 'flak', 'shard', 'slug', 'ice', 'drill', undefined].includes(k)),
   'about 230 Wolves in the level': r4.spawned >= 215 && r4.spawned <= 290,
   'White Front cargo pods all collected': pickups2.every((k) => r4.collected.includes(k)),
   'White Front loot gamble (about 10 items)': r4.dropped >= 5 && r4.dropped <= 25,
-  'White Front cleared (no boss yet)': r4.state === 'clear',
+  'Frostbreaker appeared': r4.bossSeen && r4.types.includes('weldDrone') && r4.types.includes('cinder'),
+  'Frostbreaker talks in speech bubbles': ['FULL AHEAD. CRUSH IT.', 'YOU HOLED MY FUCKING HULL', 'ALL ENGINES. BURN IT.']
+    .every((line) => r4.said.includes(line)),
+  'a Frostbreaker stage bonus for each broken stage': r4.bonuses === 2,
+  'Frostbreaker never attacks while talking': !r4.talkAttacks,
+  'its drill shells fired': r4.shotKinds.includes('drill'),
+  'White Front cleared': r4.state === 'clear',
   'every picture drawn sharp (double detail)': Object.keys(blurry).length === 0,
   'no script errors': errors.length === 0,
 };
