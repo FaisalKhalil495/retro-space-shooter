@@ -651,7 +651,12 @@ and 5 shown as coming soon. Menus approved from a picture sheet.)
   again. Saved in local storage (`js/save.js`), with the furthest level
   reached and the options.
 - The game **remembers the furthest level reached** (reached by clearing
-  the level before it). The title screen offers **Continue** from that
+  the level before it), and the furthest level cleared (v0.31.1): when a
+  new level comes out, a phone that had already cleared the last one has
+  it unlocked at once (`catchUp` in save.js, run as the game opens; saves
+  from before v0.31.1 with "finished" count as having cleared their
+  furthest level), and "finished" is true only once the current last
+  level is cleared. The title screen offers **Continue** from that
   level, or **New Game** from Level 1 (a brand-new player sees just
   **Play**). Starting mid-game starts the score at zero.
 - **Practice mode** = the **Levels** screen: replay any level already
@@ -1069,7 +1074,10 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   Rule: nothing big is repainted every frame if it never changes (paint it
   once into a picture), and no full-screen gradients per frame.
 - The smoke test leaves full screen before turning the phone upright
-  (v0.30.0: newer test browsers won't resize a full-screen window).
+  (v0.30.0: newer test browsers won't resize a full-screen window), and
+  (v0.31.1) checks old saves get a newly added level unlocked; after
+  reopening, it waits 0.9 s before tapping the opening screen (which takes
+  taps after 0.4 s of its own: 0.5 s failed when loading was slow).
 - `tools/serve.mjs` — the tests' tiny web server (this computer only; refuses
   paths outside the repository).
 - Testing aids: add `?fps` to the URL to show, in the left margin, frames

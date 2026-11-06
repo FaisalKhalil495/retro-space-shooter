@@ -1,9 +1,9 @@
-import { VIEW_W, HUD_H, PAL } from './config.js?v=0.31.0';
-import { SPRITES, HI_NAMES } from './sprites.js?v=0.31.0';
-import { WOLF_ART, WOLF_PAL } from './wolfart.js?v=0.31.0';
-import { clamp } from './util.js?v=0.31.0';
-import { sfx } from './audio.js?v=0.31.0';
-import { GROUND_SPEED } from './terrain.js?v=0.31.0';
+import { VIEW_W, HUD_H, PAL } from './config.js?v=0.31.1';
+import { SPRITES, HI_NAMES } from './sprites.js?v=0.31.1';
+import { WOLF_ART, WOLF_PAL } from './wolfart.js?v=0.31.1';
+import { clamp } from './util.js?v=0.31.1';
+import { sfx } from './audio.js?v=0.31.1';
+import { GROUND_SPEED } from './terrain.js?v=0.31.1';
 
 // The Iron Wolves: the invaders' army on the White Front (level 4). Dark
 // gunmetal armour, orange hazard stripes, red eye lamps. Their shapes were
@@ -395,11 +395,13 @@ export const WOLF_TYPES = {
       go(e, 'enter');
     },
     update(e, dt, game) {
-      if (e.mode !== 'enter' && e.mode !== 'leave') e.y = e.baseY + Math.sin(e.t * 0.9) * 3;
+      // (a gentle hover while it holds its spot, starting from where it parked)
+      if (e.mode !== 'enter' && e.mode !== 'leave') e.y = e.baseY + Math.sin((e.t - e.parked) * 0.9) * 3;
       if (e.mode === 'enter') {
         e.x -= 46 * dt;
         if (cx(e) <= 152) {
           e.baseY = e.y;
+          e.parked = e.t;
           go(e, 'aim', 0.5);
         }
       } else if (e.mode === 'leave') e.x -= 78 * dt;

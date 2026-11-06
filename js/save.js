@@ -12,6 +12,7 @@ const DEFAULTS = () => ({
   settings: { music: 4, sound: 4, vibrate: true, blood: true }, // volumes 0..5
   lastName: '', // the name last put on the table (offered again next time)
   finished: false, // reached the end of the last level so far (then levels to come show as coming soon)
+  cleared: 0, // the furthest level cleared (unlocks the next one when it's added)
 });
 
 function load() {
@@ -27,6 +28,10 @@ function load() {
       }
       if (raw.settings && typeof raw.settings === 'object') Object.assign(d.settings, raw.settings);
       if (raw.finished === true) d.finished = true;
+      if (Number.isInteger(raw.cleared) && raw.cleared >= 0) d.cleared = raw.cleared;
+      // (Saved before v0.31.1: "finished" meant the last level then, which
+      // was the furthest one reached, had been cleared.)
+      else if (d.finished) d.cleared = d.reached;
       if (typeof raw.lastName === 'string') d.lastName = raw.lastName.replace(/[^A-Z]/g, '').slice(0, 8);
     }
   } catch {
@@ -42,6 +47,18 @@ export function store() {
     localStorage.setItem(KEY, JSON.stringify(save));
   } catch {
     // Storage full or blocked: the game carries on without saving.
+  }
+}
+
+// A new level has come out since the player last cleared the last one: it's
+// unlocked (they've reached it), and they haven't finished the game any more.
+export function catchUp(maxLevel) {
+  const reached = Math.min(Math.max(save.reached, save.cleared + 1), maxLevel);
+  const finished = save.cleared >= maxLevel;
+  if (reached !== save.reached || finished !== save.finished) {
+    save.reached = reached;
+    save.finished = finished;
+    store();
   }
 }
 
