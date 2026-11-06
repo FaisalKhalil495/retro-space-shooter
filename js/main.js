@@ -1,15 +1,16 @@
-import { VERSION, VIEW_W, VIEW_H, PAL } from './config.js?v=0.33.0';
-import { readSafeArea, computeLayout } from './layout.js?v=0.33.0';
-import { Controls } from './controls.js?v=0.33.0';
-import { Game } from './game.js?v=0.33.0';
-import { unlockAudio, suspendAudio, setVolumes, sfx } from './audio.js?v=0.33.0';
-import { startMusic, stopMusic, musicPlaying, musicState } from './music.js?v=0.33.0';
-import { useDetail } from './detail.js?v=0.33.0';
-import { Menu } from './menu.js?v=0.33.0';
-import { save, store, reachLevel, catchUp, isHighScore, addScore } from './save.js?v=0.33.0';
-import { buzz, canVibrate, setVibrate, HAPTIC } from './feedback.js?v=0.33.0';
-import { Background } from './background.js?v=0.33.0';
-import { LEVELS } from './levels.js?v=0.33.0';
+import { VERSION, VIEW_W, VIEW_H, PAL } from './config.js?v=0.34.0';
+import { readSafeArea, computeLayout } from './layout.js?v=0.34.0';
+import { Controls } from './controls.js?v=0.34.0';
+import { Game } from './game.js?v=0.34.0';
+import { unlockAudio, suspendAudio, setVolumes, sfx } from './audio.js?v=0.34.0';
+import { startMusic, stopMusic, musicPlaying, musicState } from './music.js?v=0.34.0';
+import { useDetail } from './detail.js?v=0.34.0';
+import { Menu } from './menu.js?v=0.34.0';
+import { save, store, reachLevel, catchUp, isHighScore, addScore } from './save.js?v=0.34.0';
+import { buzz, canVibrate, setVibrate, HAPTIC } from './feedback.js?v=0.34.0';
+import { Background } from './background.js?v=0.34.0';
+import { LEVELS } from './levels.js?v=0.34.0';
+import { drawCover } from './titleart.js?v=0.34.0';
 
 const canvas = document.getElementById('screen');
 const ctx = useDetail(canvas.getContext('2d', { alpha: false }));
@@ -320,12 +321,17 @@ function render(dt) {
   ctx.fillStyle = PAL.void;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+  // The opening screen: its painted cover fills the whole screen (no bezel).
+  const covered = mode === 'menu' && menu.screen === 'splash' && drawCover(ctx, canvas.width, canvas.height, dt);
+
   // Screen bezel, like a handheld console.
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const g = L.game;
-  ctx.fillStyle = PAL.bezel;
-  roundRect(ctx, g.x - 6, g.y - 6, g.w + 12, g.h + 12, 10);
-  ctx.fill();
+  if (!covered) {
+    ctx.fillStyle = PAL.bezel;
+    roundRect(ctx, g.x - 6, g.y - 6, g.w + 12, g.h + 12, 10);
+    ctx.fill();
+  }
 
   // Game world, scaled up from game pixels.
   const k = L.scale * dpr; // device pixels per game pixel
@@ -335,8 +341,9 @@ function render(dt) {
   ctx.beginPath();
   ctx.rect(0, 0, VIEW_W, VIEW_H);
   ctx.clip();
-  if (mode === 'menu') menuBg().draw(ctx, snap);
-  else game.draw(ctx, snap);
+  if (mode === 'menu') {
+    if (!covered) menuBg().draw(ctx, snap);
+  } else game.draw(ctx, snap);
   if (menuShown()) {
     ctx.setTransform(k, 0, 0, k, Math.round(g.x * dpr), Math.round(g.y * dpr));
     menu.draw(ctx);

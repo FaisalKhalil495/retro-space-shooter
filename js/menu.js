@@ -1,14 +1,14 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.33.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.33.0';
-import { FINE, detailCanvas } from './detail.js?v=0.33.0';
-import { fillDisc } from './util.js?v=0.33.0';
-import { SPRITES } from './sprites.js?v=0.33.0';
-import { drawOrb } from './powerups.js?v=0.33.0';
-import { drawCapsule } from './weapons.js?v=0.33.0';
-import { LEVELS } from './levels.js?v=0.33.0';
-import { titleBadge, menuBadge } from './titleart.js?v=0.33.0';
-import { save, TOP, bestScore } from './save.js?v=0.33.0';
-import { whiteFrontArt } from './whitefront.js?v=0.33.0';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.34.0';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.34.0';
+import { FINE, detailCanvas } from './detail.js?v=0.34.0';
+import { fillDisc } from './util.js?v=0.34.0';
+import { SPRITES } from './sprites.js?v=0.34.0';
+import { drawOrb } from './powerups.js?v=0.34.0';
+import { drawCapsule } from './weapons.js?v=0.34.0';
+import { LEVELS } from './levels.js?v=0.34.0';
+import { titleBadge, menuBadge, titleLogo, cover } from './titleart.js?v=0.34.0';
+import { save, TOP, bestScore } from './save.js?v=0.34.0';
+import { whiteFrontArt } from './whitefront.js?v=0.34.0';
 
 // The menus: title screen, level select, high scores, options, how to play,
 // pause, game over, entering your initials and the "to be continued"
@@ -228,12 +228,25 @@ export class Menu {
   }
 
   drawSplash(ctx) {
-    ctx.drawImage(titleBadge(), 0, 0);
-    embers(ctx, this.t, 10, 170, 40, 60);
-    drawTextCentered(ctx, 'DEFEND THE WORLDS', 104, 104, PAL.bluePale);
+    // The painted cover (drawn by main.js behind the whole screen) with the
+    // title lettering on it; until it has loaded, the squadron badge.
+    const painted = !!cover.canvas;
+    if (painted) {
+      ctx.globalAlpha = cover.alpha;
+      ctx.drawImage(titleLogo(), 12, 3);
+      drawTextCentered(ctx, 'DEFEND THE WORLDS', 104.5, 31.5, PAL.ink);
+      drawTextCentered(ctx, 'DEFEND THE WORLDS', 104, 31, PAL.bluePale);
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.drawImage(titleBadge(), 0, 0);
+      embers(ctx, this.t, 10, 170, 40, 60);
+      drawTextCentered(ctx, 'DEFEND THE WORLDS', 104, 104, PAL.bluePale);
+    }
     if (this.t > 0.4 && Math.floor(this.t * 2.2) % 2 === 0) {
-      drawTextCentered(ctx, 'TAP TO CONTINUE', 104.5, 122.5, PAL.ink);
-      drawTextCentered(ctx, 'TAP TO CONTINUE', 104, 122, PAL.amberLight);
+      // (on the cover: left of your ship, under its trail)
+      const [x, y] = painted ? [76, 133] : [104, 122];
+      drawTextCentered(ctx, 'TAP TO CONTINUE', x + 0.5, y + 0.5, PAL.ink);
+      drawTextCentered(ctx, 'TAP TO CONTINUE', x, y, PAL.amberLight);
     }
   }
 

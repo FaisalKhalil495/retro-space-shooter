@@ -742,6 +742,21 @@ and 5 shown as coming soon. Menus approved from a picture sheet.)
   tap (which also goes full screen) leads to the main menu. The owner
   hated the old title lettering; menu and in-game text keep our small
   smooth letters.
+  **Painted cover (v0.34.0, owner: the drawn opening screen "does not look
+  great")**: the opening screen is now a painting that fills the whole
+  phone screen (`img/title-cover.jpg`, made by the owner with ChatGPT from
+  a prompt I wrote: your ship racing right past the worlds the invaders
+  hold, their warships far off; its first version had a white-and-red ship
+  like a Star Wars fighter, so it was redone with our ship's steel blue and
+  amber), darkened a little at the top, with our own "EMBER DRIFT"
+  lettering on one line (the badge's letters, painted much sharper:
+  `titleLogo()`), "DEFEND THE WORLDS" under it and "TAP TO CONTINUE" left
+  of the ship. No words are ever taken from the AI picture (it garbles
+  them; the name stays our own lettering everywhere). Only the opening
+  screen: the menus and the game stay pixel art (the main menu keeps the
+  small badge). Until the picture has loaded, the opening screen shows the
+  badge as before. The owner's exception to "all artwork our own", like
+  the Wolves' shapes.
 - **Main menu** (owner: "vertically aligned"): one column of buttons on
   the right — Continue (the level's name under it) or Play, New Game,
   Levels, High Scores, Options, How to Play — and a smaller badge on the
@@ -847,7 +862,9 @@ and 5 shown as coming soon. Menus approved from a picture sheet.)
   picture and let them choose before building.
 - Muted, warm palette: deep space blues, soft ambers, dusty reds.
 - **No neon colours and no neon glow effects.**
-- All names, ship, enemies, bosses, artwork and sounds are our own originals.
+- All names, ship, enemies, bosses, artwork and sounds are our own originals
+  (owner's exceptions: the Wolves' and Frostbreaker's shapes traced from
+  their paintings, and the opening screen's painted cover, v0.34.0).
 
 ### Sound
 - **Music: a serious action game, not a toy** (owner, after v0.28.0: the
@@ -965,7 +982,12 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
 - `js/titleart.js` — the title badge (plate, lettering, trail, ship),
   painted pixel by pixel at double detail: `titleBadge()` (the opening
   screen, 208x144) and `menuBadge()` (the main menu, 104x48), each painted
-  once; `paintBadge`/`paintSky` also make the link preview.
+  once; `paintBadge`/`paintSky` also make the link preview. Since v0.34.0
+  also the opening screen's painted cover (`cover`, `drawCover`: loaded as
+  the game opens, cropped to fill any screen, keeping the ship in view;
+  main.js draws it behind everything, without the bezel) and `titleLogo()`
+  (the lettering alone, 6 sharp pixels a game pixel).
+  `img/title-cover.jpg` — the cover (JPEG, about 200 KB).
   `js/shipmodel.js` — your ship as a small 3D model, lit and drawn as
   pixel art from any angle (`renderShip`).
 - `js/menu.js` — every menu screen (opening screen 'splash', main menu 'title', levels, scores, options, help,

@@ -1,6 +1,6 @@
-import { PAL } from './config.js?v=0.33.0';
-import { detailCanvas, rgba } from './detail.js?v=0.33.0';
-import { renderShip } from './shipmodel.js?v=0.33.0';
+import { PAL } from './config.js?v=0.34.0';
+import { detailCanvas, rgba } from './detail.js?v=0.34.0';
+import { renderShip } from './shipmodel.js?v=0.34.0';
 
 // The title: "EMBER DRIFT" in our own angular, forward-slanted lettering
 // (a metal face lit pale above a dark horizon line and amber below, a
@@ -250,4 +250,78 @@ export function menuBadge() {
     small = toPicture(S, 104, 48);
   }
   return small;
+}
+
+// ---------------------------------------------------------------- the cover
+// The opening screen's painted cover (v0.34.0; the owner's picture, made
+// with ChatGPT: your ship racing past the worlds the invaders hold). It
+// fills the whole phone screen behind the title, darkened a little at the
+// top so the lettering reads. Loaded as the game opens; until it's ready
+// the opening screen shows the squadron badge instead.
+export const cover = { canvas: null, alpha: 0 };
+{
+  const img = new Image();
+  img.src = 'img/title-cover.jpg?v=0.34.0';
+  img.decode().then(() => {
+    const c = document.createElement('canvas');
+    c.width = img.naturalWidth;
+    c.height = img.naturalHeight;
+    const x = c.getContext('2d');
+    x.drawImage(img, 0, 0);
+    const shade = x.createLinearGradient(0, 0, 0, c.height * 0.36);
+    shade.addColorStop(0, 'rgba(8,12,24,0.6)');
+    shade.addColorStop(1, 'rgba(8,12,24,0)');
+    x.fillStyle = shade;
+    x.fillRect(0, 0, c.width, c.height * 0.36);
+    cover.canvas = c;
+  }, () => {}); // (no cover: the badge stays)
+}
+
+// Draws the cover over the whole screen (device pixels), cropped to fit
+// it, keeping your ship and the worlds in view; fades in once loaded.
+export function drawCover(ctx, w, h, dt) {
+  const c = cover.canvas;
+  if (!c) return false;
+  cover.alpha = Math.min(1, cover.alpha + dt * 3);
+  const s = Math.max(w / c.width, h / c.height);
+  const dw = c.width * s;
+  const dh = c.height * s;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.imageSmoothingEnabled = true; // (a painting, not pixel art)
+  ctx.globalAlpha = cover.alpha;
+  ctx.drawImage(c, (w - dw) * 0.62, (h - dh) * 0.4, dw, dh);
+  ctx.restore();
+  return true;
+}
+
+// The title lettering alone, for the cover: one line, "EMBER DRIFT", the
+// same letters as the badge's, painted much sharper (LOGO_RES sharp pixels
+// a game pixel) since it sits on a painting. 184 x 26 game pixels.
+const LOGO_RES = 6;
+let logo = null;
+export function titleLogo() {
+  if (!logo) {
+    const w = 184;
+    const h = 26;
+    const S = surface(w * LOGO_RES, h * LOGO_RES);
+    const sc = 1.66 * LOGO_RES;
+    const gap = sc * 3;
+    const we = wordWidth('EMBER') * sc;
+    const wd = wordWidth('DRIFT') * sc;
+    const left = (S.W - (we + gap + wd)) / 2 + sc * 1.4;
+    const word = (wrd, x0, glint) => logoWord(S, wrd, (u, v) => [x0 + (u - v * 0.25) * sc, sc * 0.4 + v * sc], { depth: Math.round(sc * 1.4), glint });
+    word('EMBER', left, (left + we * 0.6) / S.W);
+    word('DRIFT', left + we + gap, (left + we + gap + wd * 0.5) / S.W);
+    const lo = document.createElement('canvas');
+    lo.width = w;
+    lo.height = h;
+    const hi = document.createElement('canvas');
+    hi.width = S.W;
+    hi.height = S.H;
+    hi.getContext('2d').putImageData(new ImageData(new Uint8ClampedArray(S.buf.buffer), S.W, S.H), 0, 0);
+    lo.hi = hi;
+    logo = lo;
+  }
+  return logo;
 }
