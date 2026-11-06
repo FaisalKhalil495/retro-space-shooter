@@ -635,7 +635,37 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    (`tools/white-front/boss/landship.js`), in **its own colours, olive and
    cream** (owner's pick over the Wolves' gunmetal): the commander's own
    ship. About 125 x 38 game pixels; it slides on the snow, never flies or
-   walks. Attacks, stages and weak point: to be agreed next.
+   walks. **Its fight (owner approved the "hard version" after v0.32.0;
+   owner: "very challenging", like the Glacier Warden, "hard but it was
+   fun to finally defeat"):** name card "FROSTBREAKER / FLAGSHIP OF THE
+   WHITE FRONT"; entrance: a ship's horn off-screen, smoke at the right
+   edge, then it smashes through a snow drift on its runners. It slides
+   back and forth on the right, surging and charging (further and faster
+   each stage). **Weak point earned twice**: the drill cannon's core sits
+   behind its plough blades, which you shoot apart to open a gap, and
+   even then the core can only be hurt while the cannon spins up, fires
+   and a moment after; small welding drones fly out to bolt the blades
+   back (shoot them and the gap stays open); fresh blades each stage;
+   specials obey the same rules. Attacks, each warned: **drill cannon**
+   (barrel tilts, red aim line, heavy drill shell), **searchlight guns**
+   (a beam sweeps the sky, tracer fire just behind it), **plough blast**
+   (ploughs dig in, a fan of ice chunks); stage 2+: **ram charge** (horn,
+   engines, it charges across pushing a wall of snow: fly over),
+   **cinder rain** (stacks glow and smoke, burning cinders arc up and fall
+   on red marks); stage 3: **full steam** (hiss, then scalding steam
+   jets straight up from the side engines, the cannon firing faster) and
+   **Rocket Sled support** (rocket columns called in mid-fight). Stage 1
+   one attack at a time, stage 2 pairs, stage 3 three at once with blades
+   rebuilding faster. Stages at 66% / 33%: "YOU HOLED MY FUCKING HULL"
+   (nose armour blows off), "ALL ENGINES. BURN IT." (burning, a mast
+   down); taunt "FULL AHEAD. CRUSH IT."; kill line "UNDER THE RUNNERS".
+   No safe spot (high, low, in front, far left: a test, within 20 s of
+   stage 3). Measured on autopilot: a bit longer than the Warden's fight,
+   at least its hits a minute, core open about 30% of the time. Supply
+   pods, stage bonuses, the boss checkpoint as usual. Death: engines blow
+   one by one, masts topple, the bridge erupts, it slews sideways, the
+   plough digs in, a huge blast, a burning wreck left on the snow. Its
+   own boss song approved by ear before it's built.
 5. **The Ember Mines** — underground tunnels lit by soft amber crystals;
    ceiling and floor squeeze the space. Boss: **The Drill Worm**, a mechanical
    worm bursting from walls above and below.
