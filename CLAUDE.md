@@ -670,12 +670,16 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    **Built (v0.33.0, `js/frostbreaker.js`)**: the painting baked at double
    detail (`tools/white-front/boss/bake-landship.mjs` -> `js/
    landshipart.js`: three hull looks, its guard blades as separate
-   pictures, the places the game needs), 126 x 39 game pixels, its
-   runners on the snow. The **guard: two cream plough blades in a V in
+   pictures, the places the game needs), 116 x 36 game pixels (owner,
+   after v0.35.0: "a little bit" smaller; it was 126 x 39), its runners
+   on the snow. The **guard: two cream plough blades in a V in
    front of the drill cannon's muzzle** (the top blade guards the core's
    upper rows, the lower one its lower rows; its own lower plough covers
-   the muzzle's bottom), 6 hits each, +50 for one; a gap is about 3 px
-   tall (both off: 7). A drone sets out 2.4 / 2.0 / 1.4 s after a blade
+   the muzzle's bottom), 6 hits each, +50 for one; the top gap is 3 px
+   tall, the lower one 4 (both off: 9; kept the same when the ship was
+   made smaller: a shot at a blade's height always reaches that blade,
+   even past the hull's edge in front of it, and the core's front reaches
+   past the tip of its lower plough). A drone sets out 2.4 / 2.0 / 1.4 s after a blade
    breaks and welds for 2.6 / 2.2 / 1.7 s (2 hits, 30 pts; a drone shot
    down means a fresh wait). The core is open only during the drill
    cannon (its aim line 0.85 / 0.75 / 0.6 s, and 1.5 s after the shell);
@@ -686,11 +690,13 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    opens the core); stage 2 pairs (never the ram with the cannon), stage 3
    threes (never the ram with steam), staggered 0.8 / 0.65 s. The
    searchlight's slice is centred on you, even over its deck or behind
-   it; a ship behind it gets crushed against the edge (it backs up). 280
-   HP. Measured (6 seeds, the level test's autopilot with specials): the
-   fight about 100 s against the Warden's 93, a never-dodging mortal
-   autopilot loses 21 blocks a minute against the Warden's 19, the core
-   open 28% of the fight. Its drill shell is its own kind of shot (a shot
+   it; a ship behind it gets crushed against the edge (it backs up). 230
+   HP (280 before v0.35.1's smaller ship). Its aim point (rockets, bonus
+   items) is the middle of the lower gap. Measured (6 seeds, the level
+   test's autopilot with specials): the fight about 97 s against the
+   Warden's 93, a never-dodging mortal autopilot loses about 23 blocks a
+   minute against the Warden's 19, the core open about 25% of the
+   fight. Its drill shell is its own kind of shot (a shot
    with a `draw` of its own: Game.draw calls it).
 5. **The Ember Mines** — underground tunnels lit by soft amber crystals;
    ceiling and floor squeeze the space. Boss: **The Drill Worm**, a mechanical

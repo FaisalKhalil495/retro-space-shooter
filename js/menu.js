@@ -1,14 +1,14 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.35.0';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.35.0';
-import { FINE, detailCanvas } from './detail.js?v=0.35.0';
-import { fillDisc } from './util.js?v=0.35.0';
-import { SPRITES } from './sprites.js?v=0.35.0';
-import { drawOrb } from './powerups.js?v=0.35.0';
-import { drawCapsule } from './weapons.js?v=0.35.0';
-import { LEVELS } from './levels.js?v=0.35.0';
-import { titleBadge, menuBadge, titleLogo, titleLogoStacked, cover } from './titleart.js?v=0.35.0';
-import { save, TOP, bestScore } from './save.js?v=0.35.0';
-import { whiteFrontArt } from './whitefront.js?v=0.35.0';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.35.1';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.35.1';
+import { FINE, detailCanvas } from './detail.js?v=0.35.1';
+import { fillDisc } from './util.js?v=0.35.1';
+import { SPRITES } from './sprites.js?v=0.35.1';
+import { drawOrb } from './powerups.js?v=0.35.1';
+import { drawCapsule } from './weapons.js?v=0.35.1';
+import { LEVELS } from './levels.js?v=0.35.1';
+import { titleBadge, menuBadge, titleLogo, titleLogoStacked, cover } from './titleart.js?v=0.35.1';
+import { save, TOP, bestScore } from './save.js?v=0.35.1';
+import { whiteFrontArt } from './whitefront.js?v=0.35.1';
 
 // The menus: title screen, level select, high scores, options, how to play,
 // pause, game over, entering your initials and the "to be continued"

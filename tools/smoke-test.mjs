@@ -2488,7 +2488,8 @@ for (const phone of PHONES) {
   await page.waitForTimeout(300);
   await page.evaluate(() => window.__ember.play());
   await page.waitForTimeout(300);
-  const r = await page.evaluate(() => {
+  const r = await page.evaluate(async () => {
+    const { gapRow, steamJets } = await import('/js/frostbreaker.js' + new URL(document.querySelector('script[type=module]').src).search);
     window.__ember.frozen = true;
     const g = window.__ember.game;
     const idle = { dx: 0, dy: 0, fire: false, special: false, tap: false };
@@ -2523,9 +2524,11 @@ for (const phone of PHONES) {
     const cannon = (b) => {
       b.round = [{ name: 'drill', t: 0, wait: 0, done: false }];
     };
-    // Your guns lined up with a gap: the top blade's (row 18) or the lower one's (row 22).
+    // Your guns lined up with a gap: the top blade's or the lower one's
+    // (a shot's middle is 6 px below your ship's top).
+    const ROW = [gapRow(0), gapRow(1)];
     const lineUp = (b, row) => {
-      g.player.y = b.y + row + 0.5 - 6;
+      g.player.y = b.y + ROW[row] - 6;
     };
     const blades = (b) => b.blades.map((B) => B.hp).join(',');
     const res = {};
@@ -2539,7 +2542,7 @@ for (const phone of PHONES) {
     for (let i = 0; i < 3 * 120; i++) {
       g.player.invuln = 1;
       hold(b);
-      lineUp(b, 18);
+      lineUp(b, 0);
       g.update(1 / 120, fire);
       if (firstBlade === null && b.blades[0].hp < full) firstBlade = { untouched: b.hp === b.maxHp, open: b.T.isVulnerable(b) };
     }
@@ -2549,7 +2552,7 @@ for (const phone of PHONES) {
     for (let i = 0; i < 2 * 120; i++) {
       g.player.invuln = 1;
       hold(b);
-      lineUp(b, 18);
+      lineUp(b, 0);
       if (!b.round) cannon(b);
       g.update(1 / 120, fire);
     }
@@ -2561,7 +2564,7 @@ for (const phone of PHONES) {
     for (let i = 0; i < 2 * 120; i++) {
       g.player.invuln = 1;
       hold(b);
-      lineUp(b, 22);
+      lineUp(b, 1);
       if (!b.round) cannon(b);
       g.update(1 / 120, fire);
     }
@@ -2576,7 +2579,7 @@ for (const phone of PHONES) {
     res.bomb = blades(b);
     // The laser cuts through a blade to the core (while the cannon fires).
     b = fresh();
-    lineUp(b, 18);
+    lineUp(b, 0);
     cannon(b);
     g.weapons.kind = 'laser';
     g.weapons.ammo = 1;
@@ -2584,7 +2587,7 @@ for (const phone of PHONES) {
     for (let i = 0; i < 0.8 * 120; i++) {
       g.player.invuln = 1;
       hold(b);
-      lineUp(b, 18);
+      lineUp(b, 0);
       if (!b.round) cannon(b);
       g.update(1 / 120, idle);
     }
@@ -2631,7 +2634,7 @@ for (const phone of PHONES) {
       b = fresh(3);
       g.player.x = 30;
       g.player.y = name === 'steam' ? 20 : 100;
-      if (name === 'steam') g.player.x = b.x + 66;
+      if (name === 'steam') g.player.x = b.x + steamJets()[0] - 9.5; // (over its first jet)
       b.round = [{ name, t: 0, wait: 0, done: false }];
       let first = null;
       const shots0 = g.enemyShots.length;

@@ -11,7 +11,7 @@ const rings = (x0, x1, y0, y1, n, m, t) => Array.from({ length: n }, (_, k) => {
   return { line: [x, y0, x, y1], m, t };
 });
 export const LANDSHIP = {
-  name: 'LANDSHIP', width: 250,
+  name: 'LANDSHIP', width: 230,
   muzzles: [[180, 262]],
   shapes: [
     // ---- masts and aerials (behind everything)
