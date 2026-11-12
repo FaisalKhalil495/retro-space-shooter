@@ -1,12 +1,12 @@
-import { VIEW_W, HUD_H, PAL } from './config.js?v=0.35.1';
-import { sfx } from './audio.js?v=0.35.1';
-import { clamp, fillDisc } from './util.js?v=0.35.1';
-import { FINE, snapFine, detailCanvas } from './detail.js?v=0.35.1';
-import { METAL, MOLTEN } from './gore.js?v=0.35.1';
-import { BOMB_DAMAGE } from './weapons.js?v=0.35.1';
-import { GROUND_SPEED } from './terrain.js?v=0.35.1';
-import { burstRing } from './wolves.js?v=0.35.1';
-import { LANDSHIP_PAL, LANDSHIP_POINTS, LANDSHIP_HULL, LANDSHIP_BLADES } from './landshipart.js?v=0.35.1';
+import { VIEW_W, HUD_H, PAL } from './config.js?v=0.36.0';
+import { sfx } from './audio.js?v=0.36.0';
+import { clamp, fillDisc } from './util.js?v=0.36.0';
+import { FINE, snapFine, detailCanvas } from './detail.js?v=0.36.0';
+import { METAL, MOLTEN } from './gore.js?v=0.36.0';
+import { BOMB_DAMAGE } from './weapons.js?v=0.36.0';
+import { GROUND_SPEED } from './terrain.js?v=0.36.0';
+import { burstRing } from './wolves.js?v=0.36.0';
+import { LANDSHIP_PAL, LANDSHIP_POINTS, LANDSHIP_HULL, LANDSHIP_BLADES } from './landshipart.js?v=0.36.0';
 
 // FROSTBREAKER · FLAGSHIP OF THE WHITE FRONT — boss of level 4.
 //
@@ -40,7 +40,7 @@ import { LANDSHIP_PAL, LANDSHIP_POINTS, LANDSHIP_HULL, LANDSHIP_BLADES } from '.
 export const SHIP_W = LANDSHIP_HULL[0][0].length / 2;
 export const SHIP_H = LANDSHIP_HULL[0].length / 2;
 const SINK = SHIP_H - 1; // its runners' undersides, from its top (they rest on the snow)
-const HP = 230;
+const HP = 210;
 const BLADE_HP = 6;
 const SPEED = [0, 20, 26, 32]; // how fast it slides about
 const IDLE = [0, 0.95, 0.8, 0.65];
@@ -123,6 +123,17 @@ const HOLES = LANDSHIP_POINTS.holes.map(([x, y]) => ({ x: x / 2, y: y / 2 }));
 // its blades (its lower plough covers the muzzle's bottom).
 const CORE = { front: PT.tip.x - 4, x1: PT.muzzleBack.x, y0: PT.coreTop.y, y1: PT.coreBottom.y };
 const SEARCH = { x: PT.bridge.x - 4, y: PT.bridge.y + 1 }; // the searchlight on the bridge roof
+// Its other two weak points (owner, after v0.35.1: one place to hit kept
+// you pinned low in front; "I want to move all over"): the searchlight's
+// lamp and the bridge front it sits on (middle height), open while its beam
+// sweeps; and its exhaust stacks (high, at the back), open while they glow
+// (cinder rain, revving up to ram). Each a box from its top-left corner,
+// in game pixels; shots reach them past its thin masts.
+const SPOTS = {
+  search: { x0: PT.bridge.x - 13, x1: SEARCH.x + 4, y0: SEARCH.y - 3, y1: SEARCH.y + 2.5 },
+  stacks: { x0: PT.stackA.x - 5, x1: PT.stackB.x + 5, y0: PT.stackB.y - 2.5, y1: PT.stackA.y + 4 },
+};
+const RAM_STOP = 10; // its ram charge stops with its nose this far in from the left edge
 const PLOUGH = { x: PT.tip.x - 1, y: PT.tip.y + 9 }; // where the plough throws its ice
 const JETS = [PT.engineA.x, PT.engineB.x]; // the steam jets, over its side engines
 const JET_W = 9;
@@ -131,6 +142,29 @@ let ART = null;
 export function buildFrostbreakerArt() {
   if (ART) return ART;
   const hull = LANDSHIP_HULL.map((rows) => picture(rows));
+  // What stops a shot: its hull without its masts and aerials (runs at
+  // most 2 pixels wide above the deck: a mast and its outline).
+  for (const h of hull) {
+    const W = h.width;
+    h.block = h.mask.slice();
+    for (let y = 0; y < Math.floor(SHIP_H * 0.4); y++) {
+      for (let x = 0; x < W; ) {
+        if (!h.mask[y * W + x]) {
+          x++;
+          continue;
+        }
+        let x1 = x;
+        while (x1 < W && h.mask[y * W + x1]) x1++;
+        if (x1 - x <= 2) for (let k = x; k < x1; k++) h.block[y * W + k] = 0;
+        x = x1;
+      }
+    }
+    // (and above the bridge roof, everything in front of the stacks: masts
+    // and small gun mounts that would otherwise hide them)
+    for (let y = 0; y < Math.floor(SPOTS.search.y0); y++) {
+      for (let x = 0; x < SPOTS.stacks.x0; x++) h.block[y * W + x] = 0;
+    }
+  }
   const blades = LANDSHIP_BLADES.map((B) => {
     const pic = picture(B.rows);
     const rows = new Set(); // (the heights it guards, in the ship's game pixels)
@@ -153,6 +187,8 @@ export function gapRow(k) {
   gapRows[k] = rows.length ? rows[Math.floor(rows.length / 2)] + 0.5 : null;
   return gapRows[k];
 }
+// For the tests: the height to aim at its searchlight and its stacks.
+export const spotRow = (key) => (key === 'search' ? SEARCH.y : PT.stackB.y);
 // For the tests: where its steam jets rise (from its left edge).
 export const steamJets = () => JETS.slice();
 // For the tests: are its pictures painted yet? And every picture it draws.
@@ -370,6 +406,7 @@ const ATTACKS = {
     }
     const at_ = (t) => a.from + (a.to - a.from) * clamp((t - warn) / sweep, 0, 1);
     if (a.t < warn + sweep) e.beamA = { x: s.x, y: s.y, ang: dir(at_(a.t)), on: a.t >= warn || Math.floor(a.t * 20) % 2 === 0 };
+    if (a.t < warn + sweep + lag) e.searchOpen = true; // (its lamp is open while it shines)
     if (a.t >= warn + lag && a.t < warn + sweep + lag) {
       a.fire -= dt;
       const inBurst = ((a.t - warn - lag) % 0.34) < 0.19;
@@ -447,16 +484,28 @@ const ATTACKS = {
       if (g.rand() < 0.8) g.burst(e.x - 4 + g.rand() * 6, g.terrain.floorY - 4 - g.rand() * 10, 2, 70, SNOWY);
       // The wall of snow ahead of its plough hurts too.
       if (g.playerVulnerable() && g.touchesPlayer(e.x - 12, g.terrain.floorY - 15, 14, 15)) g.hurtPlayer(3, e);
-      if (e.x < -SHIP_W - 16) {
-        a.stage = 'back';
-        e.x = VIEW_W + 24;
-        e.vx = -60;
+      if (e.x <= RAM_STOP) {
+        // It brakes hard, ploughing up a spray of snow...
+        e.x = RAM_STOP;
+        a.stage = 'brake';
+        a.brake = 0;
+        e.vx = 0;
+        g.shake = Math.max(g.shake, 4);
+        sfx.stomp();
+        for (let i = 0; i < 24; i++) g.burst(e.x - 6 + g.rand() * 14, g.terrain.floorY - g.rand() * 14, 2, 90, SNOWY);
       }
       return false;
     }
-    // Back in from the right, to where it likes to be.
-    slide(e, clamp((HOME_X - 10 - e.x) * 2, -70, 0), dt);
-    return e.x <= HOME_X - 8;
+    if (a.stage === 'brake') {
+      a.brake += dt;
+      e.shudder = 1;
+      if (a.brake > 0.5) a.stage = 'back';
+      return false;
+    }
+    // ...then reverses back to where it likes to be, on the right.
+    slide(e, clamp((HOME_X - 10 - e.x) * 3, 0, 80), dt);
+    if (g.rand() < 0.4) smoke(e, g, 1);
+    return e.x >= HOME_X - 13;
   },
 
   // Cinder rain: its stacks glow and belch smoke (0.7 s), then burning
@@ -480,6 +529,7 @@ const ATTACKS = {
       if (g.rand() < 0.5) smoke(e, g, 1);
       return false;
     }
+    if (a.k < a.cols.length || a.t < a.next + 1) e.glowStacks = 1; // (still hot: open)
     if (a.k < a.cols.length && a.t >= a.next) {
       const st = at(e, a.k % 2 ? PT.stackB : PT.stackA);
       g.spawnEnemy('cinder', st.x - 2, st.y - 2, { sx: st.x, sy: st.y, tx: a.cols[a.k] });
@@ -603,6 +653,7 @@ export const FROSTBREAKER_TYPE = {
     e.x = VIEW_W + 40;
     e.y = g.terrain.floorY - SINK;
     e.vx = 0;
+    e.surge = 1;
     e.mode = 'enter';
     e.timer = 0;
     e.phase = 1;
@@ -621,6 +672,7 @@ export const FROSTBREAKER_TYPE = {
   update(e, dt, g) {
     e.timer += dt;
     e.coreOpen = false;
+    e.searchOpen = false;
     e.aim = null;
     e.beamA = null;
     e.dig = 0;
@@ -759,6 +811,8 @@ export const FROSTBREAKER_TYPE = {
   // Its weak point: the middle of the lower blade's gap, in front of the
   // muzzle (where rockets and bonus items aim).
   aimPoint(e) {
+    if (e.searchOpen) return at(e, SEARCH);
+    if (e.glowStacks) return { x: e.x + (SPOTS.stacks.x0 + SPOTS.stacks.x1) / 2, y: e.y + PT.stackA.y };
     return { x: e.x + PT.muzzle.x, y: e.y + (gapRow(1) ?? PT.muzzle.y) };
   },
 
@@ -792,7 +846,7 @@ export const FROSTBREAKER_TYPE = {
   // The core can be hurt while the drill cannon is firing and a blade is
   // off (a shot gets through only at the gap's height).
   isVulnerable(e) {
-    return e.mode === 'fight' && e.coreOpen && gap(e);
+    return e.mode === 'fight' && ((e.coreOpen && gap(e)) || e.searchOpen || !!e.glowStacks);
   },
 
   hitTest(e, x, y, w, h) {
@@ -906,9 +960,44 @@ export const FROSTBREAKER_TYPE = {
     // Glowing stack tops (cinders or a charge coming), blinking bridge
     // lights (rockets called in).
     const blink = Math.floor(g.time * 12) % 2 === 0;
-    if (e.glowStacks && blink) {
+    const pulse = Math.floor(g.time * 6) % 2 === 0;
+    // Its open weak points glow: a warm halo, a bright core and, blinking,
+    // an amber ring round them (the same look as its open cannon).
+    const halo = (cx, cy, r) => {
+      ctx.globalAlpha = pulse ? 0.55 : 0.35;
       ctx.fillStyle = EMBER[1];
-      for (const p of [PT.stackA, PT.stackB]) ctx.fillRect(x + p.x - 2, y + p.y, 4, 1);
+      fillDisc(ctx, cx, cy, r);
+      ctx.globalAlpha = 1;
+      if (pulse) {
+        ctx.save();
+        ctx.strokeStyle = PAL.amberLight;
+        ctx.lineWidth = FINE;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r + 1.5, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    };
+    if (e.glowStacks) {
+      // Its stacks glowing red-hot: open to your shots.
+      halo(x + (PT.stackA.x + PT.stackB.x) / 2, y + (PT.stackA.y + PT.stackB.y) / 2 + 1, 5.5);
+      for (const p of [PT.stackA, PT.stackB]) {
+        ctx.fillStyle = pulse ? EMBER[0] : EMBER[1];
+        ctx.fillRect(x + p.x - 2.5, y + p.y - 0.5, 5, 1.5);
+        ctx.fillStyle = EMBER[2];
+        ctx.fillRect(x + p.x - 2, y + p.y + 1, 4, 1.5);
+      }
+    }
+    // The searchlight: a lamp on the bridge roof, lit and glowing while it
+    // shines (open to your shots), dark and shuttered otherwise.
+    {
+      const lx = x + SEARCH.x;
+      const ly = y + SEARCH.y;
+      if (e.searchOpen) halo(lx, ly, 4);
+      ctx.fillStyle = PAL.ink;
+      fillDisc(ctx, lx, ly, 2.5);
+      ctx.fillStyle = e.searchOpen ? (pulse ? PAL.cream : PAL.amberLight) : '#4d5659';
+      fillDisc(ctx, lx - 0.5, ly, 2);
     }
     if (e.radio && blink) {
       ctx.fillStyle = PAL.red;
@@ -964,7 +1053,8 @@ function scan(e, x, y, w, h, shots) {
   const ry = y - e.y;
   // A shot counts along its centre line; your ship by its whole height.
   const rows = shots || h <= 2 ? [ry + h / 2] : [ry + 0.5, ry + h / 2, ry + h - 0.5];
-  const mask = ART.hull[look(e)].mask;
+  const mask = ART.hull[look(e)].block;
+  const open = e.mode === 'fight';
   for (let cx = rx0; cx <= rx1; cx++) {
     for (const r of rows) {
       const yy = Math.floor(r);
@@ -995,6 +1085,15 @@ function scan(e, x, y, w, h, shots) {
         if (!shots) return 'hit';
         e.hitBlade = -1;
         return e.mode === 'fight' && e.coreOpen ? 'hit' : 'block';
+      }
+      // The searchlight and the stacks: a hit anywhere in their box while
+      // they're open (the glow round them counts).
+      for (const [key, on] of [['search', e.searchOpen], ['stacks', e.glowStacks]]) {
+        const Z = SPOTS[key];
+        if (shots && on && open && cx >= Z.x0 && cx < Z.x1 && r >= Z.y0 && r < Z.y1) {
+          e.hitBlade = -2;
+          return 'hit';
+        }
       }
       if (mask[yy * SHIP_W + cx]) return shots ? 'block' : 'hit';
     }

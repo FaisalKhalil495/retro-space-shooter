@@ -691,13 +691,26 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    opens the core); stage 2 pairs (never the ram with the cannon), stage 3
    threes (never the ram with steam), staggered 0.8 / 0.65 s. The
    searchlight's slice is centred on you, even over its deck or behind
-   it; a ship behind it gets crushed against the edge (it backs up). 230
-   HP (280 before v0.35.1's smaller ship). Its aim point (rockets, bonus
-   items) is the middle of the lower gap. Measured (6 seeds, the level
-   test's autopilot with specials): the fight about 97 s against the
-   Warden's 93, a never-dodging mortal autopilot loses about 23 blocks a
-   minute against the Warden's 19, the core open about 25% of the
-   fight. Its drill shell is its own kind of shot (a shot
+   it; a ship behind it gets crushed against the edge (it backs up).
+   **Three weak points at three heights (v0.36.0; owner, after v0.35.1:
+   one place to hit was no fun, "I want to move all over the area")**:
+   the drill cannon's core (low, in front; as above), the **searchlight**
+   on the bridge roof (middle height: the lamp and the bridge front it
+   sits on, open while its beam shines and sweeps), and the **exhaust
+   stacks** (high, at the back: open while they glow, during cinder rain
+   and while it revs up to ram, so from stage 2). An open one glows with a
+   warm halo and a blinking amber ring; shots reach the stacks past its
+   thin masts (masts and small gun mounts in front of them don't stop
+   shots). Its aim point (rockets, bonus items) is whichever is open,
+   else the lower gap. **Its ram charge stays on screen** (v0.36.0; owner:
+   vanishing off the left and coming back from the right "does not make
+   any sense"): it charges to 10 px from the left edge pushing its snow
+   wall (fly over), brakes in a spray of snow (0.5 s) and reverses back to
+   the right. 210 HP (280 at first, 230 for v0.35.1's smaller ship).
+   Measured (6 seeds, the level test's autopilot with specials): the
+   fight about 100 s against the Warden's 93, a never-dodging mortal
+   autopilot loses about 25 blocks a minute against the Warden's 19, a
+   weak point open about 60% of the fight. Its drill shell is its own kind of shot (a shot
    with a `draw` of its own: Game.draw calls it).
 5. **The Ember Mines** — underground tunnels lit by soft amber crystals;
    ceiling and floor squeeze the space. Boss: **The Drill Worm**, a mechanical
@@ -1156,7 +1169,9 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   once (it was loaded as the level started); level 4 plays its own theme, and its boss warning switches to Frostbreaker's song at once.
 - The smoke test's "Frostbreaker rules" check (v0.33.0): a blade takes
   shots first, the core only through a gap and only while the cannon
-  fires (both gaps), a bomb and the laser, rockets, a drone welds a blade
+  fires (both gaps), the searchlight only while it shines and the stacks
+  only while they glow (v0.36.0), the ram charge never leaves the screen
+  and comes back (v0.36.0), a bomb and the laser, rockets, a drone welds a blade
   back unless shot down, every attack warns at least 0.3 s, flying over
   the ram charge is safe, no safe spot within 20 s of stage 3 (front,
   top, low, far left, over it, behind it), bumping costs 2, and stage 2
