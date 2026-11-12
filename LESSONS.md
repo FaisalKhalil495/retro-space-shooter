@@ -168,6 +168,21 @@ Last updated: v0.28.0, after the owner's questions about the music and real apps
   threatening, or be out of sight.
 - **Hard targets must still die quickly once open**: turrets felt "very
   hard to kill" until their open window and hit area grew (1.2 s to kill).
+- **A boss's last stage must stay readable** (v0.37.0). Frostbreaker's
+  stage 3 ran three attacks at once, each starting 0.65 s after the last,
+  with 0.65 s of rest: the warnings piled on top of each other and the
+  owner said it "fired everything all at once". Hard means faster and
+  meaner, not more at once: at most two attacks together (one that fills
+  the screen, one aimed at you), the second starting only after the
+  first's warning is over, a real rest between rounds, room to dodge, and
+  a regular moment to punish it (its overheat after full steam). Two
+  attacks that do the same job (cinders and rocket columns, both falling
+  from the sky) is one too many. Measure by the numbers, not just "how
+  many blocks a minute": v0.36.0 out-hit the Warden and still felt unfair.
+- **Plan health from measurement, not from a guess**: the 180 HP proposed
+  for v0.37.0 made a 56-s fight, because a fairer boss also gives more
+  openings; it went to 270 to keep the promised length (and the owner was
+  told).
 
 **Numbers the owner has set (and cares about)**
 - Level 1 ≈ 3 minutes before the boss, in three parts.

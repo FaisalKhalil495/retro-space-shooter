@@ -2476,9 +2476,11 @@ for (const phone of PHONES) {
 }
 
 // Frostbreaker (v0.33.0): its weak point is earned twice (shoot a blade
-// off, then hit the core while the drill cannon fires), its drones weld
-// blades back unless shot, specials obey the same rules, every attack warns
-// first, flying over its ram charge is safe, and there's no safe spot.
+// off, then hit the core while the drill cannon fires), specials obey the
+// same rules, every attack warns first, flying over its ram charge is safe,
+// and there's no safe spot. v0.37.0: a broken blade stays broken, it
+// overheats after full steam, never more than two attacks at once, and it
+// keeps out of the left of the screen.
 {
   const context = await browser.newContext({ viewport: { width: 915, height: 412 }, isMobile: true, hasTouch: true });
   const page = await context.newPage();
@@ -2505,6 +2507,7 @@ for (const phone of PHONES) {
       const b = g.spawnEnemy('frostbreaker', 0, 0);
       Object.assign(b, { mode: 'fight', entered: true, taunted: true, drift: null, x: 70, phase, idle: 99, round: null });
       b.dest = b.x;
+      if (phase > 1) for (const B of b.blades) B.hp = 0; // (its blades go with its nose armour)
       return b;
     };
     const hold = (b, x = 70) => {
@@ -2548,7 +2551,6 @@ for (const phone of PHONES) {
     }
     const shutHp = b.hp;
     res.armour = { firstBlade, blades: blades(b), shut: b.maxHp - shutHp };
-    b.blades[0].wait = 1e9; // (no drone for now)
     for (let i = 0; i < 2 * 120; i++) {
       g.player.invuln = 1;
       hold(b);
@@ -2560,7 +2562,6 @@ for (const phone of PHONES) {
     // Through the lower gap too (its own blade off).
     b = fresh();
     b.blades[1].hp = 0;
-    b.blades[1].wait = 1e9;
     for (let i = 0; i < 2 * 120; i++) {
       g.player.invuln = 1;
       hold(b);
@@ -2592,6 +2593,36 @@ for (const phone of PHONES) {
       return { shut, open: hp0 - b.hp };
     };
     res.spots = { search: spot('search', 'search', 1), stacks: spot('stacks', 'cinders', 2) };
+    // After full steam it overheats: its hull hurts at the holes' heights
+    // (and not before).
+    {
+      b = fresh(3);
+      const aim = () => {
+        g.player.invuln = 1;
+        hold(b);
+        g.player.x = 20;
+        g.player.y = b.y + 17 - 6;
+      };
+      for (let i = 0; i < 1.5 * 120; i++) {
+        aim();
+        g.update(1 / 120, fire);
+      }
+      const shut = b.maxHp - b.hp;
+      b.round = [{ name: 'steam', t: 0, wait: 0, done: false }];
+      let before = 0;
+      let during = 0;
+      let hotFor = 0;
+      for (let i = 0; i < 6 * 120 && b.round; i++) {
+        aim();
+        const hp = b.hp;
+        g.update(1 / 120, fire);
+        if (b.overheat) {
+          during += hp - b.hp;
+          hotFor += 1 / 120;
+        } else before += hp - b.hp;
+      }
+      res.overheat = { shut, before, during, hotFor: +hotFor.toFixed(2) };
+    }
 
     // A bomb blows both blades off at once.
     b = fresh();
@@ -2625,35 +2656,17 @@ for (const phone of PHONES) {
     b.coreOpen = true;
     res.rocketsOpen = (g.nearestEnemy(20, 60) || {}).type || null;
 
-    // A drone comes to weld a broken blade back on; shoot it and the gap
-    // stays open (until the next one).
+    // A broken blade stays broken (no welding drones since v0.37.0).
     b = fresh(1);
     b.blades[0].hp = 0;
-    b.blades[0].wait = 0.2;
     g.player.y = 20;
     step(8, b);
-    res.welded = blades(b);
-    b = fresh(1);
-    b.blades[0].hp = 0;
-    b.blades[0].wait = 0.2;
-    let shotDown = 0;
-    for (let i = 0; i < 5 * 120; i++) {
-      g.player.invuln = 1;
-      hold(b);
-      const d = g.enemies.find((e) => e.type === 'weldDrone' && !e.dead);
-      if (d) {
-        g.player.y = d.y + d.h / 2 - 6;
-        if (d.hp < 2 || d.state === 'weld') shotDown = shotDown || (d.hp < 2 ? 1 : 0);
-      }
-      g.update(1 / 120, d ? fire : idle);
-    }
-    res.droneShot = { blades: blades(b), score: g.score };
+    res.stayBroken = blades(b);
 
     // Every attack warns first: nothing comes at you for at least 0.3 s
-    // after it begins (aim line, light, digging, horn, glowing stacks, hiss,
-    // blinking bridge lights).
+    // after it begins (aim line, light, digging, horn, glowing stacks, hiss).
     res.warnings = {};
-    for (const name of ['drill', 'search', 'plough', 'ram', 'cinders', 'steam', 'rockets']) {
+    for (const name of ['drill', 'search', 'plough', 'ram', 'cinders', 'steam']) {
       b = fresh(3);
       g.player.x = 30;
       g.player.y = name === 'steam' ? 20 : 100;
@@ -2703,6 +2716,39 @@ for (const phone of PHONES) {
     res.ram.maxX = Math.round(ramX[1]);
     res.ram.back = !b.round;
 
+    // Its own rhythm, left alone for 90 s in each stage: never more than two
+    // attacks running at once, the second of a pair starting at least 1 s
+    // after the first, and (except while it rams) it keeps out of the left
+    // of the screen (84 / 72 / 64 px).
+    res.rhythm = {};
+    for (const phase of [1, 2, 3]) {
+      b = fresh(phase);
+      b.idle = 0.5;
+      b.x = 96;
+      b.dest = undefined;
+      let most = 0;
+      let minX = 999;
+      let steams = 0;
+      let rounds = 0;
+      let last = null;
+      for (let i = 0; i < 90 * 120; i++) {
+        g.player.invuln = 1;
+        g.health = 5;
+        g.player.x = 30;
+        g.player.y = 60;
+        g.update(1 / 120, idle);
+        if (b.round && b.round !== last) {
+          last = b.round;
+          rounds++;
+          if (b.round.some((a) => a.name === 'steam')) steams++;
+          if (b.round.length > 1 && b.round[1].wait < 1) most = 99;
+        }
+        if (b.round) most = Math.max(most, b.round.filter((a) => !a.done && a.wait <= 0).length);
+        if (!(b.round && b.round.some((a) => a.name === 'ram'))) minX = Math.min(minX, b.x);
+      }
+      res.rhythm[phase] = { most, minX: Math.round(minX), rounds, steams };
+    }
+
     // No safe spot: wherever you sit (in front, high, low, far left, over
     // it, behind it), its attacks reach you within 20 s of a stage-3 fight.
     res.noSafeSpot = {};
@@ -2735,7 +2781,7 @@ for (const phone of PHONES) {
     res.bump = { hurt: 5 - g.health, clear: g.contact(b, h.x, h.y, h.w, h.h) === null };
 
     // Breaking it into stage 2: it roars, a bonus, it can't be hurt while
-    // fresh blades are welded on, and it starts stage 2 with both blades.
+    // it shouts, and its blades are gone for good (its nose armour blew off).
     b = fresh(1);
     b.blades[0].hp = 0;
     b.coreOpen = true;
@@ -2745,7 +2791,7 @@ for (const phone of PHONES) {
     g.damage(b, 2);
     res.stage2 = { phase: b.phase, mode: b.mode, bonus: g.score - score0, openInTransition: b.T.isVulnerable(b) };
     for (let i = 0; i < 6 * 120 && b.mode !== 'fight'; i++) step(1 / 120, b);
-    res.stage2.bladesAfter = b.mode === 'fight' && blades(b) === `${full},${full}`;
+    res.stage2.bladesAfter = b.mode === 'fight' && blades(b) === '0,0';
     return res;
   });
   const w = r.warnings;
@@ -2753,7 +2799,10 @@ for (const phone of PHONES) {
     r.armour.coreHurt > 0 && r.armour.lowGap > 0 &&
     r.bomb === '0,0' && r.laser.coreHurt > 0 && r.laser.blades.startsWith('0') &&
     r.rocketsArmoured !== 'cinder' && r.rocketsGapOnly !== 'cinder' && r.rocketsOpen === 'frostbreaker' &&
-    r.welded === '6,6' && r.droneShot.blades.startsWith('0') && r.droneShot.score >= 30 &&
+    r.stayBroken.startsWith('0') &&
+    r.overheat.shut === 0 && r.overheat.before === 0 && r.overheat.during > 0 && r.overheat.hotFor >= 1.9 &&
+    [1, 2, 3].every((k) => r.rhythm[k].most >= 1 && r.rhythm[k].most <= (k === 1 ? 1 : 2) && r.rhythm[k].minX >= [0, 84, 72, 64][k] - 1) &&
+    r.rhythm[3].steams >= 3 &&
     Object.values(w).every((v) => v >= 0.3) &&
     r.ram.over === 0 && r.ram.low > 0 && r.ram.minX >= 5 && r.ram.maxX + 30 < 208 && r.ram.back &&
     r.spots.search.shut === 0 && r.spots.search.open > 0 && r.spots.stacks.shut === 0 && r.spots.stacks.open > 0 &&
@@ -2985,7 +3034,7 @@ for (const phone of PHONES) {
   r.missingLetters = [...missing].join('');
   delete r.glyphs;
   const ok = r.hi >= 34 && r.wrongSize.length === 0 && r.wrongOutline.length === 0 && r.shimDiff === 0 && r.screenSharp &&
-    r.painted === 101 && r.frostOutline === 0 && r.paintedWrong === 0 && r.blankHi === 0 && r.level1Missing.length === 0 &&
+    r.painted === 99 && r.frostOutline === 0 && r.paintedWrong === 0 && r.blankHi === 0 && r.level1Missing.length === 0 &&
     r.level2Missing.length === 0 && r.level3Missing.length === 0 && r.level4Missing.length === 0 && r.seams === 0 && r.stripes === 0 && r.bossPaintedEarly &&
     r.shipSize[0] === 18 && r.shipSize[1] === 11 && r.missingLetters === '' && errs.length === 0;
   console.log(`${ok ? 'PASS' : 'FAIL'}  double detail ${JSON.stringify(r)} ${errs.join(' ')}`);

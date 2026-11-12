@@ -93,7 +93,7 @@ const run = (seconds, opts = {}) => page.evaluate(({ seconds, opts }) => {
     // (enemies only: not cargo pods, nor bombs, charges and rockets, nor
     // Frostbreaker and its drones, cinders and wreck)
     g.spawnEnemy = (...a) => {
-      if (!['carrier', 'wolfBomb', 'wolfCharge', 'wolfRocket', 'frostbreaker', 'weldDrone', 'cinder', 'frostWreck'].includes(a[0])) log.spawned++;
+      if (!['carrier', 'wolfBomb', 'wolfCharge', 'wolfRocket', 'frostbreaker', 'cinder', 'frostWreck'].includes(a[0])) log.spawned++;
       return spawn(...a);
     };
     g.__wrapped = true;
@@ -355,7 +355,7 @@ const checks = {
   'about 230 Wolves in the level': r4.spawned >= 215 && r4.spawned <= 290,
   'White Front cargo pods all collected': pickups2.every((k) => r4.collected.includes(k)),
   'White Front loot gamble (about 10 items)': r4.dropped >= 5 && r4.dropped <= 25,
-  'Frostbreaker appeared': r4.bossSeen && r4.types.includes('weldDrone') && r4.types.includes('cinder'),
+  'Frostbreaker appeared': r4.bossSeen && r4.types.includes('cinder'),
   'Frostbreaker talks in speech bubbles': ['FULL AHEAD. CRUSH IT.', 'YOU HOLED MY FUCKING HULL', 'ALL ENGINES. BURN IT.']
     .every((line) => r4.said.includes(line)),
   'a Frostbreaker stage bonus for each broken stage': r4.bonuses === 2,
