@@ -1,6 +1,6 @@
-import { PAL } from './config.js?v=0.35.1';
-import { detailCanvas, rgba } from './detail.js?v=0.35.1';
-import { renderShip } from './shipmodel.js?v=0.35.1';
+import { PAL } from './config.js?v=0.36.0';
+import { detailCanvas, rgba } from './detail.js?v=0.36.0';
+import { renderShip } from './shipmodel.js?v=0.36.0';
 
 // The title: "EMBER DRIFT" in our own angular, forward-slanted lettering
 // (a metal face lit pale above a dark horizon line and amber below, a
@@ -281,8 +281,8 @@ function loadPainting(src, w, h, dark, done) {
     done(c);
   }, () => {}); // (no painting: the badge stays)
 }
-loadPainting('img/title-cover.jpg?v=0.35.1', 1, 0.36, 0.6, (c) => (cover.canvas = c));
-loadPainting('img/menu-cover.jpg?v=0.35.1', 0.55, 0.4, 0.45, (c) => (cover.menu = c));
+loadPainting('img/title-cover.jpg?v=0.36.0', 1, 0.36, 0.6, (c) => (cover.canvas = c));
+loadPainting('img/menu-cover.jpg?v=0.36.0', 0.55, 0.4, 0.45, (c) => (cover.menu = c));
 
 // Draws a painting over the whole screen (device pixels), cropped to fit
 // it, keeping your ship in view (on the cover it's on the right, in the

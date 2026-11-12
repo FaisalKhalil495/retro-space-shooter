@@ -2489,7 +2489,7 @@ for (const phone of PHONES) {
   await page.evaluate(() => window.__ember.play());
   await page.waitForTimeout(300);
   const r = await page.evaluate(async () => {
-    const { gapRow, steamJets } = await import('/js/frostbreaker.js' + new URL(document.querySelector('script[type=module]').src).search);
+    const { gapRow, steamJets, spotRow } = await import('/js/frostbreaker.js' + new URL(document.querySelector('script[type=module]').src).search);
     window.__ember.frozen = true;
     const g = window.__ember.game;
     const idle = { dx: 0, dy: 0, fire: false, special: false, tap: false };
@@ -2569,6 +2569,29 @@ for (const phone of PHONES) {
       g.update(1 / 120, fire);
     }
     res.armour.lowGap = b.maxHp - b.hp;
+    // Its other weak points (v0.36.0): the searchlight takes hits only while
+    // it shines, the stacks only while they glow (cinder rain, stage 2 on).
+    const spot = (key, attack, phase) => {
+      b = fresh(phase);
+      const aim = () => {
+        g.player.invuln = 1;
+        hold(b);
+        g.player.y = b.y + spotRow(key) - 6;
+      };
+      for (let i = 0; i < 1.5 * 120; i++) {
+        aim();
+        g.update(1 / 120, fire);
+      }
+      const shut = b.maxHp - b.hp;
+      const hp0 = b.hp;
+      b.round = [{ name: attack, t: 0, wait: 0, done: false }];
+      for (let i = 0; i < 2 * 120 && b.round; i++) {
+        aim();
+        g.update(1 / 120, fire);
+      }
+      return { shut, open: hp0 - b.hp };
+    };
+    res.spots = { search: spot('search', 'search', 1), stacks: spot('stacks', 'cinders', 2) };
 
     // A bomb blows both blades off at once.
     b = fresh();
@@ -2652,6 +2675,7 @@ for (const phone of PHONES) {
     }
 
     // Its ram charge: flying over it is safe; low in front isn't.
+    let ramX = [999, -999];
     const ram = (y) => {
       b = fresh(2);
       b.round = [{ name: 'ram', t: 0, wait: 0, done: false }];
@@ -2666,11 +2690,18 @@ for (const phone of PHONES) {
         g.player.y = y;
         g.player.invuln = 0;
         g.update(1 / 120, idle);
+        ramX = [Math.min(ramX[0], b.x), Math.max(ramX[1], b.x)];
       }
       g.hurtPlayer = hurt;
       return hits;
     };
     res.ram = { over: ram(66), low: ram(112) };
+    // ...and it never leaves the screen: it charges almost to the left
+    // edge, brakes and reverses (v0.36.0; it used to vanish off the left
+    // and come back from the right).
+    res.ram.minX = Math.round(ramX[0]);
+    res.ram.maxX = Math.round(ramX[1]);
+    res.ram.back = !b.round;
 
     // No safe spot: wherever you sit (in front, high, low, far left, over
     // it, behind it), its attacks reach you within 20 s of a stage-3 fight.
@@ -2724,7 +2755,8 @@ for (const phone of PHONES) {
     r.rocketsArmoured !== 'cinder' && r.rocketsGapOnly !== 'cinder' && r.rocketsOpen === 'frostbreaker' &&
     r.welded === '6,6' && r.droneShot.blades.startsWith('0') && r.droneShot.score >= 30 &&
     Object.values(w).every((v) => v >= 0.3) &&
-    r.ram.over === 0 && r.ram.low > 0 &&
+    r.ram.over === 0 && r.ram.low > 0 && r.ram.minX >= 5 && r.ram.maxX + 30 < 208 && r.ram.back &&
+    r.spots.search.shut === 0 && r.spots.search.open > 0 && r.spots.stacks.shut === 0 && r.spots.stacks.open > 0 &&
     Object.values(r.noSafeSpot).every((n) => n > 0) &&
     r.bump.hurt === 2 && r.bump.clear &&
     r.stage2.phase === 2 && r.stage2.mode === 'transition' && r.stage2.bonus >= 1000 && !r.stage2.openInTransition &&
