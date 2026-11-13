@@ -1108,13 +1108,14 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   `shard`, `slug`, `ice`), painted once in 16 headings or a few frames
   (`drawWolfShot`, which Game.draw calls for those kinds).
 - `js/frostbreaker.js` — Frostbreaker, the White Front's boss (3 stages,
-  7 attacks in rounds of one, two or three, entrance through a snow
-  drift, guard blades and welding drones, death and a burning wreck), its
+  6 attacks in rounds of one or two, entrance through a snow drift, guard
+  blades in stage 1, the overheat after full steam, death and a burning
+  wreck), its
   pictures made from `js/landshipart.js` (baked by
   `tools/white-front/boss/bake-landship.mjs` from `landship.js`; parts
   are tagged there: `nose`, `mast`, `blade0/1`, `hole2/3`), its hit map
   (`scan`: blades first, the core only at heights no blade guards, then
-  armour), and its helpers `weldDrone`, `cinder` and `frostWreck`.
+  armour), and its helpers `cinder` and `frostWreck`.
 - `js/terrain.js` — solid things in the way: floor strip, rock spires
   (Rust Moon), drifting breakable ice slabs (Frostring: `addSlab`,
   `canPlace`, `freeBand`, `slabAt`, `freeY`/`clearOfIce`); `solid()` for
