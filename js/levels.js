@@ -1,5 +1,5 @@
-import { PATTERNS } from './waves.js?v=0.36.0';
-import { SNOW_FLOOR } from './whitefront.js?v=0.36.0';
+import { PATTERNS } from './waves.js?v=0.37.0';
+import { SNOW_FLOOR } from './whitefront.js?v=0.37.0';
 
 // Level scripts. Each event is [seconds from the start, pattern, options].
 // The final 'boss' event waits for the screen to clear, flashes a warning

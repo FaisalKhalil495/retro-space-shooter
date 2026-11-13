@@ -1,12 +1,12 @@
-import { VIEW_W, HUD_H, PAL } from './config.js?v=0.36.0';
-import { sfx } from './audio.js?v=0.36.0';
-import { clamp, fillDisc } from './util.js?v=0.36.0';
-import { FINE, snapFine, detailCanvas } from './detail.js?v=0.36.0';
-import { METAL, MOLTEN } from './gore.js?v=0.36.0';
-import { BOMB_DAMAGE } from './weapons.js?v=0.36.0';
-import { GROUND_SPEED } from './terrain.js?v=0.36.0';
-import { burstRing } from './wolves.js?v=0.36.0';
-import { LANDSHIP_PAL, LANDSHIP_POINTS, LANDSHIP_HULL, LANDSHIP_BLADES } from './landshipart.js?v=0.36.0';
+import { VIEW_W, HUD_H, PAL } from './config.js?v=0.37.0';
+import { sfx } from './audio.js?v=0.37.0';
+import { clamp, fillDisc } from './util.js?v=0.37.0';
+import { FINE, snapFine, detailCanvas } from './detail.js?v=0.37.0';
+import { METAL, MOLTEN } from './gore.js?v=0.37.0';
+import { BOMB_DAMAGE } from './weapons.js?v=0.37.0';
+import { GROUND_SPEED } from './terrain.js?v=0.37.0';
+import { burstRing } from './wolves.js?v=0.37.0';
+import { LANDSHIP_PAL, LANDSHIP_POINTS, LANDSHIP_HULL, LANDSHIP_BLADES } from './landshipart.js?v=0.37.0';
 
 // FROSTBREAKER · FLAGSHIP OF THE WHITE FRONT — boss of level 4.
 //
@@ -17,52 +17,59 @@ import { LANDSHIP_PAL, LANDSHIP_POINTS, LANDSHIP_HULL, LANDSHIP_BLADES } from '.
 // stage).
 //
 // Its weak point is earned twice: the drill cannon's core sits behind two
-// plough blades in a V in front of its muzzle. Shoot a blade off (6 hits)
-// to open a gap; even then the core can only be hurt while the cannon spins
-// up, fires and a moment after. Small welding drones fly out to bolt a
-// broken blade back on (shoot one and the gap stays open until the next);
-// fresh blades each stage. Specials obey the same rules: a bomb blows both
-// blades off, the laser cuts through one, rockets go for the core once a
-// gap is open and the cannon is firing.
+// plough blades in a V in front of its muzzle in stage 1. Shoot a blade off
+// (6 hits) to open a gap (it stays off: v0.37.0, no more welding drones);
+// even then the core can only be hurt while the cannon spins up, fires and
+// a moment after. From stage 2 its nose armour is gone, blades and all.
+// Specials obey the same rules: a bomb blows both blades off, the laser
+// cuts through one, rockets go for whatever is open.
 //
+// v0.37.0 (owner: its last stage "fired everything all at once"): never
+// more than two attacks at once, a real rest between rounds, and it keeps
+// out of the left of the screen.
 // Stage 1 (100–66%), one attack at a time: Drill Cannon, Searchlight Guns,
 //   Plough Blast. (The drill cannon every other time.)
-// Stage 2 (66–33%), its nose armour blown off and holed, attacks in pairs:
-//   + Ram Charge, Cinder Rain.
-// Stage 3 (33–0%), burning, a mast down, three at once and its blades
-//   welded back faster: + Full Steam (and the cannon fires faster), Rocket
-//   Sled support.
+// Stage 2 (66–33%), its nose armour blown off and holed: + Ram Charge
+//   (always alone), Cinder Rain; at most a pair.
+// Stage 3 (33–0%), burning, a mast down: + Full Steam (alone, every third
+//   round), after which it overheats: the burning holes in its hull glow
+//   open for 2 s. At most a pair; its cannon fires two shells.
 // Every attack has a warning: an aim line, a light, digging ploughs, a
-// horn, glowing stacks, a hiss, blinking bridge lights.
+// horn, glowing stacks, a hiss.
 
 // Its size in game pixels (half its sharp picture's; owner, after v0.35.0:
 // "a little bit" smaller, 116 x 36, was 126 x 39).
 export const SHIP_W = LANDSHIP_HULL[0][0].length / 2;
 export const SHIP_H = LANDSHIP_HULL[0].length / 2;
 const SINK = SHIP_H - 1; // its runners' undersides, from its top (they rest on the snow)
-const HP = 210;
+const HP = 270;
 const BLADE_HP = 6;
 const SPEED = [0, 20, 26, 32]; // how fast it slides about
-const IDLE = [0, 0.95, 0.8, 0.65];
+const IDLE = [0, 1.3, 1.1, 1.0]; // its rest between rounds
 const HOME_X = VIEW_W - SHIP_W + 4; // (its stern a little off the right edge)
-const LEFT_X = [0, 64, 50, 36]; // how far it pushes in
-const WELD_WAIT = [0, 2.4, 2.0, 1.4]; // a drone sets out this long after a blade breaks
-const WELD_TIME = [0, 2.6, 2.2, 1.7]; // ...and takes this long to bolt it back
-const AIM = [0, 0.85, 0.75, 0.6]; // the drill cannon's aim line
+const LEFT_X = [0, 84, 72, 64]; // how far it pushes in (only a ram charge goes further)
+const AIM = [0, 0.85, 0.75, 0.65]; // the drill cannon's aim line
 const OPEN_AFTER = 1.5; // the core stays open this long after the cannon fires
-const STAGGER = [0, 0, 0.8, 0.65]; // between the attacks of a pair or three
+const STAGGER = [0, 0, 1.0, 1.0]; // before a pair's second attack (its warning never overlaps the first's)
+const OVERHEAT = 2.0; // after full steam, its hull's holes glow open this long
+// The holes in its hull that glow open when it overheats (stage 3), and the
+// band of heights where a shot then hurts it anywhere along its hull.
+const HOT = { y0: 12, y1: 22 };
 // Its rounds of attacks: each stage takes turns between a round with the
 // drill cannon (its core opens) and one without.
+// (Never more than two at once; a pair is one attack that fills the screen
+// with one aimed at you. The ram and full steam always come alone; full
+// steam every third round in stage 3.)
 const ROUNDS = [
   null,
   { drill: [['drill']], other: [['search'], ['plough']] },
   {
-    drill: [['drill', 'search'], ['drill', 'cinders'], ['drill', 'plough']],
-    other: [['plough', 'search'], ['ram', 'cinders'], ['plough', 'cinders'], ['ram']],
+    drill: [['drill'], ['drill', 'cinders']],
+    other: [['search', 'cinders'], ['plough'], ['ram']],
   },
   {
-    drill: [['drill', 'steam', 'search'], ['drill', 'cinders', 'rockets'], ['drill', 'plough', 'search'], ['drill', 'steam', 'cinders']],
-    other: [['ram', 'rockets', 'cinders'], ['plough', 'steam', 'search'], ['ram', 'cinders'], ['plough', 'rockets', 'search']],
+    drill: [['drill', 'cinders'], ['drill', 'plough']],
+    other: [['ram'], ['search', 'cinders'], ['search', 'plough']],
   },
 ];
 const SMOKE = ['#4d4f57', '#62646c', '#7a7c84'];
@@ -171,7 +178,7 @@ export function buildFrostbreakerArt() {
     for (let y = 0; y < pic.height; y++) for (let x = 0; x < pic.width; x++) if (pic.mask[y * pic.width + x]) rows.add(B.y / 2 + y);
     return { pic, flash: picture(B.rows, () => CREAM_RGB), x: B.x / 2, y: B.y / 2, w: pic.width, h: pic.height, mask: pic.mask, rows };
   });
-  ART = { hull, wreck: picture(LANDSHIP_HULL[2], charred), blades, drone: droneFrames(), drill: drillFrames() };
+  ART = { hull, wreck: picture(LANDSHIP_HULL[2], charred), blades, drill: drillFrames() };
   return ART;
 }
 // For the tests: the middle of the gap blade k leaves when it's off (a
@@ -195,7 +202,7 @@ export const steamJets = () => JETS.slice();
 export const frostbreakerArtReady = () => !!ART;
 export function frostbreakerPictures() {
   const A = buildFrostbreakerArt();
-  return [...A.hull, A.wreck, ...A.blades.flatMap((B) => [B.pic, B.flash]), ...A.drone, ...A.drill.flat()];
+  return [...A.hull, A.wreck, ...A.blades.flatMap((B) => [B.pic, B.flash]), ...A.drill.flat()];
 }
 
 // Shapes painted smooth at double detail, then every pixel made fully solid
@@ -206,34 +213,6 @@ function crisp(canvas) {
   for (let i = 3; i < d.data.length; i += 4) d.data[i] = d.data[i] >= 128 ? 255 : 0;
   c.putImageData(d, 0, 0);
   return canvas;
-}
-// A welding drone: a little olive pod under a rotor, a lamp, and a torch arm
-// reaching right (towards the blade it mends). Two frames: lamp on and off.
-function droneFrames() {
-  return [0, 1].map((f) => {
-    const { canvas, ctx } = detailCanvas(9, 7);
-    ctx.fillStyle = PAL.ink;
-    ctx.fillRect(0.5, 0, 7, 1.5);
-    ctx.fillRect(3, 0.5, 2, 2);
-    fillDisc(ctx, 4, 4, 3);
-    ctx.fillRect(6, 3.5, 3, 1.5);
-    ctx.fillStyle = '#4d5659';
-    ctx.fillRect(1, 0.5, 6, 0.5);
-    ctx.fillRect(3.5, 1, 1, 1.5);
-    ctx.fillStyle = '#6f7353';
-    fillDisc(ctx, 4, 4, 2.5);
-    ctx.fillStyle = '#aeb189';
-    fillDisc(ctx, 3.5, 3.5, 1.5);
-    ctx.fillStyle = CREAMS[1];
-    ctx.fillRect(1.5, 4.5, 5, 0.5);
-    ctx.fillStyle = '#727b7e';
-    ctx.fillRect(6.5, 4, 2, 0.5);
-    ctx.fillStyle = '#c09363';
-    ctx.fillRect(8, 3.5, 0.5, 1.5);
-    ctx.fillStyle = f ? PAL.amberLight : PAL.redDark;
-    ctx.fillRect(2.5, 3, 1, 1);
-    return crisp(canvas);
-  });
 }
 // The drill shell: a fat steel drill bit with a copper spiral and a hot
 // tip, turned to 16 headings, two frames of spin each.
@@ -299,7 +278,7 @@ function drift(e, dt, g, k = 1) {
   }
   if (e.dest === undefined || Math.abs(e.dest - e.x) < 1.5) {
     const surge = g.rand() < 0.3;
-    e.dest = surge ? LEFT_X[e.phase] - 8 : LEFT_X[e.phase] + g.rand() * (HOME_X - LEFT_X[e.phase]);
+    e.dest = surge ? LEFT_X[e.phase] : LEFT_X[e.phase] + 8 + g.rand() * (HOME_X - LEFT_X[e.phase] - 8);
     e.surge = surge ? 2.2 : 1;
   }
   const want = clamp((e.dest - e.x) * 2, -SPEED[e.phase] * e.surge, SPEED[e.phase] * e.surge) * k;
@@ -337,13 +316,12 @@ function cannonLimit(a) {
 const ATTACKS = {
   // Drill cannon: its core glows and the drill spins up; a dotted red aim
   // line tracks you, then snaps on as it locks (0.85/0.75/0.6 s), and it
-  // fires a heavy drill shell along it (2 blocks). Two shells in stage 3 or
-  // at full steam. Its core is open from the first glow until a moment
-  // after the last shell.
+  // fires a heavy drill shell along it (2 blocks). Two shells in stage 3
+  // (the second with its own, shorter aim). Its core is open from the first
+  // glow until a moment after the last shell.
   drill(e, a, dt, g) {
-    const fast = e.phase === 3 || e.steamT > 0;
-    const aim = e.steamT > 0 ? 0.5 : AIM[e.phase];
-    const shells = fast ? 2 : 1;
+    const aim = AIM[e.phase];
+    const shells = e.phase === 3 ? 2 : 1;
     const m = at(e, PT.muzzle);
     if (!a.started) {
       a.started = true;
@@ -387,7 +365,7 @@ const ATTACKS = {
   // behind the light: bursts of tracer fire where the beam was a moment
   // ago. Cross its path between bursts, or stay ahead of the light.
   search(e, a, dt, g) {
-    const warn = 0.55;
+    const warn = 0.6;
     const sweep = [0, 1.7, 1.55, 1.4][e.phase];
     const width = [0, 1.0, 1.15, 1.3][e.phase];
     const lag = 0.3;
@@ -421,12 +399,12 @@ const ATTACKS = {
   },
 
   // Plough blast: its ploughs dig into the snow (snow sprays up, the nose
-  // shudders: 0.6/0.55/0.5 s), then it hurls a fan of ice chunks at you (a
-  // second fan, offset into the first one's gaps, in stage 3).
+  // shudders: 0.6/0.55/0.5 s), then it hurls a fan of ice chunks at you
+  // (7/8/9 of them).
   plough(e, a, dt, g) {
     const warn = [0, 0.6, 0.55, 0.5][e.phase];
-    const n = [0, 7, 8, 8][e.phase];
-    const fans = e.phase === 3 ? 2 : 1;
+    const n = [0, 7, 8, 9][e.phase];
+    const fans = 1;
     const p = at(e, PLOUGH);
     if (!a.started) {
       a.started = true;
@@ -454,12 +432,12 @@ const ATTACKS = {
   },
 
   // Ram charge: its horn blares and its engines roar, smoke pouring from the
-  // stacks (1 s, backing up a little), then it charges right across the
-  // screen pushing a wall of snow ahead of it (3 blocks if it hits you: fly
-  // over), off the left edge, and comes back in from the right.
+  // stacks (1 s, backing up a little), then it charges across the screen
+  // pushing a wall of snow ahead of it (3 blocks if it hits you: fly over)
+  // almost to the left edge, brakes and reverses. Always alone.
   ram(e, a, dt, g) {
     const warn = 1.0;
-    const speed = [0, 140, 150, 172][e.phase];
+    const speed = [0, 140, 140, 155][e.phase];
     if (!a.started) {
       a.started = true;
       a.stage = 'rev';
@@ -508,12 +486,12 @@ const ATTACKS = {
     return e.x >= HOME_X - 13;
   },
 
-  // Cinder rain: its stacks glow and belch smoke (0.7 s), then burning
+  // Cinder rain: its stacks glow and belch smoke (0.8 s), then burning
   // cinders arc up out of them, high off the top of the screen, and fall
   // straight down columns marked by dotted lines and rings on the snow: one
   // over you, the others either side and further out (1 block each).
   cinders(e, a, dt, g) {
-    const warn = 0.7;
+    const warn = 0.8;
     const n = e.phase === 3 ? 6 : 5;
     if (!a.started) {
       a.started = true;
@@ -536,18 +514,19 @@ const ATTACKS = {
       g.burst(st.x, st.y, 4, 40, EMBER);
       sfx.mortar();
       a.k++;
-      a.next = a.t + 0.12;
+      a.next = a.t + 0.2;
     }
     return a.k >= a.cols.length && a.t > a.next + 1.8;
   },
 
-  // Full steam (stage 3): a hiss and puffs of steam from its side engines,
-  // with dotted guide lines up both columns (0.8 s), then scalding steam
-  // jets straight up from both engines to the top of the screen (1.4 s, 2
-  // blocks). It holds still meanwhile, and its cannon fires faster for a
-  // few seconds after.
+  // Full steam (stage 3, always alone): a hiss and puffs of steam from its
+  // side engines, with dotted guide lines up both columns (0.9 s), then
+  // scalding steam jets straight up from both engines to the top of the
+  // screen (1.4 s, 2 blocks). Then it overheats: the burning holes in its
+  // hull glow open for 2 s, your best chance to hurt it. It holds still
+  // throughout.
   steam(e, a, dt, g) {
-    const warn = 0.8;
+    const warn = 0.9;
     const blow = 1.4;
     if (!a.started) {
       a.started = true;
@@ -563,7 +542,6 @@ const ATTACKS = {
       if (!a.on) {
         a.on = true;
         sfx.howl(blow);
-        e.steamT = 5;
       }
       e.jets = 1;
       if (g.playerVulnerable()) {
@@ -577,42 +555,21 @@ const ATTACKS = {
       }
       return false;
     }
-    return a.t > warn + blow + 0.3;
-  },
-
-  // Rocket Sled support (stage 3): its bridge lights blink as it radios for
-  // help (0.6 s), then Rocket Sleds off to the right send a ripple of 5
-  // rockets over (the level's own rocket columns: where you're heading,
-  // where you are, either side of you and further ahead).
-  rockets(e, a, dt, g) {
-    const warn = 0.6;
-    if (!a.started) {
-      a.started = true;
-      a.k = 0;
-      a.pvx = 0;
-      sfx.tick();
-    }
-    const px = pc(g).x;
-    if (a.lpx !== undefined && dt > 0) a.pvx = a.pvx * 0.85 + ((px - a.lpx) / dt) * 0.15;
-    a.lpx = px;
-    if (a.t < warn) {
-      e.radio = 1;
+    if (a.t < warn + blow + OVERHEAT) {
+      if (!a.hot) {
+        a.hot = true;
+        sfx.crack();
+        for (const h of HOLES) g.burst(e.x + h.x, e.y + h.y, 3, 40, EMBER);
+      }
+      e.overheat = 1;
+      e.shudder = 0.5;
+      if (g.rand() < 0.5) {
+        const h = HOLES[Math.floor(g.rand() * HOLES.length)];
+        g.burst(e.x + h.x, e.y + h.y, 1, 30, STEAM);
+      }
       return false;
     }
-    if (!a.cols) {
-      const lx = px + a.pvx * 1.2;
-      a.cols = [lx, px, px - 20, px + 20, lx + 38].map((x) => clamp(x, 8, 200));
-      a.next = warn;
-    }
-    if (a.k < a.cols.length && a.t >= a.next) {
-      const mx = VIEW_W + 6;
-      const my = 112 + a.k * 3;
-      g.spawnEnemy('wolfRocket', mx - 7, my - 7, { mx, my, tx: a.cols[a.k] });
-      sfx.rocket();
-      a.k++;
-      a.next = a.t + 0.15;
-    }
-    return a.k >= a.cols.length && a.t > a.next + 1.9;
+    return true;
   },
 };
 
@@ -657,11 +614,11 @@ export const FROSTBREAKER_TYPE = {
     e.mode = 'enter';
     e.timer = 0;
     e.phase = 1;
-    e.blades = LANDSHIP_BLADES.map(() => ({ hp: BLADE_HP, flash: 0, weld: 0, wait: 0, drone: null }));
+    e.blades = LANDSHIP_BLADES.map(() => ({ hp: BLADE_HP, flash: 0 }));
     e.round = null;
     e.drillNext = true;
     e.idle = 1;
-    e.steamT = 0;
+    e.rounds = 0;
     e.sink = 0;
     e.recoil = 0;
     e.hitBlade = -1;
@@ -679,12 +636,11 @@ export const FROSTBREAKER_TYPE = {
     e.glowStacks = 0;
     e.jets = 0;
     e.steamGuide = 0;
-    e.radio = 0;
+    e.overheat = 0;
     e.charging = false;
     e.wall = 0;
     e.hold = 0;
     e.shudder = 0;
-    e.steamT = Math.max(0, e.steamT - dt);
     e.recoil = Math.max(0, e.recoil - dt);
     e.y = g.terrain.floorY - SINK + e.sink;
     for (const B of e.blades) B.flash = Math.max(0, B.flash - dt);
@@ -757,7 +713,6 @@ export const FROSTBREAKER_TYPE = {
         }
         break;
       case 'fight':
-        welding(e, dt, g);
         if (!e.round) {
           drift(e, dt, g);
           if (!g.bossMayAttack(e)) break;
@@ -783,16 +738,11 @@ export const FROSTBREAKER_TYPE = {
         }
         break;
       case 'transition':
-        // Fresh blades are welded on while it's untouchable and furious. It
-        // doesn't attack again until it has finished shouting.
+        // Untouchable and furious for a moment. It doesn't attack again
+        // until it has finished shouting.
         e.shudder = 1.5;
         slide(e, clamp((HOME_X - 6 - e.x) * 2, -40, 40), dt);
-        for (const B of e.blades) B.weld = Math.min(1, e.timer / 1.8);
         if (e.timer > 2 && g.bossMayAttack(e)) {
-          for (const B of e.blades) {
-            B.hp = BLADE_HP;
-            B.weld = 0;
-          }
           set('fight');
           e.idle = 0.5;
         }
@@ -808,9 +758,10 @@ export const FROSTBREAKER_TYPE = {
     }
   },
 
-  // Its weak point: the middle of the lower blade's gap, in front of the
-  // muzzle (where rockets and bonus items aim).
+  // Its weak point (where rockets and bonus items aim): whichever is open,
+  // else the middle of the lower blade's gap, in front of the muzzle.
   aimPoint(e) {
+    if (e.overheat) return at(e, HOLES[HOLES.length - 1]);
     if (e.searchOpen) return at(e, SEARCH);
     if (e.glowStacks) return { x: e.x + (SPOTS.stacks.x0 + SPOTS.stacks.x1) / 2, y: e.y + PT.stackA.y };
     return { x: e.x + PT.muzzle.x, y: e.y + (gapRow(1) ?? PT.muzzle.y) };
@@ -844,9 +795,11 @@ export const FROSTBREAKER_TYPE = {
   },
 
   // The core can be hurt while the drill cannon is firing and a blade is
-  // off (a shot gets through only at the gap's height).
+  // off (a shot gets through only at the gap's height); the searchlight
+  // while it shines, the stacks while they glow, its hull while it
+  // overheats.
   isVulnerable(e) {
-    return e.mode === 'fight' && ((e.coreOpen && gap(e)) || e.searchOpen || !!e.glowStacks);
+    return e.mode === 'fight' && ((e.coreOpen && gap(e)) || e.searchOpen || !!e.glowStacks || !!e.overheat);
   },
 
   hitTest(e, x, y, w, h) {
@@ -888,16 +841,10 @@ export const FROSTBREAKER_TYPE = {
     e.mode = 'transition';
     e.timer = 0;
     e.round = null;
-    e.steamT = 0;
+    e.rounds = 0;
     if (offScreen(e)) e.x = HOME_X;
-    // Its drones are blown away, and every blade left is blown off (fresh
-    // ones are welded on during the shouting).
-    for (const B of e.blades) {
-      if (B.drone && !B.drone.dead) B.drone.dead = true;
-      B.drone = null;
-      B.hp = 0;
-      B.weld = 0;
-    }
+    // Its nose armour blows off, every blade left with it (for good).
+    for (const B of e.blades) B.hp = 0;
     const where = next === 2 ? [PT.tip, PT.muzzle, { x: 30, y: 6 }, HOLES[0], HOLES[1]] : [PT.mastFoot, PT.engineA, PT.engineB, HOLES[3], HOLES[4]];
     for (const p of where) {
       const q = at(e, p);
@@ -947,19 +894,11 @@ export const FROSTBREAKER_TYPE = {
       ctx.fillStyle = hot ? EMBER[0] : EMBER[1];
       fillDisc(ctx, m.x - 0.5, m.y, 1.5);
     }
-    // Its guard blades (rebuilding ones drawn growing from the top).
+    // Its guard blades (stage 1).
     e.blades.forEach((B, k) => {
       const b = A.blades[k];
-      const img = B.flash > 0 ? b.flash : b.pic;
-      if (bladeUp(B)) ctx.drawImage(img, x + b.x, y + b.y);
-      else if (B.weld > 0) {
-        const h = Math.max(1, Math.round(b.h * B.weld));
-        ctx.drawImage(img, 0, 0, b.w, h, x + b.x, y + b.y, b.w, h);
-      }
+      if (bladeUp(B)) ctx.drawImage(B.flash > 0 ? b.flash : b.pic, x + b.x, y + b.y);
     });
-    // Glowing stack tops (cinders or a charge coming), blinking bridge
-    // lights (rockets called in).
-    const blink = Math.floor(g.time * 12) % 2 === 0;
     const pulse = Math.floor(g.time * 6) % 2 === 0;
     // Its open weak points glow: a warm halo, a bright core and, blinking,
     // an amber ring round them (the same look as its open cannon).
@@ -999,9 +938,14 @@ export const FROSTBREAKER_TYPE = {
       ctx.fillStyle = e.searchOpen ? (pulse ? PAL.cream : PAL.amberLight) : '#4d5659';
       fillDisc(ctx, lx - 0.5, ly, 2);
     }
-    if (e.radio && blink) {
-      ctx.fillStyle = PAL.red;
-      for (let k = 0; k < 9; k++) ctx.fillRect(x + PT.lights.x + k * 3.5, y + PT.lights.y - 0.5, 2, 1.5);
+    // Overheated (after full steam): the burning holes in its hull glow
+    // white-hot, open to your shots.
+    if (e.overheat) {
+      for (const h of HOLES) {
+        halo(x + h.x, y + h.y, 3.5);
+        ctx.fillStyle = pulse ? EMBER[0] : EMBER[1];
+        fillDisc(ctx, x + h.x, y + h.y, 1.5);
+      }
     }
     // Snow churned up by its digging ploughs.
     if (e.dig) {
@@ -1073,6 +1017,11 @@ function scan(e, x, y, w, h, shots) {
     for (const r of rows) {
       const yy = Math.floor(r);
       if (yy < 0 || yy >= SHIP_H) continue;
+      // Overheated: its hull hurts at the burning holes' heights.
+      if (shots && open && e.overheat && r >= HOT.y0 && r < HOT.y1 && mask[yy * SHIP_W + cx]) {
+        e.hitBlade = -2;
+        return 'hit';
+      }
       const guard = e.blades.findIndex((B, k) => bladeUp(B) && ART.blades[k].rows.has(yy));
       if (guard >= 0 && cx >= CORE.front && cx < CORE.x1 && r >= CORE.y0 && r < CORE.y1 && mask[yy * SHIP_W + cx]) {
         // (the hull's edge just in front of a blade, at a height it guards,
@@ -1084,7 +1033,7 @@ function scan(e, x, y, w, h, shots) {
       if (guard < 0 && cx >= CORE.front && cx < CORE.x1 && r >= CORE.y0 && r < CORE.y1 && (mask[yy * SHIP_W + cx] || cx >= PT.muzzle.x - 2)) {
         if (!shots) return 'hit';
         e.hitBlade = -1;
-        return e.mode === 'fight' && e.coreOpen ? 'hit' : 'block';
+        return e.mode === 'fight' && (e.coreOpen || (e.overheat && r >= HOT.y0 && r < HOT.y1)) ? 'hit' : 'block';
       }
       // The searchlight and the stacks: a hit anywhere in their box while
       // they're open (the glow round them counts).
@@ -1101,26 +1050,29 @@ function scan(e, x, y, w, h, shots) {
   return null;
 }
 
-// Its next round of attacks: with the drill cannon every other time.
+// Its next round of attacks: with the drill cannon every other time (and
+// in stage 3, full steam alone every third round).
 function startRound(e, g) {
   const R = ROUNDS[e.phase];
-  const pool = e.drillNext ? R.drill : R.other;
-  let pick = pool[Math.floor(g.rand() * pool.length)];
-  if (pool.length > 1 && pick === e.lastRound) pick = pool[(pool.indexOf(pick) + 1) % pool.length];
+  e.rounds++;
+  let pick;
+  if (e.phase === 3 && e.rounds % 3 === 0) pick = ['steam'];
+  else {
+    const pool = e.drillNext ? R.drill : R.other;
+    pick = pool[Math.floor(g.rand() * pool.length)];
+    if (pool.length > 1 && pick === e.lastRound) pick = pool[(pool.indexOf(pick) + 1) % pool.length];
+    e.drillNext = !e.drillNext;
+  }
   e.lastRound = pick;
-  e.drillNext = !e.drillNext;
   e.round = pick.map((name, i) => ({ name, t: 0, wait: i * STAGGER[e.phase], done: false }));
   e.dest = undefined;
 }
 
-// A blade is blown off (+50 points when you do it); a drone will come to
-// weld it back.
+// A blade is blown off for good (+50 points when you do it).
 function breakBlade(e, k, g) {
   const B = e.blades[k];
   const b = ART.blades[k];
   B.hp = 0;
-  B.weld = 0;
-  B.wait = WELD_WAIT[e.phase];
   const px = e.x + b.x + b.w / 2;
   const py = e.y + b.y + b.h / 2;
   g.blasts.blast(px, py, 0.4);
@@ -1128,22 +1080,6 @@ function breakBlade(e, k, g) {
   sfx.explode(0.4);
   g.score += 50;
   g.popups.push({ x: px - 4, y: py - 8, text: '+50', t: 0.8 });
-}
-
-// Welding drones: one sets out for each broken blade (not while it's off
-// screen charging), flies to it and bolts it back on.
-function welding(e, dt, g) {
-  e.blades.forEach((B, k) => {
-    if (bladeUp(B) || (B.drone && !B.drone.dead)) return;
-    B.drone = null;
-    if (B.weld > 0) B.weld = Math.max(0, B.weld - dt * 0.5); // (a half-done weld falls apart)
-    if (offScreen(e)) return;
-    B.wait -= dt;
-    if (B.wait > 0) return;
-    const s = at(e, PT.hullTop);
-    B.drone = g.spawnEnemy('weldDrone', s.x - 30, s.y - 4, { owner: e, k });
-    sfx.tick();
-  });
 }
 
 // Stage 3: fire and smoke pour from the holes in its hull.
@@ -1274,78 +1210,6 @@ function drawBeam(ctx, B) {
 
 // ---------------------------------------------------------------- its helpers
 export const FROSTBREAKER_MINIONS = {
-  // A welding drone: flies from its deck to a broken blade and bolts it
-  // back on (sparks fly). Shoot it (2 hits) and the gap stays open until the
-  // next one comes. It doesn't fire; touching it costs 1.
-  weldDrone: {
-    hp: 2,
-    score: 30,
-    ram: 1,
-    noDrop: true,
-    explodeSize: 0.4,
-    gore: { metal: 3 },
-    init(e) {
-      e.w = 9;
-      e.h = 7;
-      e.state = 'fly';
-    },
-    update(e, dt, g) {
-      const o = e.owner;
-      if (!o || o.dead || o.mode !== 'fight' || o.charging || offScreen(o) || e.state === 'home') {
-        // Its job's done (or its ship is busy charging): back up onto the
-        // deck. (A blade it hadn't finished gets another drone later.)
-        e.state = 'home';
-        if (o && o.blades && o.blades[e.k].drone === e) o.blades[e.k].drone = null;
-        e.x += 40 * dt;
-        e.y -= 30 * dt;
-        if (e.y < HUD_H - 10 || e.x > VIEW_W + 10) e.dead = true;
-        return;
-      }
-      const B = o.blades[e.k];
-      const b = ART.blades[e.k];
-      const tx = o.x + b.x - e.w + 1;
-      const ty = o.y + b.y + b.h / 2 - e.h / 2;
-      if (e.state === 'fly') {
-        const dx = tx - e.x;
-        const dy = ty - e.y;
-        const d = Math.hypot(dx, dy) || 1;
-        const s = Math.min(d, 75 * dt);
-        e.x += (dx / d) * s;
-        e.y += (dy / d) * s;
-        if (d < 1.5) e.state = 'weld';
-        return;
-      }
-      e.x = tx;
-      e.y = ty;
-      B.weld = Math.min(1, B.weld + dt / WELD_TIME[o.phase]);
-      if (g.rand() < 0.6) g.burst(e.x + e.w, e.y + e.h / 2, 1, 50, [PAL.cream, PAL.amberLight, '#9fd2ff']);
-      if (B.weld >= 1) {
-        B.hp = BLADE_HP;
-        B.weld = 0;
-        B.drone = null;
-        sfx.block();
-        e.state = 'home';
-      }
-    },
-    onDeath(e) {
-      const o = e.owner;
-      if (!o || o.dead) return;
-      const B = o.blades[e.k];
-      if (B && B.drone === e && !(B.hp > 0)) {
-        B.drone = null;
-        B.wait = WELD_WAIT[o.phase];
-      }
-    },
-    draw(e, ctx, snap, g) {
-      const f = e.state === 'weld' ? Math.floor(g.time * 16) % 2 : Math.floor(g.time * 4) % 2;
-      ctx.drawImage(ART.drone[f], snap(e.x), snap(e.y));
-      if (e.flash > 0) {
-        ctx.fillStyle = PAL.cream;
-        fillDisc(ctx, snap(e.x) + 4, snap(e.y) + 4, 2);
-      }
-    },
-  },
-
   // A burning cinder from its stacks: arcs up off the top of the screen,
   // then falls straight down its column (marked by a dotted line and a ring
   // on the snow). Out of reach; 1 block if it hits you on the way down or

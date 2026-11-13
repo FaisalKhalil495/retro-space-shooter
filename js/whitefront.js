@@ -1,7 +1,7 @@
-import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.36.0';
-import { seeded, fillDisc } from './util.js?v=0.36.0';
-import { FINE, detailCanvas } from './detail.js?v=0.36.0';
-import { GROUND_SPEED } from './terrain.js?v=0.36.0';
+import { VIEW_W, VIEW_H, HUD_H } from './config.js?v=0.37.0';
+import { seeded, fillDisc } from './util.js?v=0.37.0';
+import { FINE, detailCanvas } from './detail.js?v=0.37.0';
+import { GROUND_SPEED } from './terrain.js?v=0.37.0';
 
 // The White Front (level 4): the ice planet below Frostring, where the
 // invaders are fighting their way across the snow. All drawn by code (the

@@ -712,6 +712,34 @@ this story. (Frostring's looks: the invaders moving into the ice ring.)
    autopilot loses about 25 blocks a minute against the Warden's 19, a
    weak point open about 60% of the fight. Its drill shell is its own kind of shot (a shot
    with a `draw` of its own: Game.draw calls it).
+   **Rework for fairness (v0.37.0; owner, after v0.36.0: the last stage
+   "fired everything all at once"; new direction and every number below
+   approved before building; this replaces the drones, fresh blades each
+   stage, threes, Rocket Sled support and the faster cannon after steam
+   above)**: never more than **two attacks at once** (one that fills the
+   screen with one aimed at you; the ram and full steam always alone),
+   the second of a pair starting 1.0 s after the first so their warnings
+   never overlap; rest between rounds 1.3 / 1.1 / 1.0 s (was 0.95 / 0.8 /
+   0.65); it pushes in no further than 84 / 72 / 64 px from the left edge
+   (was 64 / 50 / 36; only the ram goes further). Stage 1 "Broadside":
+   one at a time, cannon every other round; the **blades stay broken**
+   (no welding drones). Stage 2 "Full Ahead": the nose armour and blades
+   blow off for good; rounds: cannon, cannon + cinders, searchlight +
+   cinders, plough, ram. Stage 3 "Last Stand": full steam alone **every
+   third round**, after which it **overheats: the burning holes in its
+   hull glow open for 2 s** (shots hurt it anywhere along its hull at
+   heights 12–22 px from its top), holding still; other rounds cannon +
+   cinders, cannon + plough, searchlight + cinders, searchlight + plough,
+   ram. Numbers by stage: cannon aim 0.85 / 0.75 / 0.65 s, shells 1 / 1 /
+   2 (the second with 0.45 s of its own aim); searchlight 0.6 s warning,
+   sweep 1.7 / 1.55 / 1.4 s; plough 7 / 8 / 9 chunks, one fan; ram 140 /
+   155 px/s; cinders 0.8 s warning, 5 / 6 of them 0.2 s apart; steam 0.9 s
+   warning, 1.4 s of jets. Six kinds of danger (drill shell, tracers, ice
+   chunks, cinders, steam, snow wall). 270 HP (180 was planned; measured,
+   it made the fight 56 s, so raised to keep the promised length).
+   Measured (6 seeds): the fight about 90 s, a weak point open about half
+   of it, the never-dodging mortal autopilot losing about 12 blocks a
+   minute (the Warden 19, v0.36.0's Frostbreaker 25).
 5. **The Ember Mines** — underground tunnels lit by soft amber crystals;
    ceiling and floor squeeze the space. Boss: **The Drill Worm**, a mechanical
    worm bursting from walls above and below.
@@ -994,7 +1022,7 @@ game is shared by its link and the home-screen install.
 |---|-------|--------------|--------|
 | 1 | **First Flight** | Pixel-art ship over a scrolling starfield; full control layout (floating d-pad, Fire + Special, oversized touch areas, light-up, Android vibration); centred game screen clear of the iPhone cutout; "turn sideways" prompt; 3 basic enemies (straight, weaving, shooting); lives, score, game over + tap to play again; auto-pause when switching apps. | Done (v0.1.0) |
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
-| 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C done (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2); 3D: choices done (3D-0), step 1 built (v0.30.0: the White Front's world and six sky Wolves), step 2 built (v0.31.0: the ground Wolves, the Rocket Sled, the full 231-enemy level; review fixes v0.31.1), its music (v0.32.0, owner approved by ear), its boss Frostbreaker built (v0.33.0, owner testing). **Next: 3D review; then 3E Ember Mines** |
+| 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C done (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2); 3D: choices done (3D-0), step 1 built (v0.30.0: the White Front's world and six sky Wolves), step 2 built (v0.31.0: the ground Wolves, the Rocket Sled, the full 231-enemy level; review fixes v0.31.1), its music (v0.32.0, owner approved by ear), its boss Frostbreaker built (v0.33.0; three weak points v0.36.0; fairness rework v0.37.0, owner testing). **Next: 3D review; then 3E Ember Mines** |
 | G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | Done (v0.24.0) — step 1 (v0.20.0), step 2 (v0.21.0: level 1 enemies, cargo pod, asteroids, Rockjaw; review fixes v0.21.1–v0.21.2), step 3 (v0.22.0: Rust Moon set, spires, floor, Siege Crawler; review fixes v0.22.1, smoother stage 2 v0.22.2), step 4 (v0.23.0: Frostring's enemies and ice; v0.23.1: the Glacier Warden; review fixes v0.23.2), step 5 wrap-up review (v0.24.0; owner testing) |
 | A | **Store apps** | After levels 4 and 5 (owner, after v0.29.0): the game wrapped as a real app with **Capacitor** (all files, music included, packed inside: works offline, native feel, vibration on iPhone too). **Android (Google Play) first**, then iPhone (App Store) if the owner wants it. Claude makes the app build, privacy policy page, screenshots and store text; the owner makes the accounts and pays (Play $25 once; Apple $99 a year, iPhone builds done by a cloud service since there's no Mac). Google needs 12 testers for 14 days before a new account's first game goes public: the owner gathers them meanwhile. Check the stores' current rules before starting. Age rating about 17+/18+ (blood, swearing). | Planned, after 3E |
 | 4 | **Levels 6–9** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. Shipped as free app updates after the store launch. | |
@@ -1080,13 +1108,14 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   `shard`, `slug`, `ice`), painted once in 16 headings or a few frames
   (`drawWolfShot`, which Game.draw calls for those kinds).
 - `js/frostbreaker.js` — Frostbreaker, the White Front's boss (3 stages,
-  7 attacks in rounds of one, two or three, entrance through a snow
-  drift, guard blades and welding drones, death and a burning wreck), its
+  6 attacks in rounds of one or two, entrance through a snow drift, guard
+  blades in stage 1, the overheat after full steam, death and a burning
+  wreck), its
   pictures made from `js/landshipart.js` (baked by
   `tools/white-front/boss/bake-landship.mjs` from `landship.js`; parts
   are tagged there: `nose`, `mast`, `blade0/1`, `hole2/3`), its hit map
   (`scan`: blades first, the core only at heights no blade guards, then
-  armour), and its helpers `weldDrone`, `cinder` and `frostWreck`.
+  armour), and its helpers `cinder` and `frostWreck`.
 - `js/terrain.js` — solid things in the way: floor strip, rock spires
   (Rust Moon), drifting breakable ice slabs (Frostring: `addSlab`,
   `canPlace`, `freeBand`, `slabAt`, `freeY`/`clearOfIce`); `solid()` for
@@ -1171,11 +1200,15 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   shots first, the core only through a gap and only while the cannon
   fires (both gaps), the searchlight only while it shines and the stacks
   only while they glow (v0.36.0), the ram charge never leaves the screen
-  and comes back (v0.36.0), a bomb and the laser, rockets, a drone welds a blade
-  back unless shot down, every attack warns at least 0.3 s, flying over
-  the ram charge is safe, no safe spot within 20 s of stage 3 (front,
-  top, low, far left, over it, behind it), bumping costs 2, and stage 2
-  starts with fresh blades.
+  and comes back (v0.36.0), a bomb and the laser, rockets, every attack
+  warns at least 0.3 s, flying over the ram charge is safe, no safe spot
+  within 20 s of stage 3 (front, top, low, far left, over it, behind it),
+  bumping costs 2; v0.37.0: a broken blade stays broken, stage 2 starts
+  with no blades, the overheat after full steam takes hits only while it
+  glows, and left alone for 90 s in each stage it never runs more than
+  1 / 2 / 2 attacks at once, never starts a pair's second within 1 s, keeps
+  out of the left (84 / 72 / 64 px) except when ramming, and steams at
+  least 3 times in stage 3.
 - The smoke test's "double detail" check: sharp pictures exactly twice
   the size and (except your ship) filling the same outline box, the screen
   draws them, the Siege Crawler's rock spikes and dust waves show no faint
