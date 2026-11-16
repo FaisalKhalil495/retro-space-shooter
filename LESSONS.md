@@ -611,6 +611,26 @@ rock, pickups reachable) before the first hand-over.
   from recordings, then shipped as recordings (about 1 MB each) because
   they're too heavy to play live. The menus play The Outer Belt's.
 
+### The new look (started after v0.37.0)
+- The owner asked for a complete redesign: "a retro-style game created in
+  2026". Looking at all four levels side by side showed why: level 4 has a
+  living world, levels 1–3 are small sprites on an empty dark screen,
+  enemies are single still pictures, every explosion is the same three
+  circles, and nothing gives off light.
+- R0, the look sample (v0.38.0): sprites made from small 3D models drawn
+  as pixel art (your ship already was, for the title badge), so they bank,
+  spin, flap and tumble as wrecks; warm light added on top; staged
+  explosions; deaths by type; a seven-layer background. Built behind a
+  hidden test link with a button to flip between today's look and the new
+  one, so the owner judges it on their own phone at real speed.
+- Lessons so far: 3D-made sprites need the finer art (4 pixels a game
+  pixel) to read well: at today's 2 they turn to mush, while hand-drawn
+  sprites hold up. Scenery must be pushed back hard (hazed towards the
+  sky's colour, cool and dim) or it looks like the rocks that can hit you.
+  Measure speed on the slowed-down test early: the first version drew at a
+  third of today's speed, and the cure was in how lights are drawn, not in
+  having fewer of them.
+
 ### Carry into Stage 3 (checklist for the plan)
 - Each boss: 3+ phases, 5+ attacks, entrance + name card, roar, music,
   real movement, **speech bubbles in first person**, a **stage bonus** per

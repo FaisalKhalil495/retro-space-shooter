@@ -22,7 +22,11 @@ const SCENES = [
   ['White Front, busy', '?level=4&start=155', 6],
   ['Frostbreaker', '?level=4&start=boss', 40],
 ];
-for (const [name, query, secs] of SCENES) {
+// LOOK=4 (say) measures the new look (the look sample); ONLY=1 the first
+// scene alone.
+const LOOK = process.env.LOOK ? '&look=' + process.env.LOOK : '';
+for (const [name, query0, secs] of SCENES.slice(0, +process.env.ONLY || SCENES.length)) {
+  const query = query0 + LOOK;
   const context = await browser.newContext({ viewport: { width: 915, height: 412 }, deviceScaleFactor: 2.625, isMobile: true, hasTouch: true });
   // Every random number in the page (the game's dice, explosions, drawing)
   // comes from a seed we can reset, so every run plays the same scene.

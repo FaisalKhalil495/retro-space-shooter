@@ -1,4 +1,5 @@
 import { VERSION, VIEW_W, VIEW_H, PAL } from './config.js?v=0.37.0';
+import { look, isNew, setLook } from './look.js?v=0.37.0';
 import { readSafeArea, computeLayout } from './layout.js?v=0.37.0';
 import { Controls } from './controls.js?v=0.37.0';
 import { Game } from './game.js?v=0.37.0';
@@ -210,6 +211,27 @@ function pauseRect() {
   const z = layout.rightZone;
   return { x: z.x + z.w - 48, y: z.y + 10, w: 38, h: 38 };
 }
+// Testing aid (the look sample): with ?look in the link, a button beside
+// the pause button switches between today's look and the new one while
+// you play, so the two can be compared on the spot.
+const lookTest = params.has('look');
+const LOOKS = [[1, 'TODAY'], [2, 'NEW'], [4, 'NEW FINE']];
+const lookNow = () => LOOKS.findIndex((l) => l[0] === (isNew() ? look.k : 1));
+function lookRect() {
+  const z = layout.rightZone;
+  return { x: z.x + 8, y: z.y + 10, w: Math.max(60, z.w - 66), h: 38 };
+}
+window.addEventListener('pointerdown', (e) => {
+  if (!lookTest || mode !== 'play' || !layout) return;
+  const r = lookRect();
+  if (e.clientX > r.x && e.clientX < r.x + r.w && e.clientY > r.y - 8 && e.clientY < r.y + r.h + 8) {
+    e.stopPropagation();
+    e.preventDefault();
+    sfx.click();
+    setLook(LOOKS[(lookNow() + 1) % LOOKS.length][0]);
+    game.rebuildBackground();
+  }
+}, true);
 window.addEventListener('pointerdown', (e) => {
   if (mode !== 'play' || !layout) return;
   const r = pauseRect();
@@ -365,6 +387,25 @@ function render(dt) {
   if (mode === 'play') {
     controls.draw(ctx, dt);
     drawPauseButton();
+    if (lookTest) {
+      const r = lookRect();
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = PAL.bezel;
+      roundRect(ctx, r.x, r.y, r.w, r.h, 8);
+      ctx.fill();
+      ctx.strokeStyle = PAL.amberSoft;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = PAL.amberLight;
+      ctx.font = 'bold 11px ui-monospace, Menlo, monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText((LOOKS[lookNow()] || [0, 'NEW'])[1], r.x + r.w / 2, r.y + 17);
+      ctx.fillStyle = PAL.textDim;
+      ctx.font = '9px ui-monospace, Menlo, monospace';
+      ctx.fillText('TAP TO SWITCH', r.x + r.w / 2, r.y + 30);
+      ctx.textAlign = 'left';
+      ctx.globalAlpha = 1;
+    }
   }
 
   // Version label, bottom of the left margin.

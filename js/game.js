@@ -16,6 +16,9 @@ import { Speech } from './speech.js?v=0.37.0';
 import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.37.0';
 import { startMusic, stopMusic, preloadMusic } from './music.js?v=0.37.0';
 import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.37.0';
+import { look, isNew } from './look.js?v=0.37.0';
+import { Fx, SHARDS } from './fx.js?v=0.37.0';
+import { art, wreckArt, hasModel, hasWreck } from './models.js?v=0.37.0';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -77,6 +80,13 @@ export class Game {
     this.powerups = new PowerUps(this);
     this.gore = new Gore(this.rand);
     this.blasts = new Blasts(this.rand);
+    // The new look (the look sample): its effects, and explosions asked for
+    // anywhere in the game go to them.
+    this.fx = new Fx();
+    const oldBlast = this.blasts.blast.bind(this.blasts);
+    const oldDust = this.blasts.dust.bind(this.blasts);
+    this.blasts.blast = (x, y, size) => (isNew() ? this.fx.explode(x, y, size, { shards: null }) : oldBlast(x, y, size));
+    this.blasts.dust = (x, y, size) => (isNew() ? this.fx.dust(x, y, size) : oldDust(x, y, size));
     this.speech = new Speech();
     // Where a speech bubble's tail points (a boss's mouth, or wherever its
     // voice comes from). Made once, used every frame.
@@ -119,7 +129,9 @@ export class Game {
       cooldown: 0,
       entering: 0.5,
       moveX: 0,
+      bank: 0,
     };
+    this.fx.reset();
     this.bullets = [];
     this.enemyShots = [];
     this.enemies = [];
@@ -534,6 +546,7 @@ export class Game {
       return;
     }
     e.hp -= amount;
+    if (isNew()) this.fx.hit(hx, hy, e.T.organic ? 'flesh' : e.T.gore && e.T.gore.rock ? 'rock' : e.T.gore && e.T.gore.ice ? 'ice' : 'metal');
     if (e.T.onHit) e.T.onHit(e, this, hx, hy, amount);
     else if (e.T.organic) this.gore.blood(hx, hy, 2, 45, 0, 1.2, false);
     // Flash pale when hit, but not on every tick of a laser, or the enemy
@@ -550,7 +563,8 @@ export class Game {
   }
 
   blocked(x, y) {
-    if (this.rand() < 0.6) {
+    if (isNew()) this.fx.hit(x, y, 'block');
+    else if (this.rand() < 0.6) {
       this.burst(x, y, 3, 50, BLOCK_COLORS);
     }
     sfx.block();
@@ -558,6 +572,15 @@ export class Game {
 
   // ---- simulation ----
   update(dt, input) {
+    if (isNew()) {
+      // A split-second pause on a big kill (the new look): the whole
+      // picture holds, so the blast lands with weight.
+      if (this.fx.stop > 0) {
+        this.fx.stop -= dt;
+        return;
+      }
+      this.fx.update(dt);
+    }
     this.time += dt;
     this.bg.update(dt);
     this.updateEffects(dt);
@@ -657,6 +680,7 @@ export class Game {
       dy *= DIAG;
     }
     p.moveX = dx;
+    p.bank += clamp(-dy - p.bank, -dt * 7, dt * 7); // (it tilts as it climbs and dives)
     p.x = clamp(p.x + dx * PLAYER.speed * dt, 2, VIEW_W - p.w - 2);
     p.y = clamp(p.y + dy * PLAYER.speed * dt, HUD_H + 1, this.terrain.floorY - p.h - 1);
 
@@ -668,6 +692,7 @@ export class Game {
         this.bullets.push({ x: p.x + p.w - 4, y: p.y + 6, vy: 55 });
       }
       p.cooldown = this.powerups.fireInterval();
+      if (isNew()) this.fx.flash(p.x + p.w + 1, p.y + 6, 8, 'amber', 0.55, 0.06);
       sfx.shoot();
     }
     if (input.special) this.weapons.fire();
@@ -694,7 +719,14 @@ export class Game {
       e.t += dt;
       e.flash = Math.max(0, e.flash - dt);
       e.flashCd = (e.flashCd || 0) - dt;
+      const ex = e.x;
+      const ey = e.y;
       e.T.update(e, dt, this);
+      if (dt > 0) {
+        // (how fast it's really moving: wrecks keep going the same way)
+        e.dvx = (e.x - ex) / dt;
+        e.dvy = (e.dvy || 0) * 0.8 + ((e.y - ey) / dt) * 0.2;
+      }
       if (e.T.flies && this.terrain.floor && !e.dead) this.keepAboveRock(e, dt);
       if ((e.T.flies || e.T.avoidsIce) && this.terrain.slabs.length && !e.dead) this.keepClearOfIce(e, dt);
     }
@@ -849,7 +881,9 @@ export class Game {
     const cy = e.y + e.h / 2;
     const gore = e.T.gore || {};
     // Ice shatters, rocks crumble into dust; everything else explodes.
-    if (gore.ice) {
+    if (isNew()) {
+      this.newDeath(e, size, cx, cy);
+    } else if (gore.ice) {
       this.burst(cx, cy, gore.ice, 55, ICE_COLORS.slice(1));
       sfx.shatter();
     } else {
@@ -863,13 +897,147 @@ export class Game {
       this.gore.blood(cx, cy, gore.blood, 70, null, Math.PI, false);
       this.gore.chunks(cx, cy, gore.flesh || 0, FLESH, 70, false);
     }
-    if (gore.metal) this.gore.chunks(cx, cy, gore.metal, METAL, 80, false);
-    if (gore.rock) this.gore.chunks(cx, cy, gore.rock, ROCK, 60, false);
+    if (gore.metal && !isNew()) this.gore.chunks(cx, cy, gore.metal, METAL, 80, false);
+    if (gore.rock && !isNew()) this.gore.chunks(cx, cy, gore.rock, ROCK, 60, false);
     if (e.T.onDeath) e.T.onDeath(e, this);
     this.maybeDrop(e);
     if (e.T.score >= 40) {
       this.popups.push({ x: e.x + e.w / 2, y: e.y, text: '+' + e.T.score, t: 0.8 });
       this.shake = Math.max(this.shake, 1.5);
+    }
+  }
+
+  // The new look: how each kind of thing dies. Small ships either blow
+  // apart or spin out trailing fire and blow up a moment later; gunships
+  // break in two; living things come apart without a fireball; rocks
+  // crumble into tumbling pieces and dust.
+  newDeath(e, size, cx, cy) {
+    const fx = this.fx;
+    const gore = e.T.gore || {};
+    const name = this.modelOf(e);
+    const vx = e.dvx || 0;
+    const vy = e.dvy || 0;
+    const R = Math.random;
+    if (gore.ice) {
+      fx.dust(cx, cy, size, SHARDS.ice);
+      fx.debris(cx, cy, gore.ice, SHARDS.ice, 60);
+      sfx.shatter();
+      return;
+    }
+    sfx.explode(size);
+    if (gore.rock) {
+      fx.dust(cx, cy, size);
+      fx.debris(cx, cy, Math.round(gore.rock * 0.7), SHARDS.rock, 55);
+      const bits = art('rockBit', look.k).sets;
+      for (let i = 0; i < (size >= 1 ? 5 : 2); i++) {
+        const a = R() * Math.PI * 2;
+        fx.piece({ frames: bits[i % bits.length] }, cx, cy, vx * 0.5 + Math.cos(a) * (20 + R() * 30), vy * 0.5 + Math.sin(a) * (20 + R() * 30), { life: 0.6 + R() * 0.5, burn: false, blast: 0, spin: 8 + R() * 8, pull: 0 });
+      }
+      return;
+    }
+    if (e.T.organic) {
+      // (its blood comes from the caller, as always)
+      if (name && hasWreck(name)) {
+        const parts = wreckArt(name, look.k);
+        parts.forEach((part, i) => fx.piece(part, cx, cy, vx * 0.5 + (R() - 0.5) * 50, vy * 0.3 + (i - 1) * 34 + (R() - 0.5) * 20, { life: 0.7 + R() * 0.3, burn: false, blast: 0, spin: 9 + R() * 6, pull: 50 }));
+      }
+      fx.debris(cx, cy, 5, SHARDS.flesh, 50);
+      return;
+    }
+    if (name && hasWreck(name)) {
+      const parts = wreckArt(name, look.k);
+      if (parts.length === 1 && size < 0.7 && R() < 0.5) {
+        // Spins out, burning, and blows up a moment later.
+        fx.flash(cx, cy, 16, 'hot', 0.8, 0.1);
+        fx.debris(cx, cy, 3, SHARDS.metal, 60, true);
+        fx.piece(parts[0], cx, cy, vx * 0.75, vy + (R() - 0.5) * 60, { life: 0.4 + R() * 0.3, blast: size, spin: 16 + R() * 10, pull: 110 * (R() < 0.5 ? -1 : 1) });
+        return;
+      }
+      if (parts.length > 1) {
+        // Breaks apart: each piece burns away on its own, with blasts between.
+        fx.explode(cx, cy, size * 0.75, { vx, vy });
+        parts.forEach((part, i) => {
+          const dir = i === 0 ? -1 : 1;
+          fx.piece(part, cx - dir * 3, cy, vx * 0.4 - dir * (18 + R() * 16), vy * 0.4 + dir * (22 + R() * 18), { life: 0.45 + i * 0.25 + R() * 0.15, blast: size * 0.6, spin: 7 + R() * 5, pull: 40 });
+        });
+        fx.explode(cx + (R() - 0.5) * 8, cy + (R() - 0.5) * 6, size * 0.4, { delay: 0.14, shards: null });
+        fx.explode(cx + (R() - 0.5) * 10, cy + (R() - 0.5) * 8, size * 0.4, { delay: 0.3, shards: null });
+        return;
+      }
+    }
+    fx.explode(cx, cy, size, { vx: vx * 0.3, vy: vy * 0.3, shards: e.T.harmless ? SHARDS.steel : SHARDS.metal });
+  }
+
+  // A fresh background (the look was switched while playing: a test aid).
+  rebuildBackground() {
+    this.bg = new Background(this.rand, { ...this.level.background, floor: this.level.floor || 0 });
+  }
+
+  // Which of the new look's models draws this enemy (null: its usual
+  // picture). The sample has level 1's.
+  modelOf(e) {
+    if (!isNew() || this.level.number !== 1) return null;
+    if (e.type === 'rockBig') return 'rockBig';
+    if (e.type === 'rockSmall' || e.type === 'rockShard' || e.type === 'rockSpit') return 'rockSmall';
+    return e.T.sprite && hasModel(e.T.sprite) ? e.T.sprite : null;
+  }
+
+  // Draws an enemy from its model: the right frame of its animation.
+  drawModel(e, name, ctx, snap) {
+    const A = art(name, look.k);
+    let f;
+    if (A.sets) {
+      const set = A.sets[(e.variant || 0) % A.sets.length];
+      const sp = 3 + ((e.variant || 0) % 3) * 1.6 + (e.w < 20 ? 3 : 0);
+      f = set[Math.floor(e.t * sp + (e.seedFr ?? (e.seedFr = Math.random() * 24))) % set.length];
+    } else if (name === 'drifter') f = A.frames[Math.floor(e.t * 16) % 8];
+    else if (name === 'weaver') f = A.frames[Math.floor(e.t * 11 + (e.phase || 0) * 2) % 10];
+    else if (name === 'spinner') f = A.frames[Math.floor(e.spin * 6.5) % 8];
+    else if (name === 'seeker') f = A.frames[Math.floor(e.t * 20) % 6];
+    else if (name === 'gunner') {
+      const bank = clamp(Math.round(-(e.dvy || 0) / 9), -2, 2) + 2;
+      const kick = e.mode === 'hold' && e.shots > 0 && e.fireTimer > 0.72 ? 5 : 0;
+      f = A.frames[bank + kick];
+    } else f = A.frames[0];
+    if (e.flash > 0) f = f.flash;
+    const fx = this.fx;
+    if (name === 'sniper' && e.aimLine > 0) {
+      // Its aim: a thin red beam of light along the shot's path, blinking.
+      const on = Math.floor(e.aimLine * 20) % 2 === 0;
+      const x0 = e.x;
+      const y0 = e.y + e.h / 2;
+      ctx.save();
+      ctx.strokeStyle = on ? '#ff7a5a' : '#9e2f2f';
+      ctx.lineWidth = on ? 0.75 : 0.5;
+      ctx.setLineDash([2.5, 1.5]);
+      ctx.beginPath();
+      ctx.moveTo(x0 + Math.cos(e.aimAngle) * 4, y0 + Math.sin(e.aimAngle) * 4);
+      ctx.lineTo(x0 + Math.cos(e.aimAngle) * 260, y0 + Math.sin(e.aimAngle) * 260);
+      ctx.stroke();
+      ctx.restore();
+      fx.glow(x0, y0, 7, 'red', on ? 0.7 : 0.3);
+    }
+    const x = snap(e.x) - A.pad;
+    const y = snap(e.y) - A.pad;
+    if (e.flip) {
+      ctx.save();
+      ctx.translate(x + f.width, y);
+      ctx.scale(-1, 1);
+      ctx.drawImage(f, 0, 0);
+      ctx.restore();
+    } else ctx.drawImage(f, x, y);
+    // Its engine's light, and (a cargo pod) the light in its window.
+    if (name === 'spinner') {
+      fx.glow(e.x + e.w / 2, e.y + e.h / 2, e.charge ? 11 : 6, e.charge ? 'amber' : 'red', e.charge && Math.floor(this.time * 16) % 2 ? 0.9 : 0.4);
+    } else if (name === 'carrier') {
+      const info = this.pickupInfo(e.drop);
+      const on = Math.floor(e.t * 4) % 2;
+      ctx.fillStyle = on ? info.light : info.color;
+      ctx.fillRect(snap(e.x) + 4, snap(e.y) + 3.5, 5, 1.5);
+      fx.glow(e.x + 6.5, e.y + 4.25, 7, 'amber', on ? 0.4 : 0.22);
+    } else if (!A.sets && name !== 'weaver') {
+      const back = e.flip ? e.x - 1 : e.x + e.w + 1;
+      fx.glow(back, e.y + e.h / 2, name === 'gunner' ? 8 : 6, 'red', 0.45 + Math.random() * 0.15);
     }
   }
 
@@ -976,13 +1144,19 @@ export class Game {
     const p = this.player;
     const cx = p.x + p.w / 2;
     const cy = p.y + p.h / 2;
-    this.burst(cx, cy, 36, 95);
-    // A big explosion: cockpit glass and wreckage spinning away.
-    this.blasts.blast(cx, cy, 1.6);
-    this.gore.chunks(cx, cy, 10, GLASS, 90, false);
-    this.gore.chunks(cx, cy, 14, METAL, 90, false);
-    this.gore.piece(cx, cy, WING.rows, WING.colors, -30 + this.rand() * 20, -40, 5);
-    this.gore.piece(cx, cy, WING.rows, WING.colors, 10 + this.rand() * 20, 35, -4);
+    if (isNew()) {
+      // The new look: the ship breaks into its wings and hull, burning.
+      this.fx.explode(cx, cy, 1.6, { shards: SHARDS.steel });
+      wreckArt('player', look.k).forEach((part, i) => this.fx.piece(part, cx, cy, -20 + (i - 1) * 26, (i - 1) * 42 + (Math.random() - 0.5) * 20, { life: 0.6 + i * 0.2, blast: 0.5, spin: 9, pull: 30, shards: SHARDS.steel }));
+    } else {
+      this.burst(cx, cy, 36, 95);
+      // A big explosion: cockpit glass and wreckage spinning away.
+      this.blasts.blast(cx, cy, 1.6);
+      this.gore.chunks(cx, cy, 10, GLASS, 90, false);
+      this.gore.chunks(cx, cy, 14, METAL, 90, false);
+      this.gore.piece(cx, cy, WING.rows, WING.colors, -30 + this.rand() * 20, -40, 5);
+      this.gore.piece(cx, cy, WING.rows, WING.colors, 10 + this.rand() * 20, 35, -4);
+    }
     const byBoss = source && (source.byBoss || (source.T && source.T.boss));
     // Only a boss that's on screen and alive gets to gloat.
     const bossTalks = byBoss && this.boss && this.boss.mode !== 'dying' && this.bossOnScreen();
@@ -1061,7 +1235,9 @@ export class Game {
 
     for (const e of this.enemies) {
       const spr = e.T.sprite ? SPRITES[this.spriteName(e.T.sprite) + (e.flash > 0 ? 'Flash' : '')] : null;
-      if (e.T.draw) e.T.draw(e, ctx, snap, this, spr);
+      const model = this.modelOf(e);
+      if (model) this.drawModel(e, model, ctx, snap);
+      else if (e.T.draw) e.T.draw(e, ctx, snap, this, spr);
       else if (e.flip) {
         ctx.save();
         ctx.translate(snap(e.x) + e.w, snap(e.y));
@@ -1081,10 +1257,13 @@ export class Game {
 
     // Explosions sit under bullets and the player, so they never hide a shot.
     this.blasts.draw(ctx, snap);
+    const fresh = isNew();
+    if (fresh) this.fx.draw(ctx, snap);
 
     for (const s of this.enemyShots) {
       const x = snap(s.x);
       const y = snap(s.y);
+      if (fresh) this.fx.glow(s.x, s.y, s.dmg > 1 ? 9 : 6, 'red', 0.5);
       // Shots are drawn in half-pixel steps (double detail).
       if (s.draw) {
         // (a boss's own kind of shot draws itself: Frostbreaker's drill shell)
@@ -1158,6 +1337,19 @@ export class Game {
     for (const b of this.bullets) {
       const x = snap(b.x);
       const y = snap(b.y);
+      if (fresh) {
+        // The new look's bolt: a long tapering tail of light, a hot head.
+        ctx.fillStyle = 'rgba(227,168,87,0.35)';
+        ctx.fillRect(x - 5, y + 0.5, 6, 1);
+        ctx.fillStyle = '#e3a857';
+        ctx.fillRect(x - 1, y + 0.25, 4, 1.5);
+        ctx.fillStyle = '#ffe2a6';
+        ctx.fillRect(x + 2, y, 4.5, 2);
+        ctx.fillStyle = '#fffaf0';
+        ctx.fillRect(x + 3.5, y + 0.5, 3, 1);
+        this.fx.glow(b.x + 4, b.y + 1, 7, 'amber', 0.5);
+        continue;
+      }
       // A bolt: a thin amber tail into a rounded cream head.
       ctx.fillStyle = PAL.amberSoft;
       ctx.fillRect(x, y + FINE, 4, 1);
@@ -1176,6 +1368,10 @@ export class Game {
     }
     ctx.globalAlpha = 1;
     this.gore.draw(ctx, snap);
+    if (fresh) {
+      if (this.bg.b2) this.bg.b2.drawFront(ctx, snap);
+      this.fx.drawLights(ctx);
+    }
 
     for (const m of this.markers) {
       if (Math.floor(m.t * 10) % 2) continue;
@@ -1227,6 +1423,27 @@ export class Game {
     }
     // Engine flame flickers, longer when pushing forward.
     const len = 2 + (p.moveX > 0 ? 3 : p.moveX < 0 ? 0 : 1) + (Math.floor(this.time * 30) % 2);
+    if (isNew()) {
+      // The new look: the ship banks as it climbs and dives, and its
+      // engine throws light.
+      const A = art('player', look.k);
+      const f = A.frames[clamp(Math.round(3 + p.bank * 3), 0, 6)];
+      const x = snap(p.x);
+      const y = snap(p.y);
+      const L = len * 1.5 + Math.random() * 1.2;
+      const ey = y + 5.4;
+      for (const [w, h, c] of [[L, 2.6, '#c8553f'], [L * 0.8, 2, '#f2864e'], [L * 0.58, 1.4, '#ffcf8a'], [L * 0.3, 0.8, '#fff6e0']]) {
+        ctx.fillStyle = c;
+        ctx.beginPath();
+        ctx.moveTo(x + 1, ey - h / 2);
+        ctx.lineTo(x + 1, ey + h / 2);
+        ctx.lineTo(x + 1 - w, ey);
+        ctx.fill();
+      }
+      ctx.drawImage(f, x - A.pad, y - A.pad);
+      this.fx.glow(p.x - 1, p.y + 5.4, 9 + len, 'warm', 0.6);
+      return;
+    }
     drawShip(ctx, snap(p.x), snap(p.y), len);
   }
 

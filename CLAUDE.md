@@ -1024,6 +1024,7 @@ game is shared by its link and the home-screen install.
 | 2 | **The Outer Belt** | Full level 1 (2–3 min of planned waves + asteroids); pickups (extra life, bombs, rockets, laser) + corner ammo icon; boss Rockjaw; level-complete screen; basic sound effects (shots, explosions, button clicks — iPhone feedback relies on sound). | Done (v0.10.3, after a full code review) |
 | 3 | **Levels 2–5** | Rust Moon, Frostring, the ice planet, Ember Mines + bosses; tunnel walls you can crash into; new enemy types per setting. Built in steps, owner tests each: 3A level flow → 3B Rust Moon (3B-1 level, 3B-2 Siege Crawler) → 3C Frostring + Glacier Warden → 3D the ice planet + its boss → 3E Ember Mines + Drill Worm → wrap-up review. | In progress — 3A done (v0.11.0), 3B done (Rust Moon v0.12.1, Siege Crawler v0.13.0, owner fixes to v0.16.0); 3C done (Frostring world v0.17.0, its enemies v0.18.0, Glacier Warden v0.19.0, turning plates v0.19.1, review fixes v0.19.2); 3D: choices done (3D-0), step 1 built (v0.30.0: the White Front's world and six sky Wolves), step 2 built (v0.31.0: the ground Wolves, the Rocket Sled, the full 231-enemy level; review fixes v0.31.1), its music (v0.32.0, owner approved by ear), its boss Frostbreaker built (v0.33.0; three weak points v0.36.0; fairness rework v0.37.0, owner testing). **Next: 3D review; then 3E Ember Mines** |
 | G | **Double detail** | Every picture redrawn with twice the pixels each way (owner chose "Option 2" after v0.19.2). Steps, owner tests each: 1 foundation, lettering, skies, shots/sparks/explosions, HUD, pickups and your ship (v0.20.0) → 2 level 1 enemies, rocks, Rockjaw → 3 Rust Moon set, spires, Siege Crawler → 4 Frostring set, slabs, Glacier Warden → 5 review. Then the ice planet (3D). | Done (v0.24.0) — step 1 (v0.20.0), step 2 (v0.21.0: level 1 enemies, cargo pod, asteroids, Rockjaw; review fixes v0.21.1–v0.21.2), step 3 (v0.22.0: Rust Moon set, spires, floor, Siege Crawler; review fixes v0.22.1, smoother stage 2 v0.22.2), step 4 (v0.23.0: Frostring's enemies and ice; v0.23.1: the Glacier Warden; review fixes v0.23.2), step 5 wrap-up review (v0.24.0; owner testing) |
+| R | **The new look** (owner, after v0.37.0: "a complete redesign"; levels 1–3 look empty beside level 4, and "the design of the third stage sucks") | The game should look like a retro game made in 2026: pixel-art sprites, with modern depth, light, motion and impact around them. Plan agreed: **R0** a look sample of level 1 for the owner to judge (built, v0.38.0, behind the hidden test link `?look=4`; the normal game is unchanged) → **R1** effects for the whole game (light, staged explosions, deaths by type, hit feel) → **R2** animated enemies and ship, a level at a time → **R3** new backgrounds for levels 1 and 2 → **R4** Frostring's new design (3–4 concept pictures first; real iceberg shapes, not rectangles) → **R5** the four bosses redrawn and animated → **R6** level 4's lift, menus and HUD, review. What stays: rules, difficulty, hit areas, controls, music, saves. Level 5 and the store app wait for it. To settle from the sample: "no glow effects" becomes "warm soft light, never neon" (if the owner approves); how fine the art is (today's 2 pixels a game pixel, or 4); an "Effects: High / Low" option for slow phones. | R0 built (v0.38.0), owner judging the sample |
 | A | **Store apps** | After levels 4 and 5 (owner, after v0.29.0): the game wrapped as a real app with **Capacitor** (all files, music included, packed inside: works offline, native feel, vibration on iPhone too). **Android (Google Play) first**, then iPhone (App Store) if the owner wants it. Claude makes the app build, privacy policy page, screenshots and store text; the owner makes the accounts and pays (Play $25 once; Apple $99 a year, iPhone builds done by a cloud service since there's no Mac). Google needs 12 testers for 14 days before a new account's first game goes public: the owner gathers them meanwhile. Check the stores' current rules before starting. Age rating about 17+/18+ (blood, swearing). | Planned, after 3E |
 | 4 | **Levels 6–9** | Stormveil, Shipwreck Graveyard, Molten Deep, Hive World + bosses (two-phase Hive Mother); ending screen. Shipped as free app updates after the store launch. | |
 | 5 | **Menus & Progress** | Title screen, pause button/menu, continue option, "Continue from Level X" remembered, Practice mode, high-score table on the phone. | Done early (v0.25.0 menus and saving, v0.25.1 boss checkpoint, v0.27.0 squadron-badge opening screen and vertical main menu; owner's "make it presentable" request) |
@@ -1116,6 +1117,25 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   are tagged there: `nose`, `mast`, `blade0/1`, `hole2/3`), its hit map
   (`scan`: blades first, the core only at heights no blade guards, then
   armour), and its helpers `cinder` and `frostWreck`.
+- **The new look (the look sample, v0.38.0; only drawn with `?look=2` or
+  `?look=4` in the link, where a button beside the pause button switches
+  TODAY / NEW / NEW FINE while you play)**: `js/look.js` (which look, and
+  how fine its art: `look.k` pixels a game pixel); `js/model.js` (small 3D
+  models drawn as pixel art from any angle: five shades with dither, a
+  warm rim of light on the sun's side, coloured outlines; `Mesh` helpers,
+  `rockMesh`, `renderModel`); `js/models.js` (your ship and level 1's
+  enemies and asteroids as models, baked into animation frames the first
+  time they're needed: `art(name, k)`, and tumbling wrecks:
+  `wreckArt`); `js/fx.js` (light added on top of the picture, staged
+  explosions, sparks, shards, wrecks, the split-second pause on a big
+  kill; its own dice, never the game's); `js/belt2.js` (level 1's layered
+  background; its far layers are repainted only every sixth frame). In
+  `js/game.js`: `newDeath` (how each kind of thing dies), `modelOf` /
+  `drawModel`. `tools/look/sheet.mjs` (every model's frames as a picture)
+  and `tools/look/shots.mjs` (screenshots of a level in a given look).
+  The speed test takes `LOOK=4 ONLY=1`. Lesson from its first measure:
+  stretching and smoothing a soft light every frame is what costs a slow
+  phone; keep lights at several ready-made sizes and draw them unsmoothed.
 - `js/terrain.js` — solid things in the way: floor strip, rock spires
   (Rust Moon), drifting breakable ice slabs (Frostring: `addSlab`,
   `canPlace`, `freeBand`, `slabAt`, `freeY`/`clearOfIce`); `solid()` for
@@ -1270,7 +1290,8 @@ it over. The owner tests on Android; ideally the friend checks iPhone each stage
   `?start=boss` jumps straight to the boss with a laser loaded;
   `?start=60` starts 60 seconds into the level; `?level=2` starts on level 2
   (combine them: `?level=2&start=boss`); `?level=3` is Frostring,
-  `?level=4` the White Front. With
+  `?level=4` the White Front; `?look=4` (or 2) draws the new look's
+  sample (level 1 has its models; other levels get its effects only). With
   `?level` or `?start` the title screen is skipped: a "TEST START" screen
   starts that level with one tap (and doesn't change what's saved beyond
   the level reached). Tests start a game with `window.__ember.play()`.
