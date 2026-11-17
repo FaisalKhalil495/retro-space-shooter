@@ -1,5 +1,5 @@
-import { Mesh, rockMesh, renderModel, turn, V } from './model.js?v=0.38.1';
-import { buildShip, MAT as SHIP_MAT } from './shipmodel.js?v=0.38.1';
+import { Mesh, rockMesh, renderModel, turn, V } from './model.js?v=0.38.2';
+import { buildShip, MAT as SHIP_MAT } from './shipmodel.js?v=0.38.2';
 
 // The new look's models (the look sample: your ship and level 1's enemies).
 // Each is built in "game pixels" (one unit = one game pixel), nose towards
@@ -8,19 +8,7 @@ import { buildShip, MAT as SHIP_MAT } from './shipmodel.js?v=0.38.1';
 // an animation is the same model with something turned a little further.
 
 // ---- materials: five shades each, dark to light ----
-const INVADER = {
-  // the invaders' ships: slate-violet armour, dark machinery, red-lit glass
-  hull: ['#211f3a', '#3d3b64', '#62608f', '#9391bd', '#cdcee9'],
-  dark: ['#141528', '#272a44', '#3d415e', '#5a5f7e', '#8086a4'],
-  mech: ['#12141c', '#262832', '#40434f', '#666974', '#989ba2'],
-  glass: ['#2a0d12', '#5c1d20', '#9e3328', '#d9603a', '#f8b074'],
-  accent: ['#3a1418', '#6a2222', '#9e2f2f', '#c8553f', '#e8926a'],
-  glow: ['#cf5136', '#f2864e', '#ffb46a', '#ffd9a0', '#fff1cf'],
-  eye: ['#e3a857', '#f2cf8a', '#f6dcae', '#fff1cf', '#fff8e6'],
-  // the manta (a living thing)
-  flesh: ['#2c0f18', '#5a1f28', '#8c3436', '#bb564a', '#e09480'],
-  wing: ['#210c15', '#4a1a22', '#742a2e', '#a04540', '#c9776a'],
-  bone: ['#544540', '#857263', '#b5a18a', '#dccbb0', '#f4e9d2'],
+const SHARED = {
   // cargo pods: plain steel with brass straps
   crate: ['#1a2032', '#333c56', '#566284', '#8792b4', '#c2cbe0'],
   brass: ['#4a2e1a', '#8a5a2e', '#c98f4a', '#e3a857', '#f2cf8a'],
@@ -28,6 +16,117 @@ const INVADER = {
   // asteroids
   rock: ['#231b20', '#40312f', '#66503f', '#94775a', '#c4a57c'],
 };
+const TILT = 0.38; // every craft is seen a little from above
+
+// ---- the models: level 1's enemies, the "Crimson Blades" (the owner's pick
+// of six looks, after v0.38.1) ----
+// "Crimson Blades": the invaders' strike wing. Knife shapes: diamond hulls
+// with a sharp ridge, crimson armour over gunmetal, cream blade edges,
+// amber-lit glass.
+export const C_MATS = {
+  hull: ['#2a0c14', '#5a1620', '#8f2630', '#c24a44', '#eb8a70'],
+  dark: ['#101320', '#1e2334', '#333a52', '#515a78', '#7c86a6'],
+  mech: ['#12141c', '#262832', '#40434f', '#666974', '#989ba2'],
+  glass: ['#3a2410', '#7a4a1c', '#c0802e', '#eab25a', '#fbe2a4'],
+  accent: ['#5a5248', '#8a8070', '#b8ad98', '#dccfb8', '#f6ecd8'],
+  glow: ['#f2864e', '#ffb46a', '#ffd9a0', '#fff1cf', '#fff8e6'],
+  eye: ['#e3a857', '#f2cf8a', '#f6dcae', '#fff1cf', '#fff8e6'],
+  flesh: ['#1c1028', '#3a2150', '#5f3a7a', '#8c5ea4', '#bd92cc'],
+  wing: ['#170d22', '#301b44', '#4e2f6a', '#754c92', '#a478b8'],
+  bone: ['#544540', '#857263', '#b5a18a', '#dccbb0', '#f4e9d2'],
+};
+const sides = (r, i, up) => 'b' + r + (up ? 'u' : 'd');
+
+export function daggerPod() {
+  const m = new Mesh();
+  m.lathe([[-4.6, 0.9, 1.0], [-3.2, 2.6, 2.4], [0.4, 2.9, 2.7], [3.0, 1.7, 1.5], [5.0, 0.15, 0.15]], 4, (r) => (r === 0 ? 'dark' : 'hull'), sides, { pow: 1 });
+  m.lathe([[0.0, 0.1, 0.1, 2.7], [1.2, 0.95, 0.95, 2.35], [3.0, 0.55, 0.65, 1.7], [3.9, 0.1, 0.1, 1.2]], 4, 'glass', 'canopy', { pow: 1 });
+  for (const s of [-1, 1]) m.plate([-2.6, -0.2, 2.1 * s], [1.4, -0.2, 2.3 * s], [4.8, -1.0, 6.3 * s], [2.6, -1.0, 6.5 * s], [0, 0.45, 0], 'hull', 'blade' + s, 'accent');
+  m.plate([-4.3, 2.1, -0.25], [-1.0, 2.6, -0.25], [-3.3, 5.2, -0.25], [-5.0, 5.2, -0.25], [0, 0, 0.5], 'dark', 'fin', 'accent');
+  m.lathe([[1.4, 0.45, 0.45, -2.3], [5.7, 0.38, 0.38, -2.3]], 6, 'mech', 'gun');
+  m.ball([-4.7, 0, 0], 1.05, 'glow', 'core', { n: 6, m: 3 });
+  return m;
+}
+
+export function razorRay(flap = 0.6) {
+  const m = new Mesh();
+  m.lathe([[-3.4, 0.4, 0.5], [-2.0, 1.0, 1.3], [0.5, 1.45, 1.9], [3.0, 1.2, 1.5], [5.0, 0.3, 0.4]], 6, (r, i, up) => (up ? 'flesh' : 'wing'), (r, i, up) => 'body' + (up ? 'u' : 'd'));
+  for (const s of [-1, 1]) {
+    m.ball([3.7, 0.7, 0.9 * s], 0.55, 'eye', 'eye' + s, { n: 6, m: 3 });
+    const lift = Math.sin(flap) * 0.5;
+    const up = (p, k) => [p[0], p[1] + Math.abs(p[2]) * lift * k, p[2]];
+    // long, narrow wings swept hard back, like a pair of sickles
+    const r0 = [-0.6, 0.2, 1.4 * s];
+    const r1 = [3.0, 0.2, 1.4 * s];
+    const m0 = up([-3.0, 0.2, 4.6 * s], 0.5);
+    const m1 = up([0.2, 0.2, 4.5 * s], 0.5);
+    const t0 = up([-6.4, 0.2, 7.9 * s], 1);
+    const t1 = up([-4.9, 0.2, 7.6 * s], 1);
+    m.plate(r0, r1, m1, m0, [0, 0.3, 0], 'wing', 'wingIn' + s, 'flesh');
+    m.plate(m0, m1, t1, t0, [0, 0.25, 0], 'wing', 'wingOut' + s, 'flesh');
+    // a bone blade along each leading edge
+    m.plate(V.add(r1, [0, 0.3, 0]), V.add(r1, [0.5, 0.3, 0]), V.add(m1, [0.5, 0.3, 0]), V.add(m1, [0, 0.3, 0]), [0, 0.15, 0], 'bone', 'edgeIn' + s);
+    m.plate(V.add(m1, [0, 0.25, 0]), V.add(m1, [0.5, 0.25, 0]), V.add(t1, [0.4, 0.25, 0]), V.add(t1, [0, 0.25, 0]), [0, 0.15, 0], 'bone', 'edgeOut' + s);
+    // a forked tail
+    m.plate([-3.2, -0.2, 0.1 * s], [-3.2, 0.2, 0.5 * s], [-7.0, 0.1, 1.6 * s], [-7.0, -0.1, 1.3 * s], [0, 0.3, 0], 'flesh', 'tail' + s);
+  }
+  return m;
+}
+
+export function stiletto(roll = 0.3) {
+  const m = new Mesh();
+  m.lathe([[-4.8, 0.7, 0.7], [-3.6, 1.25, 1.25], [1.0, 1.0, 1.0], [5.2, 0.1, 0.1]], 4, (r) => (r === 1 ? 'hull' : 'dark'), sides, { pow: 1 });
+  m.ball([5.0, 0, 0], 0.5, 'glow', 'tip', { n: 6, m: 3 });
+  m.ball([-4.9, 0, 0], 0.75, 'glow', 'core', { n: 6, m: 3 });
+  for (let f = 0; f < 3; f++) {
+    const blade = new Mesh().plate([-4.8, 1.0, -0.15], [-1.4, 1.0, -0.15], [-4.2, 4.0, -0.15], [-5.9, 4.0, -0.15], [0, 0, 0.3], 'hull', 'f' + f, 'accent');
+    m.add(blade, (p) => turn(p, 'x', roll + (f * Math.PI * 2) / 3));
+  }
+  return m;
+}
+
+export function cleaver(recoil = 0) {
+  const m = new Mesh();
+  m.lathe([[-6.4, 1.6, 2.6], [-5.0, 3.2, 4.6], [-0.5, 3.0, 4.4], [3.5, 1.6, 3.2], [6.2, 0.4, 1.6]], 6, (r) => (r === 1 ? 'dark' : 'hull'), sides, { pow: 1 });
+  m.box([1.0, 1.9, -1.7], [3.7, 2.5, 1.7], 'glass', 'slit');
+  m.plate([-5.6, 3.0, -0.3], [-0.6, 3.0, -0.3], [-3.6, 6.8, -0.3], [-6.6, 6.8, -0.3], [0, 0, 0.6], 'hull', 'tail', 'accent');
+  for (const s of [-1, 1]) {
+    m.box([1.4 - recoil, -1.7, 3.4 * s - 0.7], [8.3 - recoil, -0.5, 3.4 * s + 0.7], 'dark', 'prong' + s);
+    m.ball([8.4 - recoil, -1.1, 3.4 * s], 0.7, 'glow', 'tip' + s, { n: 6, m: 3 });
+    m.plate([-4.6, 0, 4.3 * s], [0.6, 0, 4.1 * s], [-3.0, -0.7, 7.5 * s], [-6.0, -0.7, 7.5 * s], [0, 0.45, 0], 'hull', 'wing' + s, 'accent');
+    m.box([-6.9, -0.8, 2.2 * s - 1.1], [-5.2, 1.2, 2.2 * s + 1.1], 'mech', 'eng' + s);
+    m.ball([-6.9, 0.2, 2.2 * s], 1.0, 'glow', 'burn' + s, { n: 6, m: 3 });
+  }
+  return m;
+}
+
+export function lance() {
+  const m = new Mesh();
+  m.lathe([[-6.6, 0.8, 1.0], [-5.2, 1.9, 2.2], [-1.5, 1.8, 2.0], [0.6, 0.9, 1.0]], 4, (r) => (r === 0 ? 'dark' : 'hull'), sides, { pow: 1 });
+  m.box([-1.2, 0.35, -0.35], [7.2, 0.95, 0.35], 'dark', 'rail1');
+  m.box([-1.2, -1.35, -0.35], [7.2, -0.75, 0.35], 'dark', 'rail2');
+  m.box([5.6, -0.75, -0.3], [6.6, 0.35, 0.3], 'glow', 'charge');
+  m.box([-3.6, 1.7, -0.4], [-1.0, 2.4, 0.4], 'mech', 'scope');
+  m.ball([-0.9, 2.05, 0], 0.5, 'glow', 'sight', { n: 6, m: 3 });
+  m.ball([-6.7, 0, 0], 0.8, 'glow', 'core', { n: 6, m: 3 });
+  for (const s of [-1, 1]) m.plate([-6.2, 0.1, 1.6 * s], [-3.0, 0.1, 1.9 * s], [-5.4, -0.5, 4.6 * s], [-7.2, -0.5, 4.6 * s], [0, 0.4, 0], 'hull', 'fin' + s, 'accent');
+  return m;
+}
+
+export function shuriken(spin = 0.2) {
+  const m = new Mesh();
+  m.ball([0, 0, 0], 2.2, 'dark', 'hub', { n: 10, m: 5, squash: [1, 1, 0.6] });
+  m.ball([0, 0, 1.0], 1.05, 'glow', 'core', { n: 8, m: 3 });
+  for (let i = 0; i < 4; i++) {
+    const b = new Mesh();
+    b.plate([1.5, -0.9, -0.3], [1.5, 0.9, -0.3], [4.4, 1.7, -0.3], [3.5, -0.5, -0.3], [0, 0, 0.6], 'hull', 'b' + i, 'accent');
+    b.plate([3.5, -0.5, -0.3], [4.4, 1.7, -0.3], [5.4, 3.5, -0.3], [5.1, 1.3, -0.3], [0, 0, 0.6], 'hull', 'h' + i, 'accent');
+    m.add(b, (p) => turn(p, 'z', spin + (i * Math.PI) / 2));
+  }
+  return m;
+}
+
+const INVADER = { ...C_MATS, ...SHARED };
 // Level 1's light: the amber sun is up and to the right, a little behind.
 export const BELT_LIGHT = {
   mats: INVADER,
@@ -40,148 +139,6 @@ export const BELT_LIGHT = {
 const SHIP_LOOK = { ...BELT_LIGHT, mats: { ...SHIP_MAT, glow: SHIP_MAT.glow }, light: [0.2, 0.66, 0.72] };
 const ROCK_LOOK = { ...BELT_LIGHT, light: [0.55, 0.7, 0.45], faceted: true, dither: 0.5, floor: 0, base: 0.4, gain: 4.4 };
 
-const TILT = 0.38; // every craft is seen a little from above
-
-// ---- the models ----
-// A pod: a round cockpit with a red-lit canopy, swept fins, a gun under its
-// nose and a three-bladed stabiliser spinning behind it.
-function pod(spin = 0) {
-  const m = new Mesh();
-  m.lathe([[-4.2, 1.5, 1.6], [-3.2, 2.7, 2.9], [-0.8, 3.3, 3.6], [1.8, 3.1, 3.3], [3.6, 2.0, 2.2], [4.6, 0.8, 0.9]], 10,
-    (r) => (r === 1 ? 'dark' : 'hull'), (r, i, up) => 'b' + r + (up ? 'u' : 'd'));
-  // (a red-lit canopy bulging from its front, a visor lamp under it)
-  m.ball([1.5, 1.3, 0], 2.9, 'glass', 'canopy', { n: 10, m: 5, squash: [1.15, 0.95, 0.95], to: Math.PI * 0.62 });
-  m.box([3.6, -0.5, -1.2], [4.5, 0.1, 1.2], 'glow', 'visor');
-  m.lathe([[-1.2, 3.45, 3.75], [-0.4, 3.45, 3.75]], 10, 'accent', 'band', { caps: false });
-  for (const s of [-1, 1]) {
-    m.plate([-3.4, -0.6, 2.6 * s], [1.2, -0.6, 2.9 * s], [-2.4, -1.6, 6.6 * s], [-4.6, -1.6, 6.6 * s], [0, 0.5, 0], 'hull', 'fin' + s, 'accent');
-    m.box([-4.2, -1.9, 5.9 * s], [-2.2, -1.0, 7.0 * s], 'accent', 'tip' + s);
-  }
-  m.lathe([[1.5, 0.5, 0.5, -3.0], [5.8, 0.42, 0.42, -3.0]], 6, 'mech', 'gun');
-  m.lathe([[-5.1, 1.4, 1.4], [-4.1, 1.8, 1.8]], 8, 'mech', 'nozzle', { caps: false });
-  m.ball([-4.8, 0, 0], 1.15, 'glow', 'core', { n: 6, m: 3 });
-  for (let b = 0; b < 3; b++) {
-    const a = spin + (b * Math.PI * 2) / 3;
-    const blade = new Mesh().plate([-5.0, 1.7, -0.7], [-4.0, 1.7, 0.7], [-4.2, 5.0, 1.1], [-5.2, 5.0, -0.5], [0.3, 0, 0], 'hull', 'blade' + b, 'accent');
-    m.add(blade, (p) => turn(p, 'x', a));
-  }
-  return m;
-}
-
-// A manta: a living thing, all muscle and ribbed wings that beat.
-function manta(flap = 0, sway = 0) {
-  const m = new Mesh();
-  m.lathe([[-3.6, 0.5, 0.6], [-2.2, 1.3, 1.7], [0.2, 1.8, 2.4], [2.6, 1.6, 2.1], [4.2, 1.0, 1.4], [5.0, 0.35, 0.6]], 8, (r, i, up) => (up ? 'flesh' : 'wing'), (r, i, up) => 'body' + (up ? 'u' : 'd'));
-  for (const s of [-1, 1]) {
-    m.ball([4.0, 0.75, 1.0 * s], 0.62, 'eye', 'eye' + s, { n: 6, m: 3 });
-    // A wing in two joints: the outer half beats further than the inner.
-    const lift = Math.sin(flap) * 0.55;
-    const tipLift = Math.sin(flap - 0.7) * 0.95;
-    const hinge = (p, ang, zr) => {
-      const q = [p[0], p[1], p[2] - zr * s];
-      const t = turn(q, 'x', -ang * s);
-      return [t[0], t[1], t[2] + zr * s];
-    };
-    const r0 = [-2.4, 0.3, 1.8 * s];
-    const r1 = [3.2, 0.3, 1.8 * s];
-    const m0 = hinge([-3.4, 0.3, 4.6 * s], lift, 1.8);
-    const m1 = hinge([1.6, 0.3, 4.8 * s], lift, 1.8);
-    const t0 = V.add(m0, V.sub(hinge([-4.6, 0.3, 7.6 * s], tipLift, 4.6), [-3.4, 0.3, 4.6 * s]));
-    const t1 = V.add(m1, V.sub(hinge([-1.6, 0.3, 7.9 * s], tipLift, 4.8), [1.6, 0.3, 4.8 * s]));
-    m.plate(r0, r1, m1, m0, [0, 0.3, 0], 'wing', 'wingIn' + s, 'flesh');
-    m.plate(m0, m1, t1, t0, [0, 0.25, 0], 'wing', 'wingOut' + s, 'flesh');
-    // ribs along the wing
-    for (const f of [0.2, 0.55, 0.9]) {
-      const a = V.mix(r0, r1, f);
-      const b = V.mix(m0, m1, f);
-      const c = V.mix(t0, t1, f);
-      m.plate(V.add(a, [-0.25, 0.3, 0]), V.add(a, [0.25, 0.3, 0]), V.add(b, [0.2, 0.3, 0]), V.add(b, [-0.2, 0.3, 0]), [0, 0.12, 0], 'bone', 'rib' + s + f);
-      m.plate(V.add(b, [-0.2, 0.25, 0]), V.add(b, [0.2, 0.25, 0]), V.add(c, [0.15, 0.25, 0]), V.add(c, [-0.15, 0.25, 0]), [0, 0.12, 0], 'bone', 'ribO' + s + f);
-    }
-  }
-  // a whip tail that sways
-  let prev = [-3.4, 0, 0];
-  for (let i = 1; i <= 4; i++) {
-    const next = [-3.4 - i * 1.3, 0, Math.sin(sway + i * 0.9) * 0.45 * i];
-    const r = 0.5 - i * 0.09;
-    m.plate(V.add(prev, [0, -r, -r]), V.add(prev, [0, -r, r]), V.add(next, [0, -r * 0.8, r * 0.8]), V.add(next, [0, -r * 0.8, -r * 0.8]), [0, r * 2, 0], 'flesh', 'tail' + i);
-    prev = next;
-  }
-  return m;
-}
-
-// A dart: a slim hull with a lamp for a nose and four fins that turn as it
-// flies (it rolls like a drill).
-function dart(roll = 0) {
-  const m = new Mesh();
-  m.lathe([[-4.6, 0.9, 0.9], [-3.4, 1.5, 1.5], [0.6, 1.45, 1.45], [3.2, 0.95, 0.95], [4.4, 0.45, 0.45]], 8,
-    (r, i) => (r === 1 && i % 2 ? 'accent' : r === 2 ? 'dark' : 'hull'), (r, i) => 'b' + r + (r === 1 ? i % 2 : ''));
-  m.ball([4.5, 0, 0], 0.62, 'glow', 'nose', { n: 6, m: 3 });
-  m.ball([-4.7, 0, 0], 0.8, 'glow', 'core', { n: 6, m: 3 });
-  for (let f = 0; f < 4; f++) {
-    const a = roll + Math.PI / 4 + (f * Math.PI) / 2;
-    const fin = new Mesh().plate([-4.6, 1.2, -0.2], [-1.0, 1.2, -0.2], [-3.2, 3.6, -0.2], [-5.2, 3.6, -0.2], [0, 0, 0.4], 'hull', 'fin' + f, 'accent');
-    m.add(fin, (p) => turn(p, 'x', a));
-  }
-  return m;
-}
-
-// A gunship: a heavy hull, a red-lit dome, twin cannons under its nose
-// (they kick back when they fire) and an engine pod each side.
-function gunship(recoil = 0) {
-  const m = new Mesh();
-  m.lathe([[-6.2, 1.5, 2.0], [-5.2, 2.9, 3.6], [-1.2, 3.6, 4.4], [2.8, 3.1, 3.8], [5.2, 1.9, 2.5], [6.6, 0.8, 1.1]], 10,
-    (r, i, up) => (r === 2 && !up ? 'dark' : r === 1 ? 'dark' : r === 3 && up ? 'accent' : 'hull'), (r, i, up) => 'b' + r + (up ? 'u' : 'd'));
-  m.ball([0.2, 2.9, 0], 2.7, 'glass', 'dome', { n: 10, m: 4, to: Math.PI / 2 });
-  m.lathe([[-2.6, 0.5, 2.9, 3.0], [3.0, 0.5, 2.9, 3.0]], 10, 'mech', 'collar', { pow: 1 });
-  m.plate([-5.6, 3.0, -0.3], [-2.6, 3.0, -0.3], [-4.4, 6.2, -0.3], [-6.4, 6.2, -0.3], [0, 0, 0.6], 'hull', 'tail', 'accent');
-  for (const s of [-1, 1]) {
-    // cannons
-    const x0 = 0.5 - recoil;
-    m.lathe([[x0, 0.75, 0.75, -2.6], [x0 + 6.2, 0.6, 0.6, -2.6]], 6, 'mech', 'gun' + s, { cz: 2.6 * s });
-    m.lathe([[x0 + 6.2, 0.9, 0.9, -2.6], [x0 + 7.4, 0.9, 0.9, -2.6]], 6, 'dark', 'muzzle' + s, { cz: 2.6 * s });
-    m.box([-1.5, -3.5, 1.7 * s - 0.9], [2.2, -1.9, 1.7 * s + 0.9 + 0.9 * s], 'dark', 'mount' + s);
-    // engine pods
-    m.lathe([[-7.2, 1.2, 1.2, 0.2], [-6.2, 1.7, 1.7, 0.2], [-2.2, 1.6, 1.6, 0.2], [-0.8, 0.7, 0.7, 0.2]], 8, (r) => (r === 1 ? 'hull' : 'mech'), 'pod' + s, { cz: 5.3 * s });
-    m.ball([-7.1, 0.2, 5.3 * s], 0.95, 'glow', 'burn' + s, { n: 6, m: 3 });
-    m.box([-4.6, -0.2, 3.6 * s], [-2.6, 0.6, 4.6 * s], 'dark', 'strut' + s);
-  }
-  return m;
-}
-
-// A sniper: a long rail gun slung under a narrow hull, a red sight on top.
-function sniper() {
-  const m = new Mesh();
-  m.lathe([[-6.4, 0.9, 1.2], [-5.2, 1.7, 2.1], [-0.5, 1.9, 2.3], [3.0, 1.3, 1.6], [4.6, 0.5, 0.7]], 8, (r, i, up) => (r === 1 && up ? 'accent' : r === 2 ? 'hull' : 'dark'), (r, i, up) => 'b' + r + (up ? 'u' : 'd'), { pow: 0.7 });
-  m.lathe([[-2.5, 0.55, 0.55, -1.9], [6.9, 0.45, 0.45, -1.9]], 6, 'mech', 'rail');
-  m.lathe([[5.9, 0.85, 0.85, -1.9], [7.0, 0.85, 0.85, -1.9]], 6, 'dark', 'muzzle');
-  m.box([-1.6, -1.6, -0.5], [1.4, -0.8, 0.5], 'dark', 'sling');
-  m.box([-0.5, 1.7, -0.5], [2.4, 2.5, 0.5], 'mech', 'scope');
-  m.ball([2.6, 2.1, 0], 0.62, 'glow', 'sight', { n: 6, m: 3 });
-  m.ball([-6.5, 0, 0], 0.85, 'glow', 'core', { n: 6, m: 3 });
-  for (const s of [-1, 1]) m.plate([-6.0, 0.2, 1.6 * s], [-2.8, 0.2, 1.9 * s], [-4.6, 0.9, 4.4 * s], [-6.4, 0.9, 4.4 * s], [0, 0.4, 0], 'hull', 'fin' + s, 'accent');
-  return m;
-}
-
-// A spinner: a disc that turns to face you, eight spikes round its rim, a
-// lamp at its hub.
-function disc(spin = 0) {
-  const m = new Mesh();
-  const face = (p) => turn(turn(p, 'y', -Math.PI / 2), 'z', spin); // (its axis points at the camera)
-  const body = new Mesh();
-  body.lathe([[-1.3, 2.2, 2.2], [-0.7, 4.3, 4.3], [0.7, 4.3, 4.3], [1.3, 2.6, 2.6]], 16, (r, i) => (r === 1 ? (i % 2 ? 'accent' : 'dark') : 'hull'), (r, i) => 'd' + r + (r === 1 ? i : ''), { pow: 1 });
-  body.ball([1.3, 0, 0], 1.5, 'glow', 'hub', { n: 8, m: 3 });
-  m.add(body, face);
-  for (let i = 0; i < 8; i++) {
-    const a = spin + (i * Math.PI) / 4;
-    // (panels on its face, so you can see it turn)
-    const panel = new Mesh().plate([2.0, -0.45, 1.3], [2.0, 0.45, 1.3], [3.7, 0.85, 0.8], [3.7, -0.85, 0.8], [0, 0, 0.25], i % 2 ? 'accent' : 'dark', 'panel' + i);
-    m.add(panel, (p) => turn(p, 'z', a + Math.PI / 8));
-    const spike = new Mesh().plate([3.9, -0.7, -0.5], [3.9, 0.7, -0.5], [5.9, 0.12, -0.2], [5.9, -0.12, -0.2], [0, 0, 0.9], 'mech', 'spike' + i, 'hull');
-    m.add(spike, (p) => turn(p, 'z', a));
-  }
-  return m;
-}
 
 // A cargo pod: a riveted steel capsule with brass straps and a window for
 // its light.
@@ -240,13 +197,17 @@ const BAKERS = {
     });
     return { pad: 4, frames: new Frames(7, (i) => frame(mesh(), k, 18, 11, 4, [['x', TILT + (i - 3) * 0.17]], { scale: 0.84, flip: false, look: SHIP_LOOK, dx: 0.3, dy: 0.3 })) };
   },
-  drifter: (k) => ({ pad: 3, frames: new Frames(8, (i) => frame(pod((i / 8) * ((Math.PI * 2) / 3)), k, 10, 8, 3, [['x', TILT]], { scale: 0.98 })) }),
-  weaver: (k) => ({ pad: 4, frames: new Frames(10, (i) => frame(manta((i / 10) * Math.PI * 2, (i / 10) * Math.PI * 2), k, 11, 9, 4, [['x', 0.95]], { scale: 0.92 })) }),
-  seeker: (k) => ({ pad: 3, frames: new Frames(6, (i) => frame(dart((i / 6) * (Math.PI / 2)), k, 10, 7, 3, [['x', TILT]], { scale: 1.0 })) }),
-  // The gunship: five frames of bank, each with its cannons out and kicked back.
-  gunner: (k) => ({ pad: 4, frames: new Frames(10, (j) => frame(gunship(j < 5 ? 0 : 1.6), k, 14, 11, 4, [['x', TILT + ((j % 5) - 2) * 0.2]], { scale: 0.94, dy: 0.6 })) }),
-  sniper: (k) => ({ pad: 3, frames: new Frames(1, () => frame(sniper(), k, 14, 7, 3, [['x', TILT]], { scale: 0.98, dy: -0.3 })) }),
-  spinner: (k) => ({ pad: 2, frames: new Frames(8, (i) => frame(disc((i / 8) * (Math.PI / 4)), k, 11, 11, 2, [['x', 0.25]], { scale: 0.95, flip: false })) }),
+  // The Crimson Blades. A dagger pod sways as it flies (six frames of a
+  // gentle roll), a razor ray beats its wings, a stiletto spins on its
+  // three fins, a cleaver banks and kicks back as it fires, a shuriken
+  // turns.
+  drifter: (k) => ({ pad: 3, frames: new Frames(6, (i) => frame(daggerPod(), k, 10, 8, 3, [['x', TILT + Math.sin((i / 6) * Math.PI * 2) * 0.16]], { scale: 0.98 })) }),
+  weaver: (k) => ({ pad: 4, frames: new Frames(10, (i) => frame(razorRay((i / 10) * Math.PI * 2), k, 11, 9, 4, [['x', 0.95]], { scale: 0.9 })) }),
+  seeker: (k) => ({ pad: 3, frames: new Frames(6, (i) => frame(stiletto((i / 6) * ((Math.PI * 2) / 3)), k, 10, 7, 3, [['x', TILT]], { scale: 1.0 })) }),
+  // The gunship: five frames of bank, each with its prongs out and kicked back.
+  gunner: (k) => ({ pad: 4, frames: new Frames(10, (j) => frame(cleaver(j < 5 ? 0 : 1.4), k, 14, 11, 4, [['x', TILT + ((j % 5) - 2) * 0.2]], { scale: 0.92, dy: 0.6 })) }),
+  sniper: (k) => ({ pad: 3, frames: new Frames(1, () => frame(lance(), k, 14, 7, 3, [['x', TILT]], { scale: 0.98 })) }),
+  spinner: (k) => ({ pad: 2, frames: new Frames(8, (i) => frame(shuriken((i / 8) * (Math.PI / 2)), k, 11, 11, 2, [['x', 0.25]], { scale: 0.93, flip: false })) }),
   carrier: (k) => ({ pad: 2, frames: new Frames(1, () => frame(cargo(), k, 13, 9, 2, [['x', 0.3]], { scale: 0.98 })) }),
 };
 
@@ -262,13 +223,13 @@ BAKERS.rockBit = (k) => ({ pad: 0, sets: [5, 9, 13].map((s) => rockFrames(k, s, 
 
 // A wreck: a model (or just some of its parts) tumbling, in `n` frames.
 const WRECKS = {
-  drifter: () => [pod(0.4)],
-  seeker: () => [dart(0.3)],
-  gunner: () => [gunship(0).only((p) => /^b[3-5]|gun|muzzle|mount|dome|collar/.test(p)), gunship(0).only((p) => /^b[0-2]|tail|pod|burn|strut/.test(p))],
-  weaver: () => [manta(1.2, 0).only((p) => /wing(In|Out)-1|rib(O)?-1/.test(p)), manta(1.2, 0).only((p) => /wing(In|Out)1|rib(O)?1/.test(p)), manta(0, 0).only((p) => /body|eye|tail/.test(p))],
+  drifter: () => [daggerPod()],
+  seeker: () => [stiletto()],
+  gunner: () => [cleaver(0).only((p) => /^b[3-4]|prong|tip|slit/.test(p)), cleaver(0).only((p) => /^b[0-2]|tail|wing|eng|burn/.test(p))],
+  weaver: () => [razorRay(1.2).only((p) => /wing(In|Out)-1|edge(In|Out)-1/.test(p)), razorRay(1.2).only((p) => /wing(In|Out)1|edge(In|Out)1/.test(p)), razorRay(0).only((p) => /body|eye|tail/.test(p))],
   carrier: () => [cargo()],
-  sniper: () => [sniper()],
-  spinner: () => [disc(0).only((p) => !/spike[0-3]/.test(p)), disc(0).only((p) => /spike[0-3]/.test(p))],
+  sniper: () => [lance()],
+  spinner: () => [shuriken(0).only((p) => /hub|core|[bh][02]/.test(p)), shuriken(0).only((p) => /[bh][13]/.test(p))],
   player: () => {
     const m = new Mesh();
     m.tris = buildShip();

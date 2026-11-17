@@ -1,4 +1,4 @@
-import { rgba } from './detail.js?v=0.38.1';
+import { rgba } from './detail.js?v=0.38.2';
 
 // The new look's art pipeline (the look sample, after v0.37.0): small 3D
 // models drawn as pixel art. A model is a list of triangles, each with a
@@ -224,9 +224,10 @@ export function renderModel(mesh, view, look) {
   const ox = view.cx * k;
   const oy = view.cy * k;
   const place = (p) => {
-    let q = p;
+    // (turned to face left first, then tilted: so a craft facing either
+    // way is seen a little from above, never from below)
+    let q = view.flip ? [-p[0], p[1], -p[2]] : p;
     for (const [axis, ang] of spin) q = turn(q, axis, ang);
-    if (view.flip) q = [-q[0], q[1], -q[2]];
     return { x: ox + q[0] * sc, y: oy - q[1] * sc, z: q[2], r: q };
   };
   for (const [a, b, c, mat, pname] of mesh.tris) {

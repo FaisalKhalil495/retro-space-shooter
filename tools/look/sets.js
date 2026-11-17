@@ -1,0 +1,522 @@
+// Looks for level 1's six enemies the owner compared (after v0.38.1;
+// they picked C, Crimson Blades, which now lives in js/models.js). Not loaded by the game: tools/look/sets-sheet.mjs draws them.
+// Each model is built like the game's (js/models.js): one unit = one game
+// pixel, nose towards +x, y up, z towards the camera.
+import { Mesh, rockMesh, turn, V } from '../../js/model.js';
+import { C_MATS, daggerPod, razorRay, stiletto, cleaver, lance, shuriken } from '../../js/models.js';
+
+const MECH = ['#12141c', '#262832', '#40434f', '#666974', '#989ba2'];
+const BONE = ['#544540', '#857263', '#b5a18a', '#dccbb0', '#f4e9d2'];
+const LIGHT = { light: [0.3, 0.62, 0.72], rim: [0.8, 0.5, -0.33], rimColor: '#ffcf8a', flat: ['glow', 'eye'], ink: '#090a14' };
+
+// ============================================================ set B
+// The new look's first set (v0.38.0–v0.38.1, in the game until the owner
+// picked set C): slate-violet armour, red-lit glass, rounded heavy ships.
+const B_MATS = {
+  hull: ['#211f3a', '#3d3b64', '#62608f', '#9391bd', '#cdcee9'],
+  dark: ['#141528', '#272a44', '#3d415e', '#5a5f7e', '#8086a4'],
+  mech: MECH,
+  glass: ['#2a0d12', '#5c1d20', '#9e3328', '#d9603a', '#f8b074'],
+  accent: ['#3a1418', '#6a2222', '#9e2f2f', '#c8553f', '#e8926a'],
+  glow: ['#cf5136', '#f2864e', '#ffb46a', '#ffd9a0', '#fff1cf'],
+  eye: ['#e3a857', '#f2cf8a', '#f6dcae', '#fff1cf', '#fff8e6'],
+  flesh: ['#2c0f18', '#5a1f28', '#8c3436', '#bb564a', '#e09480'],
+  wing: ['#210c15', '#4a1a22', '#742a2e', '#a04540', '#c9776a'],
+  bone: BONE,
+};
+// A pod: a round cockpit with a red-lit canopy, swept fins, a gun under its
+// nose and a three-bladed stabiliser spinning behind it.
+function pod(spin = 0) {
+  const m = new Mesh();
+  m.lathe([[-4.2, 1.5, 1.6], [-3.2, 2.7, 2.9], [-0.8, 3.3, 3.6], [1.8, 3.1, 3.3], [3.6, 2.0, 2.2], [4.6, 0.8, 0.9]], 10,
+    (r) => (r === 1 ? 'dark' : 'hull'), (r, i, up) => 'b' + r + (up ? 'u' : 'd'));
+  // (a red-lit canopy bulging from its front, a visor lamp under it)
+  m.ball([1.5, 1.3, 0], 2.9, 'glass', 'canopy', { n: 10, m: 5, squash: [1.15, 0.95, 0.95], to: Math.PI * 0.62 });
+  m.box([3.6, -0.5, -1.2], [4.5, 0.1, 1.2], 'glow', 'visor');
+  m.lathe([[-1.2, 3.45, 3.75], [-0.4, 3.45, 3.75]], 10, 'accent', 'band', { caps: false });
+  for (const s of [-1, 1]) {
+    m.plate([-3.4, -0.6, 2.6 * s], [1.2, -0.6, 2.9 * s], [-2.4, -1.6, 6.6 * s], [-4.6, -1.6, 6.6 * s], [0, 0.5, 0], 'hull', 'fin' + s, 'accent');
+    m.box([-4.2, -1.9, 5.9 * s], [-2.2, -1.0, 7.0 * s], 'accent', 'tip' + s);
+  }
+  m.lathe([[1.5, 0.5, 0.5, -3.0], [5.8, 0.42, 0.42, -3.0]], 6, 'mech', 'gun');
+  m.lathe([[-5.1, 1.4, 1.4], [-4.1, 1.8, 1.8]], 8, 'mech', 'nozzle', { caps: false });
+  m.ball([-4.8, 0, 0], 1.15, 'glow', 'core', { n: 6, m: 3 });
+  for (let b = 0; b < 3; b++) {
+    const a = spin + (b * Math.PI * 2) / 3;
+    const blade = new Mesh().plate([-5.0, 1.7, -0.7], [-4.0, 1.7, 0.7], [-4.2, 5.0, 1.1], [-5.2, 5.0, -0.5], [0.3, 0, 0], 'hull', 'blade' + b, 'accent');
+    m.add(blade, (p) => turn(p, 'x', a));
+  }
+  return m;
+}
+
+// A manta: a living thing, all muscle and ribbed wings that beat.
+function manta(flap = 0, sway = 0) {
+  const m = new Mesh();
+  m.lathe([[-3.6, 0.5, 0.6], [-2.2, 1.3, 1.7], [0.2, 1.8, 2.4], [2.6, 1.6, 2.1], [4.2, 1.0, 1.4], [5.0, 0.35, 0.6]], 8, (r, i, up) => (up ? 'flesh' : 'wing'), (r, i, up) => 'body' + (up ? 'u' : 'd'));
+  for (const s of [-1, 1]) {
+    m.ball([4.0, 0.75, 1.0 * s], 0.62, 'eye', 'eye' + s, { n: 6, m: 3 });
+    // A wing in two joints: the outer half beats further than the inner.
+    const lift = Math.sin(flap) * 0.55;
+    const tipLift = Math.sin(flap - 0.7) * 0.95;
+    const hinge = (p, ang, zr) => {
+      const q = [p[0], p[1], p[2] - zr * s];
+      const t = turn(q, 'x', -ang * s);
+      return [t[0], t[1], t[2] + zr * s];
+    };
+    const r0 = [-2.4, 0.3, 1.8 * s];
+    const r1 = [3.2, 0.3, 1.8 * s];
+    const m0 = hinge([-3.4, 0.3, 4.6 * s], lift, 1.8);
+    const m1 = hinge([1.6, 0.3, 4.8 * s], lift, 1.8);
+    const t0 = V.add(m0, V.sub(hinge([-4.6, 0.3, 7.6 * s], tipLift, 4.6), [-3.4, 0.3, 4.6 * s]));
+    const t1 = V.add(m1, V.sub(hinge([-1.6, 0.3, 7.9 * s], tipLift, 4.8), [1.6, 0.3, 4.8 * s]));
+    m.plate(r0, r1, m1, m0, [0, 0.3, 0], 'wing', 'wingIn' + s, 'flesh');
+    m.plate(m0, m1, t1, t0, [0, 0.25, 0], 'wing', 'wingOut' + s, 'flesh');
+    // ribs along the wing
+    for (const f of [0.2, 0.55, 0.9]) {
+      const a = V.mix(r0, r1, f);
+      const b = V.mix(m0, m1, f);
+      const c = V.mix(t0, t1, f);
+      m.plate(V.add(a, [-0.25, 0.3, 0]), V.add(a, [0.25, 0.3, 0]), V.add(b, [0.2, 0.3, 0]), V.add(b, [-0.2, 0.3, 0]), [0, 0.12, 0], 'bone', 'rib' + s + f);
+      m.plate(V.add(b, [-0.2, 0.25, 0]), V.add(b, [0.2, 0.25, 0]), V.add(c, [0.15, 0.25, 0]), V.add(c, [-0.15, 0.25, 0]), [0, 0.12, 0], 'bone', 'ribO' + s + f);
+    }
+  }
+  // a whip tail that sways
+  let prev = [-3.4, 0, 0];
+  for (let i = 1; i <= 4; i++) {
+    const next = [-3.4 - i * 1.3, 0, Math.sin(sway + i * 0.9) * 0.45 * i];
+    const r = 0.5 - i * 0.09;
+    m.plate(V.add(prev, [0, -r, -r]), V.add(prev, [0, -r, r]), V.add(next, [0, -r * 0.8, r * 0.8]), V.add(next, [0, -r * 0.8, -r * 0.8]), [0, r * 2, 0], 'flesh', 'tail' + i);
+    prev = next;
+  }
+  return m;
+}
+
+// A dart: a slim hull with a lamp for a nose and four fins that turn as it
+// flies (it rolls like a drill).
+function dart(roll = 0) {
+  const m = new Mesh();
+  m.lathe([[-4.6, 0.9, 0.9], [-3.4, 1.5, 1.5], [0.6, 1.45, 1.45], [3.2, 0.95, 0.95], [4.4, 0.45, 0.45]], 8,
+    (r, i) => (r === 1 && i % 2 ? 'accent' : r === 2 ? 'dark' : 'hull'), (r, i) => 'b' + r + (r === 1 ? i % 2 : ''));
+  m.ball([4.5, 0, 0], 0.62, 'glow', 'nose', { n: 6, m: 3 });
+  m.ball([-4.7, 0, 0], 0.8, 'glow', 'core', { n: 6, m: 3 });
+  for (let f = 0; f < 4; f++) {
+    const a = roll + Math.PI / 4 + (f * Math.PI) / 2;
+    const fin = new Mesh().plate([-4.6, 1.2, -0.2], [-1.0, 1.2, -0.2], [-3.2, 3.6, -0.2], [-5.2, 3.6, -0.2], [0, 0, 0.4], 'hull', 'fin' + f, 'accent');
+    m.add(fin, (p) => turn(p, 'x', a));
+  }
+  return m;
+}
+
+// A gunship: a heavy hull, a red-lit dome, twin cannons under its nose
+// (they kick back when they fire) and an engine pod each side.
+function gunship(recoil = 0) {
+  const m = new Mesh();
+  m.lathe([[-6.2, 1.5, 2.0], [-5.2, 2.9, 3.6], [-1.2, 3.6, 4.4], [2.8, 3.1, 3.8], [5.2, 1.9, 2.5], [6.6, 0.8, 1.1]], 10,
+    (r, i, up) => (r === 2 && !up ? 'dark' : r === 1 ? 'dark' : r === 3 && up ? 'accent' : 'hull'), (r, i, up) => 'b' + r + (up ? 'u' : 'd'));
+  m.ball([0.2, 2.9, 0], 2.7, 'glass', 'dome', { n: 10, m: 4, to: Math.PI / 2 });
+  m.lathe([[-2.6, 0.5, 2.9, 3.0], [3.0, 0.5, 2.9, 3.0]], 10, 'mech', 'collar', { pow: 1 });
+  m.plate([-5.6, 3.0, -0.3], [-2.6, 3.0, -0.3], [-4.4, 6.2, -0.3], [-6.4, 6.2, -0.3], [0, 0, 0.6], 'hull', 'tail', 'accent');
+  for (const s of [-1, 1]) {
+    // cannons
+    const x0 = 0.5 - recoil;
+    m.lathe([[x0, 0.75, 0.75, -2.6], [x0 + 6.2, 0.6, 0.6, -2.6]], 6, 'mech', 'gun' + s, { cz: 2.6 * s });
+    m.lathe([[x0 + 6.2, 0.9, 0.9, -2.6], [x0 + 7.4, 0.9, 0.9, -2.6]], 6, 'dark', 'muzzle' + s, { cz: 2.6 * s });
+    m.box([-1.5, -3.5, 1.7 * s - 0.9], [2.2, -1.9, 1.7 * s + 0.9 + 0.9 * s], 'dark', 'mount' + s);
+    // engine pods
+    m.lathe([[-7.2, 1.2, 1.2, 0.2], [-6.2, 1.7, 1.7, 0.2], [-2.2, 1.6, 1.6, 0.2], [-0.8, 0.7, 0.7, 0.2]], 8, (r) => (r === 1 ? 'hull' : 'mech'), 'pod' + s, { cz: 5.3 * s });
+    m.ball([-7.1, 0.2, 5.3 * s], 0.95, 'glow', 'burn' + s, { n: 6, m: 3 });
+    m.box([-4.6, -0.2, 3.6 * s], [-2.6, 0.6, 4.6 * s], 'dark', 'strut' + s);
+  }
+  return m;
+}
+
+// A sniper: a long rail gun slung under a narrow hull, a red sight on top.
+function sniper() {
+  const m = new Mesh();
+  m.lathe([[-6.4, 0.9, 1.2], [-5.2, 1.7, 2.1], [-0.5, 1.9, 2.3], [3.0, 1.3, 1.6], [4.6, 0.5, 0.7]], 8, (r, i, up) => (r === 1 && up ? 'accent' : r === 2 ? 'hull' : 'dark'), (r, i, up) => 'b' + r + (up ? 'u' : 'd'), { pow: 0.7 });
+  m.lathe([[-2.5, 0.55, 0.55, -1.9], [6.9, 0.45, 0.45, -1.9]], 6, 'mech', 'rail');
+  m.lathe([[5.9, 0.85, 0.85, -1.9], [7.0, 0.85, 0.85, -1.9]], 6, 'dark', 'muzzle');
+  m.box([-1.6, -1.6, -0.5], [1.4, -0.8, 0.5], 'dark', 'sling');
+  m.box([-0.5, 1.7, -0.5], [2.4, 2.5, 0.5], 'mech', 'scope');
+  m.ball([2.6, 2.1, 0], 0.62, 'glow', 'sight', { n: 6, m: 3 });
+  m.ball([-6.5, 0, 0], 0.85, 'glow', 'core', { n: 6, m: 3 });
+  for (const s of [-1, 1]) m.plate([-6.0, 0.2, 1.6 * s], [-2.8, 0.2, 1.9 * s], [-4.6, 0.9, 4.4 * s], [-6.4, 0.9, 4.4 * s], [0, 0.4, 0], 'hull', 'fin' + s, 'accent');
+  return m;
+}
+
+// A spinner: a disc that turns to face you, eight spikes round its rim, a
+// lamp at its hub.
+function disc(spin = 0) {
+  const m = new Mesh();
+  const face = (p) => turn(turn(p, 'y', -Math.PI / 2), 'z', spin); // (its axis points at the camera)
+  const body = new Mesh();
+  body.lathe([[-1.3, 2.2, 2.2], [-0.7, 4.3, 4.3], [0.7, 4.3, 4.3], [1.3, 2.6, 2.6]], 16, (r, i) => (r === 1 ? (i % 2 ? 'accent' : 'dark') : 'hull'), (r, i) => 'd' + r + (r === 1 ? i : ''), { pow: 1 });
+  body.ball([1.3, 0, 0], 1.5, 'glow', 'hub', { n: 8, m: 3 });
+  m.add(body, face);
+  for (let i = 0; i < 8; i++) {
+    const a = spin + (i * Math.PI) / 4;
+    // (panels on its face, so you can see it turn)
+    const panel = new Mesh().plate([2.0, -0.45, 1.3], [2.0, 0.45, 1.3], [3.7, 0.85, 0.8], [3.7, -0.85, 0.8], [0, 0, 0.25], i % 2 ? 'accent' : 'dark', 'panel' + i);
+    m.add(panel, (p) => turn(p, 'z', a + Math.PI / 8));
+    const spike = new Mesh().plate([3.9, -0.7, -0.5], [3.9, 0.7, -0.5], [5.9, 0.12, -0.2], [5.9, -0.12, -0.2], [0, 0, 0.9], 'mech', 'spike' + i, 'hull');
+    m.add(spike, (p) => turn(p, 'z', a));
+  }
+  return m;
+}
+
+// ============================================================ set D
+// "Stone Reavers": raiders who armour their ships with the belt's own
+// rock. Chunky slabs of cool grey stone bolted to rusty iron frames, with
+// sea-green furnace light in every port and vent.
+const D_MATS = {
+  stone: ['#1a1d26', '#2f3442', '#4a5162', '#6e7686', '#a0a8b4'],
+  iron: ['#16110f', '#2c211c', '#47362c', '#665040', '#8c725c'],
+  mech: MECH,
+  glow: ['#1f6f6a', '#2fa39a', '#5fd0bf', '#8fdcc8', '#b4ead9'],
+  eye: ['#e3a857', '#f2cf8a', '#f6dcae', '#fff1cf', '#fff8e6'],
+  accent: ['#4a3a16', '#7a6024', '#b08a36', '#d8b458', '#f2dc96'],
+  shell: ['#22212b', '#3d3c4b', '#5e5d6d', '#898892', '#bcbbc0'],
+  flesh: ['#2c0f18', '#5a1f28', '#8c3436', '#bb564a', '#e09480'],
+  bone: BONE,
+};
+// A lump of rock: seed, size, how it's stretched, where it sits.
+const rock = (seed, r, squash, move, part = 'rock') => new Mesh().add(rockMesh(seed, r, 1, 'stone'), (p) => [p[0] * squash[0] + move[0], p[1] * squash[1] + move[1], p[2] * squash[2] + move[2]], () => part);
+
+function boulderPod() {
+  const m = new Mesh();
+  m.add(rock(7, 3.3, [1.25, 0.95, 1.0], [0, 0.2, 0]));
+  m.lathe([[-0.7, 3.5, 3.7, 0.2], [0.5, 3.5, 3.7, 0.2]], 10, 'iron', 'band', { caps: false });
+  m.lathe([[3.0, 1.75, 1.75, 0.3], [3.9, 1.75, 1.75, 0.3]], 8, 'iron', 'rim', { caps: false, pow: 1 });
+  m.ball([3.6, 0.3, 0], 1.5, 'glow', 'port', { n: 8, m: 4, squash: [0.8, 1, 1] });
+  m.box([-2.4, 3.0, -0.7], [-1.0, 3.5, 0.7], 'accent', 'mark');
+  m.lathe([[1.0, 0.5, 0.5, -3.0], [5.6, 0.42, 0.42, -3.0]], 6, 'mech', 'gun');
+  for (const s of [-1, 1]) {
+    m.lathe([[-5.4, 0.9, 0.9, -0.6], [-3.0, 1.25, 1.25, -0.6]], 6, 'iron', 'pod' + s, { cz: 2.7 * s });
+    m.ball([-5.4, -0.6, 2.7 * s], 0.8, 'glow', 'burn' + s, { n: 6, m: 3 });
+  }
+  return m;
+}
+
+function beltCrab(flap = 0.8) {
+  const m = new Mesh();
+  m.ball([0, 0.4, 0], 3.5, 'shell', 'shell', { n: 12, m: 4, squash: [1.3, 0.62, 1.02], to: Math.PI / 2 });
+  m.ball([0, 0.4, 0], 3.3, 'flesh', 'belly', { n: 12, m: 3, squash: [1.25, 0.3, 0.95], from: Math.PI / 2, to: Math.PI });
+  // ridges across its shell
+  for (const x of [-2.2, -0.4, 1.4]) m.box([x, 2.0 - Math.abs(x) * 0.25, -2.6 + Math.abs(x) * 0.3], [x + 0.5, 2.5 - Math.abs(x) * 0.25, 2.6 - Math.abs(x) * 0.3], 'bone', 'ridge' + x);
+  for (const s of [-1, 1]) {
+    m.ball([4.2, 1.5, 1.0 * s], 0.6, 'eye', 'eye' + s, { n: 6, m: 3 });
+    m.box([3.9, 0.6, 1.0 * s - 0.2], [4.3, 1.3, 1.0 * s + 0.2], 'flesh', 'stalk' + s);
+    // three paddling legs a side
+    for (let i = 0; i < 3; i++) {
+      const x = -2.6 + i * 2.1;
+      const kick = Math.sin(flap + i * 2.1 + (s > 0 ? 0 : 1.5)) * 1.1;
+      m.plate([x - 0.6, 0.2, 3.0 * s], [x + 0.6, 0.2, 3.0 * s], [x + 0.4 + kick, -0.5, 5.4 * s], [x - 0.6 + kick, -0.5, 5.4 * s], [0, 0.5, 0], 'flesh', 'leg' + s + i);
+      m.plate([x - 0.5 + kick, -0.5, 5.4 * s], [x + 0.2 + kick, -0.5, 5.4 * s], [x - 0.7 + kick * 1.6, -1.2, 6.9 * s], [x - 1.0 + kick * 1.6, -1.2, 6.9 * s], [0, 0.3, 0], 'bone', 'foot' + s + i);
+    }
+    // claws
+    m.plate([3.4, 0.1, 1.6 * s], [4.4, 0.1, 2.2 * s], [6.2, 0.1, 3.2 * s], [5.4, 0.1, 3.9 * s], [0, 0.5, 0], 'shell', 'arm' + s);
+    m.plate([5.6, 0.1, 3.3 * s], [6.3, 0.1, 3.0 * s], [7.6, 0.1, 2.0 * s], [7.0, 0.1, 2.9 * s], [0, 0.45, 0], 'bone', 'pincer' + s);
+  }
+  return m;
+}
+
+function shardDart(roll = 0.4) {
+  const m = new Mesh();
+  m.add(rock(19, 1.7, [2.3, 0.8, 0.8], [0, 0, 0]));
+  m.lathe([[3.0, 1.0, 1.0], [5.3, 0.1, 0.1]], 6, 'iron', 'nose', { pow: 1 });
+  m.lathe([[-4.9, 1.0, 1.0], [-3.6, 1.35, 1.35]], 8, 'iron', 'collar', { caps: false });
+  m.ball([-4.8, 0, 0], 0.85, 'glow', 'core', { n: 6, m: 3 });
+  for (let f = 0; f < 3; f++) {
+    const fin = new Mesh().plate([-4.8, 1.1, -0.2], [-2.0, 1.1, -0.2], [-4.0, 3.5, -0.2], [-5.6, 3.5, -0.2], [0, 0, 0.4], 'iron', 'f' + f, 'accent');
+    m.add(fin, (p) => turn(p, 'x', roll + (f * Math.PI * 2) / 3));
+  }
+  return m;
+}
+
+function rampart(recoil = 0) {
+  const m = new Mesh();
+  m.box([-5.6, -2.7, -2.3], [4.6, -1.1, 2.3], 'iron', 'keel');
+  m.add(rock(31, 4.2, [1.45, 0.8, 1.05], [-0.6, 0.9, 0]));
+  m.add(rock(43, 2.0, [1.3, 0.8, 1.0], [-2.9, 3.7, 0]), (p) => p, () => 'cap');
+  m.lathe([[-2.2, 3.9, 4.8, 0.7], [-1.1, 3.9, 4.8, 0.7]], 10, 'iron', 'band', { caps: false });
+  m.lathe([[4.2, 1.9, 2.3, 0.6], [5.3, 1.9, 2.3, 0.6]], 8, 'iron', 'rim', { caps: false, pow: 1 });
+  m.ball([5.1, 0.6, 0], 1.6, 'glow', 'furnace', { n: 8, m: 4, squash: [0.5, 1, 1.2] });
+  for (const s of [-1, 1]) {
+    m.lathe([[0.4 - recoil, 0.8, 0.8, -2.5], [7.4 - recoil, 0.65, 0.65, -2.5]], 6, 'mech', 'gun' + s, { cz: 3.1 * s });
+    m.lathe([[7.2 - recoil, 0.95, 0.95, -2.5], [8.2 - recoil, 0.95, 0.95, -2.5]], 6, 'iron', 'muzzle' + s, { cz: 3.1 * s });
+    m.lathe([[-7.4, 1.1, 1.1, 0], [-5.2, 1.6, 1.6, 0]], 6, 'iron', 'pod' + s, { cz: 3.3 * s });
+    m.ball([-7.4, 0, 3.3 * s], 0.95, 'glow', 'burn' + s, { n: 6, m: 3 });
+  }
+  return m;
+}
+
+function menhir() {
+  const m = new Mesh();
+  m.add(rock(53, 1.9, [2.7, 0.85, 0.9], [-1.6, 0.3, 0]));
+  m.lathe([[1.5, 0.55, 0.55, -0.2], [7.1, 0.45, 0.45, -0.2]], 6, 'mech', 'barrel');
+  m.lathe([[6.4, 0.8, 0.8, -0.2], [7.3, 0.8, 0.8, -0.2]], 6, 'iron', 'muzzle');
+  for (const x of [-4.2, 0.2]) m.lathe([[x, 1.85, 1.95, 0.3], [x + 0.8, 1.85, 1.95, 0.3]], 8, 'iron', 'clamp' + x, { caps: false });
+  m.box([-1.6, 1.7, -0.3], [-0.9, 2.6, 0.3], 'iron', 'post');
+  m.ball([-1.2, 2.8, 0], 0.6, 'glow', 'sight', { n: 6, m: 3 });
+  m.ball([-6.8, 0.3, 0], 0.85, 'glow', 'core', { n: 6, m: 3 });
+  return m;
+}
+
+function geode(spin = 0.25) {
+  const m = new Mesh();
+  const face = (p) => turn(p, 'y', -Math.PI / 2); // (its axis points at the camera)
+  const ring = new Mesh();
+  ring.lathe([[-0.9, 3.5, 3.5], [0.9, 3.5, 3.5]], 12, 'iron', 'ring', { pow: 1, caps: false });
+  ring.lathe([[-0.4, 3.3, 3.3], [-0.2, 0.1, 0.1]], 12, 'iron', 'back', { pow: 1, caps: false });
+  m.add(ring, face);
+  m.ball([0, 0, 0.5], 2.0, 'glow', 'core', { n: 6, m: 3 });
+  for (let i = 0; i < 6; i++) {
+    const a = spin + (i * Math.PI) / 3;
+    m.add(rock(60 + i * 7, 1.45, [1.25, 0.85, 0.8], [4.7, 0, 0]), (p) => turn(p, 'z', a), () => 'tooth' + i);
+  }
+  return m;
+}
+
+// ============================================================ set E
+// "Hive Swarm": living ships bred on the invaders' homeworld. Dark green
+// chitin and amber-brown shell, bone mandibles and spines, glowing amber
+// egg sacs. (They'd show early, in level 1, what the Hive World holds.)
+const E_MATS = {
+  chitin: ['#141a17', '#25302a', '#3c4c40', '#5d725e', '#90a58a'],
+  plate: ['#1c1410', '#382618', '#5a3e22', '#86602e', '#b88e48'],
+  fur: ['#2a1a0c', '#4e3014', '#7a4c1c', '#a8722c', '#d4a050'],
+  wing: ['#1e1810', '#3a2c1c', '#5a442a', '#7e6440', '#a88c5e'],
+  bone: BONE,
+  glow: ['#c98f4a', '#e3a857', '#f2cf8a', '#f6dcae', '#f0b45a'],
+  eye: ['#6a1a14', '#9e2f2f', '#c8553f', '#e06a44', '#e8603a'],
+};
+
+function broodBeetle() {
+  const m = new Mesh();
+  m.ball([-0.4, 0, 0], 3.0, 'chitin', 'belly', { n: 10, m: 5, squash: [1.4, 0.8, 1.0] });
+  for (const s of [-1, 1]) m.ball([-0.6, 0.35, 0.75 * s], 2.75, 'plate', 'elytra' + s, { n: 8, m: 4, squash: [1.45, 0.85, 0.7], to: Math.PI / 2 });
+  m.ball([3.4, 0.1, 0], 1.5, 'chitin', 'head', { n: 8, m: 4 });
+  for (const s of [-1, 1]) {
+    m.ball([4.3, 0.6, 0.85 * s], 0.5, 'eye', 'eye' + s, { n: 6, m: 3 });
+    m.plate([4.2, -0.5, 0.7 * s], [4.6, -0.5, 0.9 * s], [6.0, -1.0, 0.25 * s], [5.6, -1.1, 0.1 * s], [0, 0.4, 0], 'bone', 'mandible' + s);
+  }
+  m.ball([-4.4, -0.3, 0], 1.4, 'glow', 'sac', { n: 8, m: 4, squash: [1.1, 0.9, 0.9] });
+  return m;
+}
+
+function hiveMoth(flap = 0.7) {
+  const m = new Mesh();
+  m.lathe([[-4.2, 0.5, 0.6], [-2.6, 1.2, 1.3], [-0.6, 1.0, 1.1], [0.4, 1.4, 1.5], [2.4, 1.3, 1.4], [3.4, 0.9, 1.0]], 8, (r) => (r % 2 ? 'chitin' : 'fur'), (r, i, up) => 'body' + (up ? 'u' : 'd'));
+  const lift = Math.sin(flap) * 0.35;
+  for (const s of [-1, 1]) {
+    const up = (p, k) => [p[0], p[1] + Math.abs(p[2]) * lift * k, p[2]];
+    m.ball([3.3, 0.4, 0.8 * s], 0.6, 'eye', 'eye' + s, { n: 6, m: 3 });
+    m.plate([3.0, 0.9, 0.35 * s], [3.3, 0.9, 0.35 * s], [5.8, 2.8, 1.5 * s], [5.6, 2.9, 1.3 * s], [0, 0.15, 0], 'bone', 'antenna' + s);
+    m.plate([-0.4, 0.3, 1.2 * s], [2.4, 0.3, 1.2 * s], up([1.4, 0.3, 5.4 * s], 1), up([-2.6, 0.3, 6.2 * s], 1), [0, 0.25, 0], 'wing', 'fore' + s, 'fur');
+    m.plate([-2.8, 0.1, 1.0 * s], [-0.4, 0.1, 1.2 * s], up([-2.2, 0.1, 4.4 * s], 0.8), up([-4.8, 0.1, 3.6 * s], 0.8), [0, 0.22, 0], 'wing', 'hind' + s, 'fur');
+    m.ball(up([-0.5, 0.62, 3.9 * s], 1), 0.85, 'glow', 'spot' + s, { n: 6, m: 3, squash: [1, 0.35, 1] });
+  }
+  return m;
+}
+
+function hornet(buzz = 0) {
+  const m = new Mesh();
+  // a striped abdomen behind, a stinger at its tail
+  m.lathe([[-5.0, 0.2, 0.2], [-4.4, 0.9, 0.9], [-3.3, 1.3, 1.3], [-2.2, 1.3, 1.3], [-1.2, 0.9, 0.9], [-0.6, 0.4, 0.4]], 8, (r) => (r % 2 ? 'fur' : 'chitin'), (r) => 'abd' + r);
+  m.plate([-5.0, -0.12, -0.12], [-5.0, 0.12, 0.12], [-6.4, 0.02, 0.02], [-6.4, -0.02, -0.02], [0, 0.2, 0], 'bone', 'sting');
+  m.ball([0.6, 0, 0], 1.1, 'chitin', 'thorax', { n: 8, m: 4 });
+  m.ball([2.4, 0, 0], 0.95, 'plate', 'head', { n: 8, m: 4 });
+  for (const s of [-1, 1]) {
+    m.ball([2.9, 0.35, 0.6 * s], 0.42, 'eye', 'eye' + s, { n: 6, m: 3 });
+    m.plate([3.0, -0.4, 0.4 * s], [3.3, -0.4, 0.5 * s], [4.3, -0.8, 0.15 * s], [4.0, -0.9, 0.05 * s], [0, 0.3, 0], 'bone', 'jaw' + s);
+    m.plate([0.2, 0.9, 0.3 * s], [1.2, 0.9, 0.3 * s], [-2.4, 1.8 + buzz * 0.4, 2.6 * s], [-3.4, 1.4, 2.0 * s], [0, 0.1, 0], 'wing', 'w' + s, 'chitin');
+  }
+  return new Mesh().add(m, (p) => V.mul(p, 1.22));
+}
+
+function broodCarrier(recoil = 0) {
+  const m = new Mesh();
+  m.lathe([[-6.8, 1.3, 1.9, 0.6], [-5.6, 2.6, 3.4, 0.6], [-4.4, 2.9, 3.8, 0.7], [-3.2, 3.2, 4.1, 0.7], [-2.0, 3.0, 4.0, 0.7], [-0.8, 3.3, 4.2, 0.7], [0.4, 3.1, 4.1, 0.6], [1.6, 3.2, 4.0, 0.6], [2.8, 2.7, 3.5, 0.5], [4.2, 1.6, 2.2, 0.2]], 12,
+    (r, i, up) => (up ? (r % 2 ? 'chitin' : 'plate') : 'chitin'), (r, i, up) => 'seg' + r + (up ? 'u' : 'd'), { pow: 0.8 });
+  m.ball([5.0, -0.2, 0], 1.8, 'chitin', 'head', { n: 8, m: 4, squash: [1, 0.8, 1] });
+  for (const s of [-1, 1]) {
+    for (let i = 0; i < 3; i++) m.ball([-3.8 + i * 2.2, -2.2, 2.4 * s], 0.95, 'glow', 'egg' + s + i, { n: 6, m: 3 });
+    m.ball([5.9, 0.4, 0.9 * s], 0.45, 'eye', 'eye' + s, { n: 6, m: 3 });
+    m.plate([5.4 - recoil, -1.0, 1.1 * s], [5.8 - recoil, -1.0, 1.5 * s], [9.2 - recoil, -1.8, 1.0 * s], [8.8 - recoil, -1.9, 0.7 * s], [0, 0.6, 0], 'bone', 'tusk' + s);
+  }
+  return m;
+}
+
+function spineSpitter() {
+  const m = new Mesh();
+  m.ball([-2.8, 0.2, 0], 2.0, 'plate', 'body', { n: 10, m: 5, squash: [1.9, 0.8, 0.9] });
+  m.ball([0.6, 0.3, 0], 1.3, 'chitin', 'head', { n: 8, m: 4 });
+  m.ball([1.0, 1.0, 0], 0.75, 'eye', 'eye', { n: 6, m: 3 });
+  m.lathe([[1.6, 0.45, 0.45, 0.1], [7.6, 0.22, 0.22, -0.1]], 6, 'bone', 'spine');
+  m.ball([7.7, -0.1, 0], 0.45, 'glow', 'tip', { n: 6, m: 3 });
+  m.ball([-6.4, 0, 0], 0.9, 'glow', 'sac', { n: 6, m: 3 });
+  for (const s of [-1, 1]) m.plate([-4.6, -0.4, 1.2 * s], [-1.8, -0.4, 1.4 * s], [-3.0, -1.6, 3.4 * s], [-5.4, -1.6, 3.2 * s], [0, 0.3, 0], 'chitin', 'leg' + s, 'bone');
+  return m;
+}
+
+function sporeStar(spin = 0.2) {
+  const m = new Mesh();
+  m.ball([0, 0, 0], 2.6, 'plate', 'bulb', { n: 10, m: 5, squash: [1, 1, 0.7] });
+  m.ball([0, 0, 1.3], 1.2, 'glow', 'heart', { n: 8, m: 3 });
+  for (let i = 0; i < 8; i++) {
+    const t = new Mesh()
+      .plate([2.2, -0.5, 0], [2.2, 0.5, 0], [4.0, 0.55, 0], [4.0, -0.35, 0], [0, 0, 0.5], 'chitin', 't' + i)
+      .plate([4.0, -0.35, 0], [4.0, 0.55, 0], [5.5, 1.6, 0], [5.5, 1.1, 0], [0, 0, 0.4], 'fur', 'tt' + i);
+    m.add(t, (p) => turn(p, 'z', spin + (i * Math.PI) / 4));
+  }
+  return m;
+}
+
+// ============================================================ set F
+// "Brass Armada": an old fleet of polished brass and ivory, rockets with
+// round portholes and tall fins, like the space age of old films; its
+// creature is a deep-blue void angler with a glowing lure.
+const F_MATS = {
+  brass: ['#3a2410', '#6e4a20', '#a87a36', '#d8aa58', '#f6dc96'],
+  ivory: ['#4a4438', '#7a7260', '#b0a68c', '#dcd2b8', '#f8f2e0'],
+  steel: ['#141a28', '#26304a', '#3e4c6e', '#62729a', '#98a6c8'],
+  mech: MECH,
+  glass: ['#0e2228', '#1c3e46', '#2e6470', '#4c8e98', '#86c0c4'],
+  glow: ['#f2864e', '#ffb46a', '#ffd9a0', '#fff1cf', '#fff8e6'],
+  eye: ['#e3a857', '#f2cf8a', '#f6dcae', '#fff1cf', '#f2cf8a'],
+  deep: ['#0c1620', '#162a3a', '#22425a', '#356580', '#5a94aa'],
+  pale: ['#20262e', '#3a4650', '#5a6a74', '#84949a', '#b4c2c4'],
+  fin: ['#141e2c', '#22344a', '#345070', '#4e7494', '#78a0b8'],
+  mouth: ['#0a0608', '#140c10', '#1e1218', '#281820', '#341e28'],
+};
+
+function bellCapsule() {
+  const m = new Mesh();
+  m.lathe([[-4.0, 2.7, 2.7], [-3.0, 3.1, 3.1], [0.5, 2.7, 2.7], [2.8, 1.7, 1.7], [4.4, 0.7, 0.7], [5.0, 0.1, 0.1]], 12, (r) => (r === 2 ? 'ivory' : 'brass'), (r) => 'b' + r, { pow: 1 });
+  m.lathe([[-1.2, 2.98, 2.98], [-0.4, 2.98, 2.98]], 12, 'steel', 'band', { caps: false, pow: 1 });
+  for (const s of [-1, 1]) m.ball([0.9, 0.7, 2.35 * s], 0.95, 'glass', 'port' + s, { n: 8, m: 4, squash: [1, 1, 0.5] });
+  for (let f = 0; f < 3; f++) {
+    const fin = new Mesh().plate([-4.0, 2.3, -0.2], [-1.8, 2.3, -0.2], [-4.0, 4.4, -0.2], [-5.2, 4.4, -0.2], [0, 0, 0.4], 'ivory', 'fin' + f, 'brass');
+    m.add(fin, (p) => turn(p, 'x', 0.35 + (f * Math.PI * 2) / 3));
+  }
+  m.lathe([[1.0, 0.42, 0.42, -2.6], [5.6, 0.36, 0.36, -2.6]], 6, 'mech', 'gun');
+  m.ball([-4.2, 0, 0], 1.3, 'glow', 'burn', { n: 6, m: 3 });
+  return m;
+}
+
+function voidAngler(flap = 0.6) {
+  const m = new Mesh();
+  m.lathe([[-3.8, 0.6, 0.5], [-2.6, 1.6, 1.3], [0.2, 2.5, 2.0], [2.6, 2.3, 1.9], [3.9, 1.2, 1.2]], 8, (r, i, up) => (up ? 'deep' : 'pale'), (r, i, up) => 'body' + (up ? 'u' : 'd'));
+  m.box([2.6, -0.95, -1.05], [4.1, -0.15, 1.05], 'mouth', 'mouth');
+  for (const s of [-1, 1]) {
+    for (const t of [2.8, 3.3, 3.8]) m.plate([t, -0.1, 1.08 * s], [t + 0.32, -0.1, 1.08 * s], [t + 0.18, -0.8, 1.08 * s], [t + 0.12, -0.8, 1.08 * s], [0, 0, 0.1 * s], 'ivory', 'tooth' + s + t);
+    m.ball([2.6, 1.0, 1.4 * s], 0.5, 'eye', 'eye' + s, { n: 6, m: 3 });
+    const lift = Math.sin(flap + (s > 0 ? 0 : 1)) * 0.9;
+    m.plate([0.2, -0.4, 1.8 * s], [1.8, -0.4, 1.8 * s], [0.4, -1.2 + lift, 4.2 * s], [-0.8, -1.0 + lift, 3.8 * s], [0, 0.25, 0], 'fin', 'pect' + s, 'deep');
+  }
+  m.plate([1.0, 2.2, -0.15], [1.4, 2.3, -0.15], [4.6, 4.1, -0.15], [4.4, 4.2, -0.15], [0, 0, 0.3], 'ivory', 'stalk');
+  m.ball([4.9, 4.0, 0], 0.85, 'glow', 'lure', { n: 6, m: 3 });
+  const sway = Math.sin(flap) * 0.9;
+  m.plate([-3.6, -0.4, -0.2], [-3.6, 0.4, -0.2], [-7.2, 2.8, -0.2 + sway], [-7.2, -2.6, -0.2 + sway], [0, 0, 0.4], 'fin', 'tail', 'deep');
+  for (const x of [-1.8, -0.4, 1.0]) m.plate([x, 1.9, -0.1], [x + 0.6, 2.1, -0.1], [x - 0.4, 3.4, -0.1], [x - 0.7, 3.2, -0.1], [0, 0, 0.2], 'ivory', 'spine' + x);
+  return new Mesh().add(m, (p) => V.mul([p[0] + 0.8, p[1] - 0.6, p[2]], 1.12));
+}
+
+function finRocket(roll = 0.3) {
+  const m = new Mesh();
+  m.lathe([[-4.6, 0.9, 0.9], [-3.6, 1.3, 1.3], [0.4, 1.3, 1.3], [2.8, 0.9, 0.9], [4.2, 0.4, 0.4], [4.9, 0.05, 0.05]], 10, (r) => (r === 3 || r === 4 ? 'ivory' : r === 1 ? 'steel' : 'brass'), (r) => 'b' + r, { pow: 1 });
+  for (const s of [-1, 1]) m.ball([1.0, 0.4, 1.2 * s], 0.45, 'glass', 'port' + s, { n: 6, m: 3, squash: [1, 1, 0.5] });
+  for (let f = 0; f < 4; f++) {
+    const fin = new Mesh().plate([-4.6, 1.0, -0.15], [-2.0, 1.0, -0.15], [-4.2, 3.4, -0.15], [-5.4, 3.4, -0.15], [0, 0, 0.3], 'ivory', 'f' + f, 'brass');
+    m.add(fin, (p) => turn(p, 'x', roll + (f * Math.PI) / 2));
+  }
+  m.ball([-4.8, 0, 0], 0.85, 'glow', 'burn', { n: 6, m: 3 });
+  return m;
+}
+
+function dreadnought(recoil = 0) {
+  const m = new Mesh();
+  m.lathe([[-7.0, 1.6, 2.4], [-5.8, 2.6, 3.6], [2.0, 2.6, 3.6], [5.2, 1.7, 2.5], [7.2, 0.4, 1.0]], 8, (r, i, up) => (up ? 'brass' : 'steel'), (r, i, up) => 'b' + r + (up ? 'u' : 'd'), { pow: 0.6 });
+  m.lathe([[-2.6, 2.75, 3.75], [-1.6, 2.75, 3.75]], 8, 'ivory', 'band', { caps: false, pow: 0.6 });
+  m.box([-4.0, 2.2, -1.3], [-1.2, 4.2, 1.3], 'ivory', 'bridge');
+  m.box([-5.9, 2.3, -0.7], [-4.7, 5.6, 0.7], 'steel', 'stack');
+  m.box([-6.1, 5.4, -0.9], [-4.5, 6.0, 0.9], 'brass', 'cap');
+  m.ball([2.2, 2.4, 0], 1.4, 'brass', 'turret', { n: 10, m: 4, squash: [1.2, 0.8, 1], to: Math.PI / 2 });
+  for (const s of [-1, 1]) {
+    m.lathe([[2.6 - recoil, 0.32, 0.32, 3.0], [7.6 - recoil, 0.28, 0.28, 3.0]], 6, 'mech', 'tb' + s, { cz: 0.55 * s });
+    for (let i = 0; i < 3; i++) m.ball([-4.2 + i * 2.6, 0.9, 3.5 * s], 0.55, 'glass', 'port' + s + i, { n: 6, m: 3, squash: [1, 1, 0.4] });
+  }
+  m.ball([-7.3, 0, 0], 1.5, 'glow', 'burn', { n: 8, m: 3 });
+  return m;
+}
+
+function longTom() {
+  const m = new Mesh();
+  m.lathe([[-6.6, 0.9, 1.2], [-5.4, 1.9, 2.2], [-2.0, 1.9, 2.2], [-0.6, 1.2, 1.4]], 10, (r) => (r === 1 ? 'brass' : 'ivory'), (r) => 'pod' + r);
+  m.lathe([[-1.0, 0.72, 0.72], [7.4, 0.52, 0.52]], 8, 'brass', 'barrel', { pow: 1 });
+  for (const x of [1.4, 3.6, 5.8]) m.lathe([[x, 0.8, 0.8], [x + 0.45, 0.8, 0.8]], 8, 'steel', 'ring' + x, { caps: false, pow: 1 });
+  m.lathe([[7.0, 0.9, 0.9], [7.8, 0.9, 0.9]], 8, 'steel', 'muzzle', { pow: 1 });
+  m.lathe([[-3.4, 0.4, 0.4, 2.3], [0.2, 0.4, 0.4, 2.3]], 6, 'steel', 'scope');
+  m.ball([0.3, 2.3, 0], 0.42, 'glow', 'sight', { n: 6, m: 3 });
+  for (const s of [-1, 1]) m.plate([-6.2, 0.1, 1.8 * s], [-3.2, 0.1, 2.1 * s], [-5.4, -0.5, 4.4 * s], [-7.0, -0.5, 4.4 * s], [0, 0.4, 0], 'ivory', 'fin' + s, 'brass');
+  m.ball([-6.8, 0, 0], 0.8, 'glow', 'burn', { n: 6, m: 3 });
+  return m;
+}
+
+function gyroscope(spin = 0.3) {
+  const m = new Mesh();
+  const ring = (r, w, mat, part) => new Mesh().lathe([[-0.35, r - w, r - w], [-0.35, r, r], [0.35, r, r], [0.35, r - w, r - w]], 20, mat, part, { caps: false, pow: 1 });
+  m.add(ring(4.7, 1.1, 'brass', 'r1'), (p) => turn(turn(p, 'y', Math.PI / 2), 'z', spin));
+  m.add(ring(3.5, 0.85, 'ivory', 'r2'), (p) => turn(turn(p, 'y', Math.PI / 2 - 1.05), 'x', 0.4 + spin * 2));
+  m.add(ring(2.5, 0.7, 'steel', 'r3'), (p) => turn(turn(p, 'y', Math.PI / 2), 'x', 1.15 - spin * 2));
+  m.ball([0, 0, 0], 1.3, 'glow', 'core', { n: 8, m: 4 });
+  for (let i = 0; i < 4; i++) {
+    const a = spin + (i * Math.PI) / 2;
+    m.add(new Mesh().box([4.6, -0.45, -0.45], [6.0, 0.45, 0.45], 'steel', 'spike' + i), (p) => turn(p, 'z', a));
+    m.ball(turn([4.15, 0, 0.5], 'z', a + Math.PI / 4), 0.55, 'steel', 'knob' + i, { n: 6, m: 3 });
+  }
+  return m;
+}
+
+// ---- how each is framed (the same box as the game's own sprite) ----
+const BOX = {
+  drifter: { w: 10, h: 8, pad: 3, tilt: 0.38, scale: 0.98 },
+  weaver: { w: 11, h: 9, pad: 4, tilt: 0.95, scale: 0.9 },
+  seeker: { w: 10, h: 7, pad: 3, tilt: 0.38, scale: 1.0 },
+  gunner: { w: 14, h: 11, pad: 4, tilt: 0.38, scale: 0.92, dy: 0.6 },
+  sniper: { w: 14, h: 7, pad: 3, tilt: 0.38, scale: 0.98 },
+  spinner: { w: 11, h: 11, pad: 2, tilt: 0.25, scale: 0.93, flip: false },
+};
+export const ORDER = ['drifter', 'weaver', 'seeker', 'gunner', 'sniper', 'spinner'];
+export const KINDS = { drifter: 'POD', weaver: 'CREATURE', seeker: 'DART', gunner: 'GUNSHIP', sniper: 'SNIPER', spinner: 'SPINNER' };
+export const SETS = {
+  B: {
+    name: 'SLATE RAIDERS',
+    look: { ...LIGHT, mats: B_MATS },
+    models: { drifter: ['POD', () => pod(0.5)], weaver: ['MANTA', () => manta(1.3, 1.3)], seeker: ['DART', () => dart(0)], gunner: ['GUNSHIP', () => gunship(0)], sniper: ['SNIPER', sniper], spinner: ['DISC', () => disc(0)] },
+  },
+  C: {
+    name: 'CRIMSON BLADES',
+    look: { ...LIGHT, mats: C_MATS },
+    models: { drifter: ['DAGGER POD', daggerPod], weaver: ['RAZOR RAY', razorRay], seeker: ['STILETTO', stiletto], gunner: ['CLEAVER', cleaver], sniper: ['LANCE', lance], spinner: ['SHURIKEN', shuriken] },
+  },
+  E: {
+    name: 'HIVE SWARM',
+    look: { ...LIGHT, mats: E_MATS },
+    models: { drifter: ['BROOD BEETLE', broodBeetle], weaver: ['HIVE MOTH', hiveMoth], seeker: ['HORNET', hornet], gunner: ['BROOD CARRIER', broodCarrier], sniper: ['SPINE SPITTER', spineSpitter], spinner: ['SPORE STAR', sporeStar] },
+  },
+  F: {
+    name: 'BRASS ARMADA',
+    look: { ...LIGHT, mats: F_MATS },
+    models: { drifter: ['BELL CAPSULE', bellCapsule], weaver: ['VOID ANGLER', voidAngler], seeker: ['FIN ROCKET', finRocket], gunner: ['DREADNOUGHT', dreadnought], sniper: ['LONG TOM', longTom], spinner: ['GYROSCOPE', gyroscope] },
+  },
+  D: {
+    name: 'STONE REAVERS',
+    look: { ...LIGHT, mats: D_MATS },
+    models: { drifter: ['BOULDER POD', boulderPod], weaver: ['BELT CRAB', beltCrab], seeker: ['SHARD DART', shardDart], gunner: ['RAMPART', rampart], sniper: ['MENHIR', menhir], spinner: ['GEODE', geode] },
+  },
+};
+export function viewOf(kind, k) {
+  const B = BOX[kind];
+  return { w: B.w + B.pad * 2, h: B.h + B.pad * 2, k, scale: B.scale, cx: (B.w + B.pad * 2) / 2, cy: (B.h + B.pad * 2) / 2 + (B.dy || 0), spin: [['x', B.tilt]], flip: B.flip !== false, pad: B.pad, box: B };
+}

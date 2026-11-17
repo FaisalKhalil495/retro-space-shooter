@@ -1,9 +1,9 @@
-import { VIEW_W, HUD_H, PAL } from './config.js?v=0.38.1';
-import { SPRITES, HI_NAMES } from './sprites.js?v=0.38.1';
-import { WOLF_ART, WOLF_PAL } from './wolfart.js?v=0.38.1';
-import { clamp } from './util.js?v=0.38.1';
-import { sfx } from './audio.js?v=0.38.1';
-import { GROUND_SPEED } from './terrain.js?v=0.38.1';
+import { VIEW_W, HUD_H, PAL } from './config.js?v=0.38.2';
+import { SPRITES, HI_NAMES } from './sprites.js?v=0.38.2';
+import { WOLF_ART, WOLF_PAL } from './wolfart.js?v=0.38.2';
+import { clamp } from './util.js?v=0.38.2';
+import { sfx } from './audio.js?v=0.38.2';
+import { GROUND_SPEED } from './terrain.js?v=0.38.2';
 
 // The Iron Wolves: the invaders' army on the White Front (level 4). Dark
 // gunmetal armour, orange hazard stripes, red eye lamps. Their shapes were
