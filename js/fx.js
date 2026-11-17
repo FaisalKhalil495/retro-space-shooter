@@ -1,4 +1,4 @@
-import { look } from './look.js?v=0.37.0';
+import { look } from './look.js?v=0.38.0';
 
 // The new look's effects (the look sample, after v0.37.0): light, staged
 // explosions, sparks, wreckage and tumbling wrecks. Nothing here changes

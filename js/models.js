@@ -1,5 +1,5 @@
-import { Mesh, rockMesh, renderModel, turn, V } from './model.js?v=0.37.0';
-import { buildShip, MAT as SHIP_MAT } from './shipmodel.js?v=0.37.0';
+import { Mesh, rockMesh, renderModel, turn, V } from './model.js?v=0.38.0';
+import { buildShip, MAT as SHIP_MAT } from './shipmodel.js?v=0.38.0';
 
 // The new look's models (the look sample: your ship and level 1's enemies).
 // Each is built in "game pixels" (one unit = one game pixel), nose towards

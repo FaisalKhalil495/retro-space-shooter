@@ -1,4 +1,4 @@
-import { rgba } from './detail.js?v=0.37.0';
+import { rgba } from './detail.js?v=0.38.0';
 
 // The new look's art pipeline (the look sample, after v0.37.0): small 3D
 // models drawn as pixel art. A model is a list of triangles, each with a
