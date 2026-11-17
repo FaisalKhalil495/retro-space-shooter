@@ -1,5 +1,5 @@
-import { Mesh, rockMesh, renderModel, turn, V } from './model.js?v=0.38.0';
-import { buildShip, MAT as SHIP_MAT } from './shipmodel.js?v=0.38.0';
+import { Mesh, rockMesh, renderModel, turn, V } from './model.js?v=0.38.1';
+import { buildShip, MAT as SHIP_MAT } from './shipmodel.js?v=0.38.1';
 
 // The new look's models (the look sample: your ship and level 1's enemies).
 // Each is built in "game pixels" (one unit = one game pixel), nose towards
@@ -199,64 +199,62 @@ function cargo() {
 // Every entry: { w, h } of the game's own sprite (the enemy's size, which
 // never changes), and the frames drawn on a slightly bigger canvas centred
 // on it (pad pixels each side), so wings and fins can reach past the box.
+//
+// A set of frames paints each picture the first time it's asked for
+// (get(i)), and warm() paints the ones not asked for yet a few at a time,
+// in the order a level will need them: painting hundreds of pictures the
+// moment an enemy first appears or dies made the game stutter (v0.38.1).
+export class Frames {
+  constructor(n, make) {
+    this.length = n;
+    this.make = make;
+    this.pics = new Array(n);
+  }
+
+  get(i) {
+    return this.pics[i] || (this.pics[i] = this.make(i));
+  }
+
+  all() {
+    return Array.from({ length: this.length }, (_, i) => this.get(i));
+  }
+}
 const baked = new Map();
 const frame = (mesh, k, w, h, pad, spin, opts = {}) => {
   const view = { w: w + pad * 2, h: h + pad * 2, k, scale: opts.scale || 1, cx: (w + pad * 2) / 2 + (opts.dx || 0), cy: (h + pad * 2) / 2 + (opts.dy || 0), spin, flip: opts.flip !== false };
   return renderModel(mesh, view, opts.look || BELT_LIGHT);
 };
+// (a mesh built once, the first time a frame needs it)
+const once = (build) => {
+  let m = null;
+  return () => m || (m = build());
+};
 
 const BAKERS = {
   // Your ship: seven frames of bank, from diving (0) to climbing (6).
   player: (k) => {
-    const mesh = new Mesh();
-    mesh.tris = buildShip();
-    const frames = [];
-    for (let i = 0; i < 7; i++) frames.push(frame(mesh, k, 18, 11, 4, [['x', TILT + (i - 3) * 0.17]], { scale: 0.84, flip: false, look: SHIP_LOOK, dx: 0.3, dy: 0.3 }));
-    return { pad: 4, frames };
+    const mesh = once(() => {
+      const m = new Mesh();
+      m.tris = buildShip();
+      return m;
+    });
+    return { pad: 4, frames: new Frames(7, (i) => frame(mesh(), k, 18, 11, 4, [['x', TILT + (i - 3) * 0.17]], { scale: 0.84, flip: false, look: SHIP_LOOK, dx: 0.3, dy: 0.3 })) };
   },
-  drifter: (k) => {
-    const frames = [];
-    for (let i = 0; i < 8; i++) frames.push(frame(pod((i / 8) * ((Math.PI * 2) / 3)), k, 10, 8, 3, [['x', TILT]], { scale: 0.98 }));
-    return { pad: 3, frames };
-  },
-  weaver: (k) => {
-    const frames = [];
-    for (let i = 0; i < 10; i++) frames.push(frame(manta((i / 10) * Math.PI * 2, (i / 10) * Math.PI * 2), k, 11, 9, 4, [['x', 0.95]], { scale: 0.92 }));
-    return { pad: 4, frames };
-  },
-  seeker: (k) => {
-    const frames = [];
-    for (let i = 0; i < 6; i++) frames.push(frame(dart((i / 6) * (Math.PI / 2)), k, 10, 7, 3, [['x', TILT]], { scale: 1.0 }));
-    return { pad: 3, frames };
-  },
+  drifter: (k) => ({ pad: 3, frames: new Frames(8, (i) => frame(pod((i / 8) * ((Math.PI * 2) / 3)), k, 10, 8, 3, [['x', TILT]], { scale: 0.98 })) }),
+  weaver: (k) => ({ pad: 4, frames: new Frames(10, (i) => frame(manta((i / 10) * Math.PI * 2, (i / 10) * Math.PI * 2), k, 11, 9, 4, [['x', 0.95]], { scale: 0.92 })) }),
+  seeker: (k) => ({ pad: 3, frames: new Frames(6, (i) => frame(dart((i / 6) * (Math.PI / 2)), k, 10, 7, 3, [['x', TILT]], { scale: 1.0 })) }),
   // The gunship: five frames of bank, each with its cannons out and kicked back.
-  gunner: (k) => {
-    const frames = [];
-    for (const recoil of [0, 1.6]) for (let i = 0; i < 5; i++) frames.push(frame(gunship(recoil), k, 14, 11, 4, [['x', TILT + (i - 2) * 0.2]], { scale: 0.94, dy: 0.6 }));
-    return { pad: 4, frames };
-  },
-  sniper: (k) => ({ pad: 3, frames: [frame(sniper(), k, 14, 7, 3, [['x', TILT]], { scale: 0.98, dy: -0.3 })] }),
-  spinner: (k) => {
-    const frames = [];
-    for (let i = 0; i < 8; i++) frames.push(frame(disc((i / 8) * (Math.PI / 4)), k, 11, 11, 2, [['x', 0.25]], { scale: 0.95, flip: false }));
-    return { pad: 2, frames };
-  },
-  carrier: (k) => {
-    const frames = [];
-    for (let i = 0; i < 1; i++) frames.push(frame(cargo(), k, 13, 9, 2, [['x', 0.3]], { scale: 0.98 }));
-    return { pad: 2, frames };
-  },
+  gunner: (k) => ({ pad: 4, frames: new Frames(10, (j) => frame(gunship(j < 5 ? 0 : 1.6), k, 14, 11, 4, [['x', TILT + ((j % 5) - 2) * 0.2]], { scale: 0.94, dy: 0.6 })) }),
+  sniper: (k) => ({ pad: 3, frames: new Frames(1, () => frame(sniper(), k, 14, 7, 3, [['x', TILT]], { scale: 0.98, dy: -0.3 })) }),
+  spinner: (k) => ({ pad: 2, frames: new Frames(8, (i) => frame(disc((i / 8) * (Math.PI / 4)), k, 11, 11, 2, [['x', 0.25]], { scale: 0.95, flip: false })) }),
+  carrier: (k) => ({ pad: 2, frames: new Frames(1, () => frame(cargo(), k, 13, 9, 2, [['x', 0.3]], { scale: 0.98 })) }),
 };
 
 // Tumbling asteroids: `n` frames of a rock turning about a tilted axis.
 function rockFrames(k, seed, size, r, n) {
-  const mesh = rockMesh(seed, r, size > 20 ? 2 : 1);
-  const frames = [];
+  const mesh = once(() => rockMesh(seed, r, size > 20 ? 2 : 1));
   const axis = (seed * 0.77) % 1.2;
-  for (let i = 0; i < n; i++) {
-    frames.push(renderModel(mesh, { w: size, h: size, k, scale: 1, cx: size / 2, cy: size / 2, spin: [['z', (i / n) * Math.PI * 2], ['x', axis], ['y', axis * 0.6]] }, ROCK_LOOK));
-  }
-  return frames;
+  return new Frames(n, (i) => renderModel(mesh(), { w: size, h: size, k, scale: 1, cx: size / 2, cy: size / 2, spin: [['z', (i / n) * Math.PI * 2], ['x', axis], ['y', axis * 0.6]] }, ROCK_LOOK));
 }
 BAKERS.rockBig = (k) => ({ pad: 0, sets: [11, 23, 37].map((s) => rockFrames(k, s, 29, 9.9, 24)) });
 BAKERS.rockSmall = (k) => ({ pad: 0, sets: [3, 14, 29, 41].map((s) => rockFrames(k, s, 17, 5.7, 16)) });
@@ -281,18 +279,20 @@ const char = (mats) => Object.fromEntries(Object.entries(mats).map(([name, ramp]
 const CHARRED = { invader: char(INVADER), ship: char(SHIP_MAT) };
 function wreckFrames(name, k, n = 12) {
   const size = name === 'gunner' || name === 'player' ? 22 : 16;
-  return WRECKS[name]().map((mesh, pi) => {
+  const parts = once(() => WRECKS[name]().map((mesh) => {
     // (each piece turns about its own middle)
     let c = [0, 0, 0];
     for (const t of mesh.tris) c = V.add(c, V.mul(V.add(V.add(t[0], t[1]), t[2]), 1 / 3));
     c = V.mul(c, 1 / Math.max(1, mesh.tris.length));
-    const centred = new Mesh().add(mesh, (p) => V.sub(p, c));
-    const frames = [];
-    for (let i = 0; i < n; i++) {
-      frames.push(renderModel(centred, { w: size, h: size, k, scale: name === 'player' ? 0.84 : 0.95, cx: size / 2, cy: size / 2, spin: [['x', TILT + pi], ['z', (i / n) * Math.PI * 2]], flip: name !== 'player' }, { ...BELT_LIGHT, mats: name === 'player' ? CHARRED.ship : name === 'weaver' ? INVADER : CHARRED.invader, flat: name === 'weaver' ? ['eye'] : [] }));
-    }
-    return { frames, off: c, size };
-  });
+    return new Mesh().add(mesh, (p) => V.sub(p, c));
+  }));
+  const count = { drifter: 1, seeker: 1, gunner: 2, weaver: 3, carrier: 1, sniper: 1, spinner: 2, player: 3 }[name];
+  const looks = { ...BELT_LIGHT, mats: name === 'player' ? CHARRED.ship : name === 'weaver' ? INVADER : CHARRED.invader, flat: name === 'weaver' ? ['eye'] : [] };
+  const out = [];
+  for (let pi = 0; pi < count; pi++) {
+    out.push({ size, frames: new Frames(n, (i) => renderModel(parts()[pi], { w: size, h: size, k, scale: name === 'player' ? 0.84 : 0.95, cx: size / 2, cy: size / 2, spin: [['x', TILT + pi], ['z', (i / n) * Math.PI * 2]], flip: name !== 'player' }, looks)) });
+  }
+  return out;
 }
 
 // The baked pictures for a model at fineness k (made the first time they're
@@ -306,6 +306,29 @@ export function wreckArt(name, k) {
   const key = 'wreck:' + name + '@' + k;
   if (!baked.has(key)) baked.set(key, wreckFrames(name, k));
   return baked.get(key);
+}
+// Paints pictures that will be needed soon, for at most `ms` milliseconds
+// (always at least one), in the order level 1 brings things on. Call it
+// once a frame; returns how many are still to paint.
+const WARM_ORDER = ['player', 'drifter', 'weaver', '!drifter', '!weaver', 'rockSmall', 'rockBit', 'seeker', '!seeker', 'gunner', '!gunner', 'carrier', '!carrier', 'rockBig', 'sniper', '!sniper', 'spinner', '!spinner', '!player'];
+const queues = new Map();
+export function warm(k, ms) {
+  let q = queues.get(k);
+  if (!q) {
+    q = { list: [], at: 0 };
+    for (const name of WARM_ORDER) {
+      const sets = name[0] === '!' ? wreckArt(name.slice(1), k).map((p) => p.frames) : art(name, k).sets || [art(name, k).frames];
+      for (const f of sets) for (let i = 0; i < f.length; i++) q.list.push(f, i);
+    }
+    queues.set(k, q);
+  }
+  if (q.at >= q.list.length) return 0;
+  const until = performance.now() + ms;
+  do {
+    q.list[q.at].get(q.list[q.at + 1]);
+    q.at += 2;
+  } while (q.at < q.list.length && performance.now() < until);
+  return (q.list.length - q.at) / 2;
 }
 export const MODEL_NAMES = Object.keys(BAKERS);
 export const hasModel = (name) => !!BAKERS[name];
