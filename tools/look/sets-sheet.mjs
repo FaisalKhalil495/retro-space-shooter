@@ -9,21 +9,24 @@ const { serve } = await import('../serve.mjs');
 const { server, base } = await serve();
 const out = process.argv[2];
 const k = +(process.argv[3] || 4);
+const want = (process.argv[4] || 'A,B,C,D').split(',');
 const b = await chromium.launch();
 const page = await b.newPage({ viewport: { width: 1900, height: 1200 } });
 page.on('pageerror', (e) => console.log('ERR', e.stack));
 page.on('console', (m) => m.type() === 'error' && console.log('LOG', m.text()));
 await page.goto(base);
 await page.waitForTimeout(300);
-const url = await page.evaluate(async (k) => {
+const url = await page.evaluate(async ({ k, want }) => {
   const v = new URL(document.querySelector('script[type=module]').src).search;
   const { art } = await import('/js/models.js' + v);
   const { SPRITES } = await import('/js/sprites.js' + v);
   const { renderModel } = await import('/js/model.js');
   const { SETS, ORDER, KINDS, viewOf } = await import('/tools/look/sets.js');
-  const Z = 15; // screen pixels per game pixel
-  const colW = 400, labelW = 170, gap = 14, headH = 92;
-  const cols = [['A', 'TODAY'], ['B', 'NEW (IN THE GAME NOW)'], ['C', SETS.C.name], ['D', SETS.D.name]];
+  const many = want.length > 4;
+  const Z = many ? 11 : 15; // screen pixels per game pixel
+  const colW = many ? 290 : 400, labelW = 170, gap = 14, headH = 92;
+  const NAMES = { A: 'TODAY', B: many ? 'NEW (IN GAME)' : 'NEW (IN THE GAME NOW)' };
+  const cols = want.map((l) => [l, NAMES[l] || SETS[l].name]);
   const rowH = (kind) => (viewOf(kind, k).h) * Z + 44;
   const W = labelW + cols.length * (colW + gap) + gap;
   const H = headH + ORDER.reduce((a, kind) => a + rowH(kind) + gap, 0) + 10;
@@ -33,7 +36,7 @@ const url = await page.evaluate(async (k) => {
   cols.forEach(([letter, name], i) => {
     const cx = labelW + gap + i * (colW + gap);
     x.fillStyle = '#e3a857'; x.font = 'bold 52px sans-serif'; x.fillText(letter, cx + 6, 58);
-    x.fillStyle = '#efe3cf'; x.font = 'bold 24px sans-serif'; x.fillText(name, cx + 56, 52);
+    x.fillStyle = '#efe3cf'; x.font = `bold ${many ? 20 : 24}px sans-serif`; x.fillText(name, cx + 50, 52);
   });
   const B_FRAME = { drifter: 0, weaver: 2, seeker: 0, gunner: 2, sniper: 0, spinner: 0 };
   let y = headH;
@@ -60,6 +63,6 @@ const url = await page.evaluate(async (k) => {
     y += h + gap;
   }
   return c.toDataURL('image/jpeg', 0.92);
-}, k);
+}, { k, want });
 fs.writeFileSync(out, Buffer.from(url.split(',')[1], 'base64'));
 await b.close(); server.close();
