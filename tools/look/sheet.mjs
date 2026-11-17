@@ -34,7 +34,7 @@ const size = await page.evaluate(async ({ names, ks, zoom }) => {
   for (const name of names) {
     for (const k of ks) {
       const A = art(name, k);
-      const frames = A.frames || A.sets.flatMap((s) => s.filter((_, i) => i % 4 === 0));
+      const frames = A.frames ? A.frames.all() : A.sets.flatMap((s) => s.all().filter((_, i) => i % 4 === 0));
       let px = 10;
       x.fillStyle = '#e3a857';
       x.fillText(`${name} @${k}`, px, y + 14);
@@ -54,7 +54,7 @@ const size = await page.evaluate(async ({ names, ks, zoom }) => {
       y += rowH + 8;
       if (hasWreck(name) && k === ks[ks.length - 1]) {
         px = 10; rowH = 0;
-        for (const piece of wreckArt(name, k)) for (const f of piece.frames.filter((_, i) => i % 2 === 0)) {
+        for (const piece of wreckArt(name, k)) for (const f of piece.frames.all().filter((_, i) => i % 2 === 0)) {
           if (px + f.width * zoom * 0.6 > c.width - 10) { px = 10; y += rowH + 6; }
           x.drawImage(f.hi, px, y, f.width * zoom * 0.6, f.height * zoom * 0.6);
           px += f.width * zoom * 0.6 + 4; rowH = Math.max(rowH, f.height * zoom * 0.6);

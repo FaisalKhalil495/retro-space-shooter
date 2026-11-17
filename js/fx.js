@@ -1,4 +1,4 @@
-import { look } from './look.js?v=0.38.0';
+import { look } from './look.js?v=0.38.1';
 
 // The new look's effects (the look sample, after v0.37.0): light, staged
 // explosions, sparks, wreckage and tumbling wrecks. Nothing here changes
@@ -92,7 +92,10 @@ export class Fx {
     this.flashes = []; // lights that fade
     this.frame = []; // lights lit for this frame only
     this.later = [];
-    this.stop = 0; // a split-second pause on a big kill
+    this.stop = 0; // a split-second pause on a huge blast
+    this.q = this.q || 1; // how much to draw: turned down by itself on a phone that can't keep up
+    this.last = 0;
+    this.pace = 16;
   }
 
   // ---- making things ----
@@ -103,6 +106,7 @@ export class Fx {
 
   // A light that fades (a muzzle flash, a hit).
   flash(x, y, r, color = 'hot', power = 0.8, life = 0.1) {
+    if (this.flashes.length > 14) this.flashes.shift(); // (a dozen big lights at once is plenty)
     this.flashes.push({ x, y, r, color, power, life, t: 0 });
   }
 
@@ -115,10 +119,11 @@ export class Fx {
     }
     const R = 4 + size * 7;
     const rnd = Math.random;
-    this.flash(x, y, R * 5.5, 'hot', 0.95, 0.1 + size * 0.05);
-    this.flash(x, y, R * 6.5, 'warm', 0.55, 0.45 + size * 0.25);
+    const Q = this.q;
+    this.flash(x, y, R * 4.6, 'hot', 0.95, 0.1 + size * 0.05);
+    this.flash(x, y, R * 5.6, 'warm', 0.6, 0.45 + size * 0.25);
     // The fireball: blobs thrown outwards that slow, cool and turn to smoke.
-    const n = Math.round(10 + size * 13);
+    const n = Math.round((10 + size * 13) * Q);
     for (let i = 0; i < n; i++) {
       const a = rnd() * Math.PI * 2;
       const inner = i < n * 0.4;
@@ -131,15 +136,17 @@ export class Fx {
         heat: inner ? 0 : 1,
       });
     }
-    const sp = Math.round(8 + size * 14);
+    const sp = Math.round((8 + size * 14) * Q);
     for (let i = 0; i < sp; i++) {
       const a = rnd() * Math.PI * 2;
       const v = (50 + rnd() * 130) * (0.6 + size * 0.4);
       this.sparks.push({ x, y, vx: Math.cos(a) * v + vx, vy: Math.sin(a) * v + vy, t: 0, life: 0.25 + rnd() * 0.55, len: 0.03 + rnd() * 0.03, drag: 2.2 });
     }
-    if (shards) this.debris(x, y, Math.round(4 + size * 7), shards, 40 + size * 50, true);
+    if (shards) this.debris(x, y, Math.round((4 + size * 7) * Q), shards, 40 + size * 50, true);
     if (size >= 0.7) this.rings.push({ x, y, R: R * 3.2, t: 0, life: 0.3 + size * 0.08 });
-    if (size >= 0.8) this.stop = Math.max(this.stop, Math.min(0.09, 0.03 + size * 0.02));
+    // (only the huge ones hold the picture a moment: a boss's blasts, your
+    // own ship; a pause on every gunship felt like a stutter)
+    if (size >= 1.4) this.stop = Math.max(this.stop, Math.min(0.07, 0.02 + size * 0.02));
   }
 
   // Shards of something that broke up (smoking: each trails a wisp).
@@ -251,7 +258,7 @@ export class Fx {
       if (p.burn) {
         p.puff -= dt;
         if (p.puff <= 0) {
-          p.puff = 0.035;
+          p.puff = 0.035 / this.q;
           const rnd = Math.random;
           this.blobs.push({ x: p.x + (rnd() - 0.5) * 3, y: p.y + (rnd() - 0.5) * 3, vx: p.vx * 0.2, vy: p.vy * 0.2, r: 1.4 + rnd() * 1.4, t: 0, fire: 0.1 + rnd() * 0.12, smoke: 0.35 + rnd() * 0.3, heat: 2 });
         }
@@ -284,11 +291,11 @@ export class Fx {
       ctx.globalAlpha = Math.max(0, (b.pal ? 0.6 : 0.5) * (1 - q) ** 1.3);
       const i = Math.min(pal.length - 2, Math.floor(q * (pal.length - 1)));
       put(b.x, b.y, r, pal[i + 1]);
-      put(b.x - r * 0.18, b.y - r * 0.22, r * 0.68, pal[i]);
+      if (r > 1.6 && this.q > 0.7) put(b.x - r * 0.18, b.y - r * 0.22, r * 0.68, pal[i]);
     }
     ctx.globalAlpha = 1;
     for (const p of this.pieces) {
-      const f = p.art.frames[((Math.floor(p.fr) % p.art.frames.length) + p.art.frames.length) % p.art.frames.length];
+      const f = p.art.frames.get(((Math.floor(p.fr) % p.art.frames.length) + p.art.frames.length) % p.art.frames.length);
       ctx.drawImage(f, snap(p.x - f.width / 2), snap(p.y - f.height / 2));
     }
     // Shards: little tumbling plates in the colours of what broke up.
@@ -316,7 +323,7 @@ export class Fx {
         const r = b.r * swell;
         const i = Math.min(FIRE.length - 2, Math.floor(q * q * (FIRE.length - 1) + (b.heat || 0) * 0.9));
         put(b.x, b.y, r, FIRE[i + 1]);
-        put(b.x - r * 0.1, b.y - r * 0.14, r * 0.74, FIRE[i]);
+        if (r > 1) put(b.x - r * 0.1, b.y - r * 0.14, r * 0.74, FIRE[i]);
         if (r > 1.2 && q < 0.45 && i > 0) put(b.x - r * 0.16, b.y - r * 0.2, r * 0.42, FIRE[i - 1]);
       }
     }
@@ -324,6 +331,17 @@ export class Fx {
 
   // Everything that gives off light, added on top of the finished picture.
   drawLights(ctx) {
+    // How the phone is keeping up, judged while a lot is on screen: if
+    // frames are coming slowly, later blasts are made of fewer pieces; when
+    // it's coping again they fill back out.
+    const now = performance.now();
+    const gap = Math.min(100, now - this.last);
+    this.last = now;
+    this.pace += (gap - this.pace) * 0.1;
+    if (this.blobs.length > 24) {
+      if (this.pace > 21) this.q = Math.max(0.45, this.q - 0.02);
+      else if (this.pace < 17.6) this.q = Math.min(1, this.q + 0.004);
+    }
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
     const sc = ctx.getTransform().a; // screen pixels per game pixel
@@ -338,13 +356,6 @@ export class Fx {
       ctx.globalAlpha = f.power * q * q;
       const r = f.r * (0.7 + 0.3 * q);
       ctx.drawImage(lightSprite(f.color, r * 2 * sc), f.x - r, f.y - r, r * 2, r * 2);
-    }
-    // Fire lights the smoke round it.
-    for (const b of this.blobs) {
-      if (b.t < 0 || b.t >= b.fire || b.heat) continue; // (the fireball's heart only)
-      const q = 1 - b.t / b.fire;
-      ctx.globalAlpha = 0.4 * q;
-      ctx.drawImage(lightSprite('warm', b.r * 5.2 * sc), b.x - b.r * 2.6, b.y - b.r * 2.6, b.r * 5.2, b.r * 5.2);
     }
     // Sparks: bright streaks that cool as they fly.
     ctx.lineCap = 'round';

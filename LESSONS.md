@@ -630,6 +630,15 @@ rock, pickups reachable) before the first hand-over.
   Measure speed on the slowed-down test early: the first version drew at a
   third of today's speed, and the cure was in how lights are drawn, not in
   having fewer of them.
+- The owner liked the sample and reported "occasional drops on frames"
+  when a lot blows up. Measured, the cause was not the blasts themselves:
+  310 animation pictures were being painted in the first 40 seconds, each
+  the first time an enemy appeared or died (the worst frame took 617 ms on
+  the slowed-down test). Lesson (the Glacier Warden taught it once
+  already): **never paint a picture in the middle of play**; paint ahead,
+  a few a frame, in the order the level needs them, and have a test count
+  pictures painted mid-play. A deliberate split-second pause on every big
+  kill also reads as a stutter: keep it for the huge blasts only.
 
 ### Carry into Stage 3 (checklist for the plan)
 - Each boss: 3+ phases, 5+ attacks, entrance + name card, roar, music,

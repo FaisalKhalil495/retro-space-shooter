@@ -1,4 +1,4 @@
-import { rgba } from './detail.js?v=0.38.0';
+import { rgba } from './detail.js?v=0.38.1';
 
 // The new look's art pipeline (the look sample, after v0.37.0): small 3D
 // models drawn as pixel art. A model is a list of triangles, each with a
@@ -202,7 +202,12 @@ export { hexMix };
 // Returns a normal-size canvas carrying the sharp one as .hi (like every
 // picture in the game), and `flash`, the same picture washed out pale (for
 // the blink when something is hit).
+let bakes = 0;
+// How many pictures have been painted so far (the tests watch for painting
+// in the middle of play).
+export const bakeCount = () => bakes;
 export function renderModel(mesh, view, look) {
+  bakes++;
   const k = view.k;
   const W = Math.ceil(view.w * k);
   const H = Math.ceil(view.h * k);
