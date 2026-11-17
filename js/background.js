@@ -1,8 +1,10 @@
-import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.37.0';
-import { FAR_ROCKS } from './rockart.js?v=0.37.0';
-import { fillDisc, seeded } from './util.js?v=0.37.0';
-import { DETAIL, FINE, detailCanvas, pixels } from './detail.js?v=0.37.0';
-import { WhiteFront } from './whitefront.js?v=0.37.0';
+import { VIEW_W, VIEW_H, PAL } from './config.js?v=0.38.0';
+import { FAR_ROCKS } from './rockart.js?v=0.38.0';
+import { fillDisc, seeded } from './util.js?v=0.38.0';
+import { DETAIL, FINE, detailCanvas, pixels } from './detail.js?v=0.38.0';
+import { WhiteFront } from './whitefront.js?v=0.38.0';
+import { isNew } from './look.js?v=0.38.0';
+import { Belt2 } from './belt2.js?v=0.38.0';
 
 // Deep-space backdrop: a slow distant amber sun, a band of dust, distant
 // asteroids and four layers of stars moving at different speeds, which
@@ -223,6 +225,11 @@ export class Background {
       this.wf = new WhiteFront();
       return;
     }
+    if (isNew() && this.theme.farRocks) {
+      // The new look's Outer Belt (the look sample): its own layered world.
+      this.b2 = new Belt2();
+      return;
+    }
     this.stars = [];
     for (const layer of LAYERS) {
       for (let i = 0; i < layer.count; i++) {
@@ -279,6 +286,7 @@ export class Background {
   update(dt) {
     this.t += dt;
     if (this.wf) return this.wf.update(dt);
+    if (this.b2) return this.b2.update(dt);
     for (let i = 0; i < this.stars.length; i++) {
       const s = this.stars[i];
       s.x -= s.layer.speed * dt;
@@ -329,6 +337,7 @@ export class Background {
       this.wf.drawGround(ctx, snap);
       return;
     }
+    if (this.b2) return this.b2.draw(ctx, snap);
     // Space lightens very slightly towards the bottom (Rust Moon has its
     // own dusty sky instead).
     if (this.theme.canyon) ctx.drawImage(makeCanyonSky(), 0, 0);

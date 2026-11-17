@@ -1,4 +1,4 @@
-import { PAL } from './config.js?v=0.37.0';
+import { PAL } from './config.js?v=0.38.0';
 
 // Your ship as a small 3D model, built from its in-game shape (a long
 // pointed nose with the amber stripe, a glass canopy, swept wings with
@@ -7,7 +7,7 @@ import { PAL } from './config.js?v=0.37.0';
 // and the link preview.
 
 // Shades for each material, darkest to lightest (our muted palette).
-const MAT = {
+export const MAT = {
   hull: ['#1d2540', '#34406a', '#5a6a9a', '#8f9fc4', '#c8d4ec'],
   belly: ['#10142a', '#1d2540', '#2a3456', '#3e4a74', '#5a6a9a'],
   glass: ['#141a2e', '#2a3a58', '#4d6890', '#9fb0d0', '#e6eef7'],
@@ -18,7 +18,7 @@ const MAT = {
 
 // ---- the model ----
 // x runs from the tail (-10) to the nose (+10), y is up, z is to the right.
-function buildShip() {
+export function buildShip() {
   const tris = []; // [a, b, c, material, part]
   const quad = (a, b, c, d, mat, part) => {
     tris.push([a, b, c, mat, part]);
