@@ -1,24 +1,24 @@
-import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.38.1';
-import { SPRITES } from './sprites.js?v=0.38.1';
-import { ENEMY_TYPES } from './enemies.js?v=0.38.1';
-import { LEVELS, LevelRunner } from './levels.js?v=0.38.1';
-import { Background } from './background.js?v=0.38.1';
-import { WOLF_SHOT_KINDS, drawWolfShot } from './wolves.js?v=0.38.1';
-import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.38.1';
-import { drawText, drawTextCentered, textWidth } from './font.js?v=0.38.1';
-import { buzz, HAPTIC } from './feedback.js?v=0.38.1';
-import { sfx } from './audio.js?v=0.38.1';
-import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.38.1';
-import { FINE, snapFine, fillCrisp, crispOf, detailCanvas } from './detail.js?v=0.38.1';
-import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.38.1';
-import { Blasts } from './blasts.js?v=0.38.1';
-import { Speech } from './speech.js?v=0.38.1';
-import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.38.1';
-import { startMusic, stopMusic, preloadMusic } from './music.js?v=0.38.1';
-import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.38.1';
-import { look, isNew } from './look.js?v=0.38.1';
-import { Fx, SHARDS } from './fx.js?v=0.38.1';
-import { art, wreckArt, hasModel, hasWreck, warm } from './models.js?v=0.38.1';
+import { VIEW_W, VIEW_H, HUD_H, PAL, PLAYER } from './config.js?v=0.38.2';
+import { SPRITES } from './sprites.js?v=0.38.2';
+import { ENEMY_TYPES } from './enemies.js?v=0.38.2';
+import { LEVELS, LevelRunner } from './levels.js?v=0.38.2';
+import { Background } from './background.js?v=0.38.2';
+import { WOLF_SHOT_KINDS, drawWolfShot } from './wolves.js?v=0.38.2';
+import { Weapons, SPECIALS, drawCapsule, pickupInfo } from './weapons.js?v=0.38.2';
+import { drawText, drawTextCentered, textWidth } from './font.js?v=0.38.2';
+import { buzz, HAPTIC } from './feedback.js?v=0.38.2';
+import { sfx } from './audio.js?v=0.38.2';
+import { clamp, rectsOverlap, fillDisc } from './util.js?v=0.38.2';
+import { FINE, snapFine, fillCrisp, crispOf, detailCanvas } from './detail.js?v=0.38.2';
+import { Gore, FLESH, METAL, ROCK, GLASS } from './gore.js?v=0.38.2';
+import { Blasts } from './blasts.js?v=0.38.2';
+import { Speech } from './speech.js?v=0.38.2';
+import { Terrain, ROCK_CLEARANCE, ICE_COLORS } from './terrain.js?v=0.38.2';
+import { startMusic, stopMusic, preloadMusic } from './music.js?v=0.38.2';
+import { PowerUps, POWERUPS, drawOrb, randomPowerup } from './powerups.js?v=0.38.2';
+import { look, isNew } from './look.js?v=0.38.2';
+import { Fx, SHARDS } from './fx.js?v=0.38.2';
+import { art, wreckArt, hasModel, hasWreck, warm } from './models.js?v=0.38.2';
 
 const DIAG = Math.SQRT1_2;
 const SPARK_COLORS = [PAL.amberLight, PAL.amber, PAL.amberSoft, PAL.red, PAL.cream];
@@ -990,9 +990,9 @@ export class Game {
       const set = A.sets[(e.variant || 0) % A.sets.length];
       const sp = 3 + ((e.variant || 0) % 3) * 1.6 + (e.w < 20 ? 3 : 0);
       f = set.get(Math.floor(e.t * sp + (e.seedFr ?? (e.seedFr = Math.random() * 24))) % set.length);
-    } else if (name === 'drifter') f = A.frames.get(Math.floor(e.t * 16) % 8);
+    } else if (name === 'drifter') f = A.frames.get(Math.floor(e.t * 7 + (e.seedFr ?? (e.seedFr = Math.random() * 6))) % 6);
     else if (name === 'weaver') f = A.frames.get(((Math.floor(e.t * 11 + (e.phase || 0) * 2) % 10) + 10) % 10);
-    else if (name === 'spinner') f = A.frames.get(Math.floor(e.spin * 6.5) % 8);
+    else if (name === 'spinner') f = A.frames.get(Math.floor(e.spin * (16 / Math.PI)) % 8); // (8 frames a quarter turn)
     else if (name === 'seeker') f = A.frames.get(Math.floor(e.t * 20) % 6);
     else if (name === 'gunner') {
       const bank = clamp(Math.round(-(e.dvy || 0) / 9), -2, 2) + 2;

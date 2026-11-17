@@ -1,10 +1,10 @@
-import { VIEW_W, VIEW_H } from './config.js?v=0.38.1';
-import { seeded } from './util.js?v=0.38.1';
-import { rgba } from './detail.js?v=0.38.1';
-import { look } from './look.js?v=0.38.1';
-import { rockMesh, renderModel, hexMix } from './model.js?v=0.38.1';
-import { BELT_LIGHT } from './models.js?v=0.38.1';
-import { softLight } from './fx.js?v=0.38.1';
+import { VIEW_W, VIEW_H } from './config.js?v=0.38.2';
+import { seeded } from './util.js?v=0.38.2';
+import { rgba } from './detail.js?v=0.38.2';
+import { look } from './look.js?v=0.38.2';
+import { rockMesh, renderModel, hexMix } from './model.js?v=0.38.2';
+import { BELT_LIGHT } from './models.js?v=0.38.2';
+import { softLight } from './fx.js?v=0.38.2';
 
 // The Outer Belt in the new look (the look sample, after v0.37.0): seven
 // layers that move at different speeds, so space has depth:

@@ -18,14 +18,13 @@ await page.goto(base);
 await page.waitForTimeout(300);
 const url = await page.evaluate(async ({ k, want }) => {
   const v = new URL(document.querySelector('script[type=module]').src).search;
-  const { art } = await import('/js/models.js' + v);
   const { SPRITES } = await import('/js/sprites.js' + v);
   const { renderModel } = await import('/js/model.js');
   const { SETS, ORDER, KINDS, viewOf } = await import('/tools/look/sets.js');
   const many = want.length > 4;
   const Z = many ? 11 : 15; // screen pixels per game pixel
   const colW = many ? 290 : 400, labelW = 170, gap = 14, headH = 92;
-  const NAMES = { A: 'TODAY', B: many ? 'NEW (IN GAME)' : 'NEW (IN THE GAME NOW)' };
+  const NAMES = { A: 'TODAY' };
   const cols = want.map((l) => [l, NAMES[l] || SETS[l].name]);
   const rowH = (kind) => (viewOf(kind, k).h) * Z + 44;
   const W = labelW + cols.length * (colW + gap) + gap;
@@ -38,7 +37,6 @@ const url = await page.evaluate(async ({ k, want }) => {
     x.fillStyle = '#e3a857'; x.font = 'bold 52px sans-serif'; x.fillText(letter, cx + 6, 58);
     x.fillStyle = '#efe3cf'; x.font = `bold ${many ? 20 : 24}px sans-serif`; x.fillText(name, cx + 50, 52);
   });
-  const B_FRAME = { drifter: 0, weaver: 2, seeker: 0, gunner: 2, sniper: 0, spinner: 0 };
   let y = headH;
   for (const kind of ORDER) {
     const V = viewOf(kind, k);
@@ -54,8 +52,7 @@ const url = await page.evaluate(async ({ k, want }) => {
         const hi = s.hi || s;
         x.drawImage(hi, Math.round(cx + colW / 2 - (s.width * Z) / 2), Math.round(y + (V.h * Z) / 2 - (s.height * Z) / 2), s.width * Z, s.height * Z);
       } else {
-        if (letter === 'B') pic = art(kind, k).frames.get(B_FRAME[kind]);
-        else { const [nm, build] = SETS[letter].models[kind]; name = nm; pic = renderModel(build(), V, SETS[letter].look); }
+        { const [nm, build] = SETS[letter].models[kind]; name = nm; pic = renderModel(build(), V, SETS[letter].look); }
         x.drawImage(pic.hi, Math.round(cx + colW / 2 - (pic.width * Z) / 2), y, pic.width * Z, pic.height * Z);
       }
       if (name) { x.fillStyle = '#c9c0ab'; x.font = '20px sans-serif'; x.fillText(name, cx + 10, y + h - 12); }
